@@ -1,6 +1,6 @@
 // export { default } from '../../app/bookings/page'
 import { useState, useEffect } from "react"
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { CustomerHeader } from "@/components/layout/customer-header"
 import { BottomNav } from "@/components/layout/bottom-nav"
 import { 
@@ -35,6 +35,7 @@ interface EnrichedBooking extends BookingResult {
 
 export default function MyBookingsPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { user, isLoggedIn } = useAuth()
   const [bookings, setBookings] = useState<EnrichedBooking[]>([])
   const [loading, setLoading] = useState(true)
@@ -48,11 +49,14 @@ export default function MyBookingsPage() {
 
   useEffect(() => {
     if (!isLoggedIn) {
-      navigate('/login')
+      navigate('/login', {
+        replace: true,
+        state: { from: `${location.pathname}${location.search}${location.hash}` },
+      })
       return
     }
     loadBookings()
-  }, [isLoggedIn, navigate, user])
+  }, [isLoggedIn, location.hash, location.pathname, location.search, navigate, user])
 
   const loadBookings = async () => {
     if (!user) return
@@ -537,4 +541,3 @@ export default function MyBookingsPage() {
     </div>
   )
 }
-

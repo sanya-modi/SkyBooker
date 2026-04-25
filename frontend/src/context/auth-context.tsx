@@ -20,6 +20,7 @@ interface AuthContextType {
     email: string
     password: string
     phoneNumber: string
+    role: string
     passportNumber?: string
     nationality?: string
   }) => Promise<AuthResponseData>
@@ -76,6 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     email: string
     password: string
     phoneNumber: string
+    role: string
     passportNumber?: string
     nationality?: string
   }) => {

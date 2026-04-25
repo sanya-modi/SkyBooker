@@ -2,9 +2,6 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { BookingFlowProvider } from '@/contexts/BookingFlowContext'
 
-// Auth Pages
-import SignInPage from '@/pages/auth/SignInPage'
-import SignUpPage from '@/pages/auth/SignUpPage'
 import ForgotPasswordPage from '@/pages/auth/ForgotPasswordPage'
 
 // Booking Flow Pages
@@ -59,8 +56,8 @@ export default function AppRoutes() {
         <BrowserRouter>
           <Routes>
             {/* Auth Routes */}
-            <Route path="/auth/signin" element={<SignInPage />} />
-            <Route path="/auth/signup" element={<SignUpPage />} />
+            <Route path="/auth/signin" element={<AuthPage mode="signin" />} />
+            <Route path="/auth/signup" element={<AuthPage mode="signup" />} />
             <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/login" element={<AuthPage mode="signin" />} />
             <Route path="/signup" element={<AuthPage mode="signup" />} />

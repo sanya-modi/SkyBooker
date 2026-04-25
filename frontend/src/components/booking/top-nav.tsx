@@ -12,6 +12,10 @@ export function TopNav() {
   const location = useLocation()
   const { isLoggedIn, user, logout } = useAuth()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const normalizedRole = user?.role?.replace(/^ROLE_/, '').toUpperCase()
+  const canAccessAdmin = normalizedRole === 'ADMIN'
+  const canAccessAirline = normalizedRole === 'AIRLINE_STAFF'
+  const isLandingPage = location.pathname === '/'
 
   const navLinks = [
     { href: '/', label: 'Explore' },
@@ -69,6 +73,28 @@ export function TopNav() {
           <div className="hidden md:flex items-center gap-4">
             {isLoggedIn ? (
               <>
+                {(canAccessAdmin || canAccessAirline) && (
+                  <div className="flex items-center gap-2 border-l border-gray-200 pl-4">
+                    {canAccessAdmin ? (
+                      <button
+                        onClick={() => navigate('/admin')}
+                        className="px-3 py-1.5 text-xs font-semibold text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors flex items-center gap-1"
+                      >
+                        <span className="material-icons text-sm">admin_panel_settings</span>
+                        Admin
+                      </button>
+                    ) : null}
+                    {canAccessAirline ? (
+                      <button
+                        onClick={() => navigate('/airline')}
+                        className="px-3 py-1.5 text-xs font-semibold text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors flex items-center gap-1"
+                      >
+                        <span className="material-icons text-sm">flight</span>
+                        Airline
+                      </button>
+                    ) : null}
+                  </div>
+                )}
                 <button
                   className="text-sm font-medium text-gray-700 hover:text-sky-600 transition-colors"
                   onClick={() => navigate('/passenger')}
@@ -87,28 +113,14 @@ export function TopNav() {
               </>
             ) : (
               <>
-                <div className="flex items-center gap-2 border-l border-gray-200 pl-4">
+                {!isLandingPage ? (
                   <button
-                    onClick={() => navigate('/admin')}
-                    className="px-3 py-1.5 text-xs font-semibold text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors flex items-center gap-1"
+                    onClick={() => navigate('/auth/signin')}
+                    className="px-4 py-2 text-sm font-semibold text-sky-600 hover:text-sky-700 transition-colors"
                   >
-                    <span className="material-icons text-sm">admin_panel_settings</span>
-                    Admin
+                    Sign In
                   </button>
-                  <button
-                    onClick={() => navigate('/airline')}
-                    className="px-3 py-1.5 text-xs font-semibold text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors flex items-center gap-1"
-                  >
-                    <span className="material-icons text-sm">flight</span>
-                    Airline
-                  </button>
-                </div>
-                <button
-                  onClick={() => navigate('/auth/signin')}
-                  className="px-4 py-2 text-sm font-semibold text-sky-600 hover:text-sky-700 transition-colors"
-                >
-                  Sign In
-                </button>
+                ) : null}
                 <button
                   onClick={() => navigate('/auth/signup')}
                   className="px-5 py-2.5 text-sm font-semibold bg-gradient-to-r from-sky-500 to-blue-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all"
@@ -162,6 +174,28 @@ export function TopNav() {
             <div className="pt-3 border-t space-y-2">
               {isLoggedIn ? (
                 <>
+                  {canAccessAdmin ? (
+                    <button
+                      onClick={() => {
+                        navigate('/admin')
+                        setMobileMenuOpen(false)
+                      }}
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-700"
+                    >
+                      Admin
+                    </button>
+                  ) : null}
+                  {canAccessAirline ? (
+                    <button
+                      onClick={() => {
+                        navigate('/airline')
+                        setMobileMenuOpen(false)
+                      }}
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-700"
+                    >
+                      Airline
+                    </button>
+                  ) : null}
                   <button
                     onClick={() => {
                       navigate('/passenger')
@@ -184,15 +218,17 @@ export function TopNav() {
                 </>
               ) : (
                 <>
-                  <button
-                    onClick={() => {
-                      navigate('/auth/signin')
-                      setMobileMenuOpen(false)
-                    }}
-                    className="block w-full px-4 py-2 border border-gray-300 rounded-lg text-center font-medium text-gray-700"
-                  >
-                    Sign In
-                  </button>
+                  {!isLandingPage ? (
+                    <button
+                      onClick={() => {
+                        navigate('/auth/signin')
+                        setMobileMenuOpen(false)
+                      }}
+                      className="block w-full px-4 py-2 border border-gray-300 rounded-lg text-center font-medium text-gray-700"
+                    >
+                      Sign In
+                    </button>
+                  ) : null}
                   <button
                     onClick={() => {
                       navigate('/auth/signup')

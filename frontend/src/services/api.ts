@@ -125,6 +125,7 @@ export const authApi = {
     email: string
     password: string
     phoneNumber: string
+    role: string
     passportNumber?: string
     nationality?: string
   }) => request<AuthResponseData>('/auth/register', { method: 'POST', body: JSON.stringify(body) }),
