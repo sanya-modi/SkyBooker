@@ -1,0 +1,14 @@
+package com.skyBooker.airlineairport.service;
+
+import com.skyBooker.airlineairport.entity.Airline;
+
+import java.util.List;
+
+public interface AirlineService {
+    Airline createAirline(Airline airline);
+    Airline getAirlineById(Long id);
+    Airline getAirlineByIataCode(String iataCode);
+    List<Airline> getAllAirlines();
+    Airline updateAirline(Long id, Airline airlineData);
+    void deleteAirline(Long id);
+}
