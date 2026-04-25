@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Airport Search API Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        input {
+            padding: 10px;
+            width: 300px;
+            font-size: 16px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 4px;
+            white-space: pre-wrap;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <h1>🛫 Airport Search API Test</h1>
+    
+    <div class="test-section">
+        <h2>Test 1: Get All Airports</h2>
+        <button onclick="testGetAllAirports()">Get All Airports</button>
+        <div id="result1" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 2: Search Airports by City</h2>
+        <input type="text" id="searchInput" placeholder="Type 'del', 'mum', or 'bang'" value="del">
+        <button onclick="testSearchAirports()">Search</button>
+        <div id="result2" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 3: Get Airport by IATA Code</h2>
+        <input type="text" id="iataInput" placeholder="Enter IATA code (e.g., DEL)" value="DEL">
+        <button onclick="testGetByIata()">Get Airport</button>
+        <div id="result3" class="result"></div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8080';
+
+        async function testGetAllAirports() {
+            const resultDiv = document.getElementById('result1');
+            resultDiv.textContent = 'Loading...';
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/airports`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent = `✅ Success! Found ${data.length} airports:\n\n` + 
+                        JSON.stringify(data.slice(0, 5), null, 2) + 
+                        `\n\n... and ${data.length - 5} more`;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = `❌ Error: ${response.status}\n${JSON.stringify(data, null, 2)}`;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ Network Error: ${error.message}`;
+            }
+        }
+
+        async function testSearchAirports() {
+            const searchTerm = document.getElementById('searchInput').value;
+            const resultDiv = document.getElementById('result2');
+            resultDiv.textContent = 'Loading...';
+            
+            try {
+                const url = `${API_BASE_URL}/airports/search/by-city?searchTerm=${encodeURIComponent(searchTerm)}`;
+                console.log('Fetching:', url);
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.className = 'result success';
+                    if (data.length === 0) {
+                        resultDiv.textContent = `⚠️ No airports found for "${searchTerm}"`;
+                    } else {
+                        resultDiv.textContent = `✅ Success! Found ${data.length} airports:\n\n` + 
+                            JSON.stringify(data, null, 2);
+                    }
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = `❌ Error: ${response.status}\n${JSON.stringify(data, null, 2)}`;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ Network Error: ${error.message}\n\nMake sure:\n1. Backend is running (docker-compose up)\n2. API Gateway is on port 8080\n3. CORS is enabled`;
+            }
+        }
+
+        async function testGetByIata() {
+            const iataCode = document.getElementById('iataInput').value;
+            const resultDiv = document.getElementById('result3');
+            resultDiv.textContent = 'Loading...';
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/airports/iata/${iataCode}`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent = `✅ Success!\n\n` + JSON.stringify(data, null, 2);
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = `❌ Error: ${response.status}\n${JSON.stringify(data, null, 2)}`;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ Network Error: ${error.message}`;
+            }
+        }
+
+        // Auto-test on load
+        window.onload = () => {
+            console.log('Testing API connection...');
+            testGetAllAirports();
+        };
+    </script>
+</body>
+</html>
