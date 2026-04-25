@@ -1,0 +1,133 @@
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins: "*"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders: "*"
+            allowCredentials: false
+      routes:
+        - id: auth-service
+          uri: lb://auth-service
+          predicates:
+            - Path=/auth/**
+
+        - id: flight-service
+          uri: lb://flight-service
+          predicates:
+            - Path=/flights/**
+
+        - id: seat-service
+          uri: lb://seat-service
+          predicates:
+            - Path=/seats/**
+
+        - id: booking-service
+          uri: lb://booking-service
+          predicates:
+            - Path=/bookings/**
+
+        - id: passenger-service
+          uri: lb://passenger-service
+          predicates:
+            - Path=/passengers/**
+
+        - id: payment-service
+          uri: lb://payment-service
+          predicates:
+            - Path=/payments/**
+
+        - id: notification-service
+          uri: lb://notification-service
+          predicates:
+            - Path=/notifications/**
+
+        - id: airline-service
+          uri: lb://airline-airport-service
+          predicates:
+            - Path=/airlines/**
+
+        - id: airport-service
+          uri: lb://airline-airport-service
+          predicates:
+            - Path=/airports/**
+
+        - id: admin-user-service
+          uri: lb://admin-user-service
+          predicates:
+            - Path=/admin/**
+          filters:
+            - JwtAuthenticationFilter
+
+        - id: admin-service
+          uri: lb://admin-service
+          predicates:
+            - Path=/admin-server/**
+          filters:
+            - StripPrefix=1
+            - JwtAuthenticationFilter
+
+
+server:
+  port: 8080
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    preferIpAddress: true
+
+jwt:
+  secret: skyBookerSecretKeyForJWTTokenValidationPurpose123456789
+  expiration: 86400000
+
+logging:
+  level:
+    ROOT: INFO
+    com.skyBooker: INFO
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: always
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    urls:
+      - name: auth-service
+        url: /auth/v3/api-docs
+      - name: flight-service
+        url: /flights/v3/api-docs
+      - name: seat-service
+        url: /seats/v3/api-docs
+      - name: booking-service
+        url: /bookings/v3/api-docs
+      - name: passenger-service
+        url: /passengers/v3/api-docs
+      - name: payment-service
+        url: /payments/v3/api-docs
+      - name: notification-service
+        url: /notifications/v3/api-docs
+      - name: airline-airport-service
+        url: /airlines/v3/api-docs
+      - name: admin-user-service
+        url: /admin/v3/api-docs
+      - name: admin-service
+        url: /admin-server/v3/api-docs
