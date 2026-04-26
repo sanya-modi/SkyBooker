@@ -5,7 +5,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { MEALS, BAGGAGE } from '../../components/addons/addons-section'
 import { MobileDock } from '../../components/booking/mobile-dock'
 import { PaymentSummary } from '../../components/booking/payment-summary'
-import { getSeatPrice } from '../../components/booking/seat-picker'
+import { getEffectiveSeatClass, getSeatPrice } from '../../components/booking/seat-picker'
 import { TopNav } from '../../components/booking/top-nav'
 import { useAuth } from '../../context/auth-context'
 import { useBookingFlow } from '../../context/booking-flow-context'
@@ -74,7 +74,11 @@ export function PaymentPage() {
   useEffect(() => {
     async function load() {
       if (!flightId || (selectedFlight && selectedFlight.id === flightId)) return
-      setFlight(enrichFlight(await flightApi.getById(flightId)))
+      try {
+        setFlight(enrichFlight(await flightApi.getById(flightId)))
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load flight details.')
+      }
     }
     void load()
   }, [flightId, selectedFlight])
@@ -82,12 +86,22 @@ export function PaymentPage() {
   useEffect(() => {
     async function loadSeats() {
       if (!flightId) return
-      const allSeats = await seatApi.getAllByFlight(flightId)
-      setSeats(allSeats)
+      try {
+        const availableSeats = await seatApi.getAvailable(flightId)
+        setSeats(availableSeats)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load seat details.')
+      }
     }
     void loadSeats()
   }, [flightId])
 
+  const primaryPassenger = passengers[0] ?? passenger
+  const selectedSeatLabel = selectedSeatIds.join(', ')
+  const selectedSeat = selectedSeatIds.length === 1
+    ? seats.find((seat) => seat.seatNumber === selectedSeatIds[0]) ?? null
+    : null
+  const selectedSeatClass = selectedSeat ? getEffectiveSeatClass(selectedSeat) : undefined
   const taxes = useMemo(() => Math.round(Number(flight?.baseFare ?? 0) * 0.12), [flight])
   const seatCharge = useMemo(() => selectedSeatIds.reduce((sum, seatNumber) => sum + getSeatPrice(seats, seatNumber), 0), [seats, selectedSeatIds])
   const mealCharge = useMemo(() => MEALS.find(m => m.id === selectedMealId)?.price ?? 0, [selectedMealId])
@@ -95,12 +109,27 @@ export function PaymentPage() {
   const total = Number(flight?.baseFare ?? 0) + taxes + seatCharge + mealCharge + baggageCharge
 
   async function handleConfirm() {
-    if (!user || !flight) return
+    if (!user) {
+      setError('Please log in to continue with payment.')
+      return
+    }
+    if (!flight) {
+      setError('Flight details are missing. Please return to booking and try again.')
+      return
+    }
+    if (selectedSeatIds.length === 0) {
+      setError('Please select at least one seat before continuing to payment.')
+      return
+    }
+    if (!primaryPassenger.firstName.trim() || !primaryPassenger.lastName.trim() || !primaryPassenger.email.trim() || !primaryPassenger.phoneNumber.trim()) {
+      setError('Passenger details are missing. Please return to booking and complete them before payment.')
+      return
+    }
     setSubmitting(true)
     setError('')
     
     try {
-      const latestSeats = await seatApi.getAllByFlight(flight.id)
+      const latestSeats = await seatApi.getAvailable(flight.id)
       setSeats(latestSeats)
 
       const unavailableSeat = selectedSeatIds.find((seatNumber) => {
@@ -141,7 +170,7 @@ export function PaymentPage() {
           paymentMethod: selectedMethod
         },
         user.email,
-        passengers[0]?.firstName || `${passenger.firstName} ${passenger.lastName}` || user.email
+        primaryPassenger.firstName || `${passenger.firstName} ${passenger.lastName}` || user.email
       )
 
       console.log('Razorpay order created:', orderData)
@@ -186,6 +215,12 @@ export function PaymentPage() {
             setError('Payment cancelled by user')
           },
         },
+      }
+
+      if (typeof window === 'undefined' || typeof window.Razorpay !== 'function') {
+        setError('Payment service is currently unavailable. Please try again in a moment.')
+        setSubmitting(false)
+        return
       }
 
       const razorpay = new window.Razorpay(options)
@@ -467,7 +502,8 @@ export function PaymentPage() {
             seatCharge={seatCharge}
             mealCharge={mealCharge}
             baggageCharge={baggageCharge}
-            seatLabel={selectedSeatId}
+            seatLabel={selectedSeatLabel}
+            seatClass={selectedSeatClass}
             taxes={taxes}
             total={total}
           />

@@ -6,7 +6,7 @@ import { AddOnsSection, MEALS, BAGGAGE } from '../../components/addons/addons-se
 import { MobileDock } from '../../components/booking/mobile-dock'
 import { PassengerForm } from '../../components/booking/passenger-form'
 import { PaymentSummary } from '../../components/booking/payment-summary'
-import { getSeatPrice, SeatPicker } from '../../components/booking/seat-picker'
+import { getEffectiveSeatClass, getSeatPrice, SeatPicker } from '../../components/booking/seat-picker'
 import { TopNav } from '../../components/booking/top-nav'
 import { useAuth } from '../../context/auth-context'
 import { useBookingFlow } from '../../context/booking-flow-context'
@@ -131,6 +131,7 @@ export function BookingPage() {
   }, [flightId, flight?.totalSeats]) // eslint-disable-line
 
   const selectedSeat = seats.find((s) => s.seatNumber === selectedSeatId)
+  const selectedSeatClass = selectedSeat ? getEffectiveSeatClass(selectedSeat) : undefined
   const taxes = useMemo(() => Math.round(Number(flight?.baseFare ?? 0) * 0.12), [flight])
   const seatCharge = useMemo(() => getSeatPrice(seats, selectedSeatId), [seats, selectedSeatId])
   const mealCharge = useMemo(() => MEALS.find(m => m.id === selectedMealId)?.price ?? 0, [selectedMealId])
@@ -252,7 +253,7 @@ export function BookingPage() {
             seatCharge={seatCharge}
             mealCharge={mealCharge}
             baggageCharge={baggageCharge}
-            seatClass={selectedSeat?.seatClass}
+            seatClass={selectedSeatClass}
             seatLabel={selectedSeatId}
             taxes={taxes}
             total={total}

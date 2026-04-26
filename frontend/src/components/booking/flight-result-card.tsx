@@ -42,7 +42,7 @@ const TIERS = [
   },
   {
     key: 'flexi',
-    label: 'Flexi Economy',
+    label: 'First Class',
     mult: 1.35,
     badge: 'Popular',
     perks: [

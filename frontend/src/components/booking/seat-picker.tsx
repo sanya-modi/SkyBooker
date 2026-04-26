@@ -10,9 +10,15 @@ export const SEAT_PRICES: Record<string, number> = {
   FIRST: 5000,
 }
 
+export function getEffectiveSeatClass(seat: Pick<SeatResult, 'seatNumber' | 'seatClass'>): 'ECONOMY' | 'BUSINESS' | 'FIRST' {
+  const rowNumber = Number.parseInt(seat.seatNumber, 10)
+  if (rowNumber >= 10 && rowNumber <= 16) return 'FIRST'
+  return seat.seatClass
+}
+
 export function getSeatPrice(seats: SeatResult[], seatNumber: string): number {
   const seat = seats.find((s) => s.seatNumber === seatNumber)
-  return seat ? (SEAT_PRICES[seat.seatClass] ?? 0) : 0
+  return seat ? (SEAT_PRICES[getEffectiveSeatClass(seat)] ?? 0) : 0
 }
 
 /* ─── class styling ────────────────────────────────────── */
@@ -112,8 +118,7 @@ export function SeatPicker({ seats, loading, selectedSeatNumber, onSelect }: Sea
   }
 
   /* build rows */
-  const allRows = Array.from(new Set(seats.map((s) => parseInt(s.seatNumber, 10)))).sort((a, b) => a - b)
-  const visibleSeats = activeClass === 'ALL' ? seats : seats.filter((s) => s.seatClass === activeClass)
+  const visibleSeats = activeClass === 'ALL' ? seats : seats.filter((s) => getEffectiveSeatClass(s) === activeClass)
   const visibleRows = Array.from(new Set(visibleSeats.map((s) => parseInt(s.seatNumber, 10)))).sort((a, b) => a - b)
   const displayRows = showAll ? visibleRows : visibleRows.slice(0, 15)
 
@@ -163,7 +168,7 @@ export function SeatPicker({ seats, loading, selectedSeatNumber, onSelect }: Sea
         {(['ALL', 'ECONOMY', 'BUSINESS', 'FIRST'] as const).map((cls) => {
           const cnt = cls === 'ALL'
             ? seats.filter((s) => s.status === 'AVAILABLE').length
-            : seats.filter((s) => s.seatClass === cls && s.status === 'AVAILABLE').length
+            : seats.filter((s) => getEffectiveSeatClass(s) === cls && s.status === 'AVAILABLE').length
           const active = activeClass === cls
           return (
             <button
@@ -247,7 +252,7 @@ export function SeatPicker({ seats, loading, selectedSeatNumber, onSelect }: Sea
 
                           const seat = seats.find(
                             (s) => s.seatNumber === `${rowNum}${col}` &&
-                              (activeClass === 'ALL' || s.seatClass === activeClass)
+                              (activeClass === 'ALL' || getEffectiveSeatClass(s) === activeClass)
                           )
 
                           if (!seat) return <div key={ci} className="w-[34px] h-[34px]" />
@@ -255,7 +260,7 @@ export function SeatPicker({ seats, loading, selectedSeatNumber, onSelect }: Sea
                           const isSelected = seat.seatNumber === selectedSeatNumber
                           const isAvail = seat.status === 'AVAILABLE'
                           const isHeld = seat.status === 'HELD'
-                          const cfg = CLS[seat.seatClass] ?? CLS.ECONOMY
+                          const cfg = CLS[getEffectiveSeatClass(seat)] ?? CLS.ECONOMY
 
                           let cls = `seat-btn w-[34px] h-[34px] rounded-lg border-2 text-[10px] font-bold flex items-center justify-center transition-all duration-150 relative `
                           if (isSelected) cls += cfg.selected
@@ -319,7 +324,7 @@ export function SeatPicker({ seats, loading, selectedSeatNumber, onSelect }: Sea
       {/* ── class price guide ── */}
       <div className="px-5 pb-4 grid grid-cols-3 gap-2">
         {(['ECONOMY', 'BUSINESS', 'FIRST'] as const).map((cls) => {
-          const cnt = seats.filter((s) => s.seatClass === cls && s.status === 'AVAILABLE').length
+          const cnt = seats.filter((s) => getEffectiveSeatClass(s) === cls && s.status === 'AVAILABLE').length
           const cfg = CLS[cls]
           return (
             <div key={cls} className={`rounded-xl border px-3 py-2.5 ${cfg.badge} border-current/20`}>
@@ -341,7 +346,7 @@ export function SeatPicker({ seats, loading, selectedSeatNumber, onSelect }: Sea
             <div>
               <p className="font-bold text-[#1e3a8a] text-sm">Seat {selectedSeat.seatNumber} selected</p>
               <p className="text-blue-500 text-xs mt-0.5">
-                {CLS[selectedSeat.seatClass]?.label} · {CLS[selectedSeat.seatClass]?.price}
+                {CLS[getEffectiveSeatClass(selectedSeat)]?.label} · {CLS[getEffectiveSeatClass(selectedSeat)]?.price}
               </p>
             </div>
           </div>

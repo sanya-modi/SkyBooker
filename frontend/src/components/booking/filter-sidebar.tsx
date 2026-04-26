@@ -228,7 +228,7 @@ export function FilterSidebar({
 
             return (
               <label
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border cursor-pointer transition-all ${
+                className={`flex min-h-[56px] items-center gap-2.5 px-2.5 py-2 rounded-lg border cursor-pointer transition-all ${
                   checked ? 'border-[#1e3a8a] bg-blue-50' : 'border-slate-200 hover:border-slate-300 bg-white'
                 }`}
                 key={airline.id}
@@ -238,18 +238,18 @@ export function FilterSidebar({
                 }`}>
                   {checked && <svg width="9" height="7" viewBox="0 0 9 7" fill="none"><path d="M1 3.5L3.5 6L8 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                 </div>
-                <span className={`text-[10px] font-black px-1.5 py-0.5 rounded border ${colorClass}`}>
+                <span className={`text-[9px] font-black px-1.5 py-0.5 rounded border leading-none ${colorClass}`}>
                   {airline.iataCode}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <p className={`text-xs font-semibold truncate ${checked ? 'text-[#1e3a8a]' : 'text-slate-700'}`}>
+                  <p className={`text-[11px] font-semibold leading-tight truncate ${checked ? 'text-[#1e3a8a]' : 'text-slate-700'}`}>
                     {airline.name}
                   </p>
                   {minFare && (
-                    <p className="text-[10px] text-slate-400">from ₹{minFare.toLocaleString('en-IN')}</p>
+                    <p className="text-[9px] leading-tight text-slate-400">from ₹{minFare.toLocaleString('en-IN')}</p>
                   )}
                 </div>
-                <span className="text-[10px] text-slate-400 font-medium flex-shrink-0">{flightCount}</span>
+                <span className="text-[9px] text-slate-400 font-medium flex-shrink-0">{flightCount}</span>
                 <input
                   checked={checked}
                   className="sr-only"
