@@ -12,6 +12,16 @@ import { useAuth } from '../../context/auth-context'
 import { useBookingFlow } from '../../context/booking-flow-context'
 import { flightApi, seatApi, type EnrichedFlightResult, type SeatResult } from '../../services/api'
 
+type PassengerErrors = {
+  firstName?: string
+  lastName?: string
+  dateOfBirth?: string
+  gender?: string
+  passportNumber?: string
+  email?: string
+  phoneNumber?: string
+}
+
 function enrichFlight(f: Awaited<ReturnType<typeof flightApi.getById>>): EnrichedFlightResult {
   return { ...f, stopCount: 0, stopsLabel: 'Direct' }
 }
@@ -64,14 +74,18 @@ export function BookingPage() {
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const { isLoggedIn, user } = useAuth()
-  const { passenger, selectedFlight, selectedSeatId, selectedMealId, selectedBaggageId, setSelectedFlight, setSelectedSeatId, setSelectedMealId, setSelectedBaggageId, updatePassenger } = useBookingFlow()
+  const { passengers, searchCriteria, selectedFlight, selectedSeatIds, selectedMealId, selectedBaggageId, setSelectedFlight, setSelectedSeatIds, setSelectedMealId, setSelectedBaggageId, updatePassengerAt } = useBookingFlow()
 
   const [flight, setFlight] = useState<EnrichedFlightResult | null>(selectedFlight)
   const [seats, setSeats] = useState<SeatResult[]>([])
   const [seatsLoading, setSeatsLoading] = useState(true)
   const [flightLoading, setFlightLoading] = useState(true)
   const [error, setError] = useState('')
+  const [showPassengerErrors, setShowPassengerErrors] = useState(false)
   const flightId = Number(params.get('flightId'))
+  const requestedPassengers = Number(params.get('passengers') ?? '1')
+  const passengerCount = searchCriteria?.passengers ?? (Number.isFinite(requestedPassengers) && requestedPassengers > 0 ? requestedPassengers : 1)
+  const maxSelectableSeats = Math.min(Math.max(passengerCount, 1), 10)
 
   const headerRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
@@ -84,6 +98,12 @@ export function BookingPage() {
   useEffect(() => {
     if (!isLoggedIn) navigate(`/login?redirect=${encodeURIComponent(`/booking?flightId=${flightId}`)}`)
   }, [flightId, isLoggedIn, navigate])
+
+  useEffect(() => {
+    if (selectedSeatIds.length > maxSelectableSeats) {
+      setSelectedSeatIds(selectedSeatIds.slice(0, maxSelectableSeats))
+    }
+  }, [maxSelectableSeats, selectedSeatIds, setSelectedSeatIds])
 
   /* load flight */
   useEffect(() => {
@@ -130,23 +150,59 @@ export function BookingPage() {
     void loadSeats()
   }, [flightId, flight?.totalSeats]) // eslint-disable-line
 
-  const selectedSeat = seats.find((s) => s.seatNumber === selectedSeatId)
+  const selectedSeat = selectedSeatIds.length === 1 ? seats.find((s) => s.seatNumber === selectedSeatIds[0]) : undefined
   const selectedSeatClass = selectedSeat ? getEffectiveSeatClass(selectedSeat) : undefined
+  const selectedPassengers = passengers.slice(0, selectedSeatIds.length)
   const taxes = useMemo(() => Math.round(Number(flight?.baseFare ?? 0) * 0.12), [flight])
-  const seatCharge = useMemo(() => getSeatPrice(seats, selectedSeatId), [seats, selectedSeatId])
+  const seatCharge = useMemo(() => selectedSeatIds.reduce((sum, seatNumber) => sum + getSeatPrice(seats, seatNumber), 0), [seats, selectedSeatIds])
   const mealCharge = useMemo(() => MEALS.find(m => m.id === selectedMealId)?.price ?? 0, [selectedMealId])
   const baggageCharge = useMemo(() => BAGGAGE.find(b => b.id === selectedBaggageId)?.price ?? 0, [selectedBaggageId])
   const total = Number(flight?.baseFare ?? 0) + taxes + seatCharge + mealCharge + baggageCharge
 
+  const passengerErrors = useMemo(() => {
+    const passportCounts = selectedPassengers.reduce<Record<string, number>>((acc, passenger) => {
+      const passport = passenger.passportNumber.trim().toUpperCase()
+      if (passport) {
+        acc[passport] = (acc[passport] ?? 0) + 1
+      }
+      return acc
+    }, {})
+
+    return selectedPassengers.map<PassengerErrors>((passenger) => {
+      const errors: PassengerErrors = {}
+      const dob = passenger.dateOfBirth ? new Date(passenger.dateOfBirth) : null
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      const passport = passenger.passportNumber.trim().toUpperCase()
+
+      if (!passenger.firstName.trim()) errors.firstName = 'First name is required'
+      if (!passenger.lastName.trim()) errors.lastName = 'Last name is required'
+      if (!passenger.dateOfBirth) errors.dateOfBirth = 'Date of birth is required'
+      else if (dob && dob.getTime() > today.getTime()) errors.dateOfBirth = 'Date of birth cannot be in the future'
+      if (!passenger.gender.trim()) errors.gender = 'Gender is required'
+      if (!passenger.phoneNumber.trim()) errors.phoneNumber = 'Mobile number is required'
+      else if (!/^\d{10}$/.test(passenger.phoneNumber.trim())) errors.phoneNumber = 'Mobile number must be exactly 10 digits'
+      if (!passport) errors.passportNumber = 'Passport number is required'
+      else if ((passportCounts[passport] ?? 0) > 1) errors.passportNumber = 'Passport number must be unique'
+      if (!passenger.email.trim()) errors.email = 'Email address is required'
+
+      return errors
+    })
+  }, [selectedPassengers])
+
+  const hasPassengerErrors = passengerErrors.some((entry) => Object.keys(entry).length > 0)
+
   function continueToPayment() {
-    if (!passenger.firstName.trim() || !passenger.lastName.trim() || !passenger.email.trim() || !passenger.phoneNumber.trim()) {
-      setError('Please complete all passenger details.')
-      return
-    }
-    if (!selectedSeatId) {
+    if (selectedSeatIds.length === 0) {
       setError('Please select a seat to continue.')
       return
     }
+    if (hasPassengerErrors) {
+      setShowPassengerErrors(true)
+      setError('Please correct the highlighted passenger details.')
+      return
+    }
+    setShowPassengerErrors(false)
     setError('')
     navigate(`/payment?flightId=${flightId}`)
   }
@@ -226,9 +282,15 @@ export function BookingPage() {
               : (
                 <SeatPicker
                   loading={false}
+                  maxSelectableSeats={maxSelectableSeats}
+                  onSelectionLimitReached={setError}
                   seats={seats}
-                  selectedSeatNumber={selectedSeatId}
-                  onSelect={setSelectedSeatId}
+                  selectedSeatNumbers={selectedSeatIds}
+                  onSelect={(nextSeatIds) => {
+                    setError('')
+                    setShowPassengerErrors(false)
+                    setSelectedSeatIds(nextSeatIds)
+                  }}
                 />
               )
             }
@@ -238,10 +300,31 @@ export function BookingPage() {
               onMealSelect={setSelectedMealId}
               onBaggageSelect={setSelectedBaggageId}
             />
-            <PassengerForm
-              onChange={(next) => updatePassenger({ ...next, email: next.email || user?.email || '' })}
-              value={{ ...passenger, email: passenger.email || user?.email || '' }}
-            />
+            {selectedSeatIds.map((seatNumber, index) => {
+              const passenger = selectedPassengers[index] ?? {
+                firstName: '',
+                lastName: '',
+                dateOfBirth: '',
+                gender: '',
+                passportNumber: '',
+                email: user?.email || '',
+                phoneNumber: '',
+              }
+
+              return (
+                <PassengerForm
+                  errors={showPassengerErrors ? passengerErrors[index] : undefined}
+                  key={seatNumber}
+                  onChange={(next) => {
+                    setError('')
+                    updatePassengerAt(index, { ...next, email: next.email || user?.email || '' })
+                  }}
+                  seatLabel={seatNumber}
+                  title={`Passenger ${index + 1}`}
+                  value={{ ...passenger, email: passenger.email || user?.email || '' }}
+                />
+              )
+            })}
           </div>
 
           {/* right col */}
@@ -254,7 +337,7 @@ export function BookingPage() {
             mealCharge={mealCharge}
             baggageCharge={baggageCharge}
             seatClass={selectedSeatClass}
-            seatLabel={selectedSeatId}
+            seatLabel={selectedSeatIds.join(', ')}
             taxes={taxes}
             total={total}
           />

@@ -1,25 +1,35 @@
 import { gsap } from 'gsap'
 import { Calendar, Mail, Phone, Shield, User } from 'lucide-react'
-import { useLayoutEffect, useRef } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import type { PassengerFormData } from '../../context/booking-flow-context'
 
 const FIELDS = [
   { key: 'firstName', label: 'First Name', placeholder: 'As per passport', icon: User, type: 'text', col: 1 },
   { key: 'lastName', label: 'Last Name', placeholder: 'As per passport', icon: User, type: 'text', col: 1 },
   { key: 'dateOfBirth', label: 'Date of Birth', placeholder: '', icon: Calendar, type: 'date', col: 1 },
+  { key: 'gender', label: 'Gender', placeholder: '', icon: User, type: 'select', col: 1 },
   { key: 'passportNumber', label: 'Passport / ID Number', placeholder: 'A1234567', icon: Shield, type: 'text', col: 1 },
   { key: 'email', label: 'Email Address', placeholder: 'you@example.com', icon: Mail, type: 'email', col: 2 },
   { key: 'phoneNumber', label: 'Phone Number', placeholder: '+91 98765 43210', icon: Phone, type: 'tel', col: 1 },
 ] as const
 
+const COUNTRY_CODES = ['+91', '+1', '+44'] as const
+
 export function PassengerForm({
+  seatLabel,
+  title,
   value,
+  errors = {},
   onChange,
 }: {
+  seatLabel?: string
+  title?: string
   value: PassengerFormData
+  errors?: Partial<Record<keyof PassengerFormData, string>>
   onChange: (next: PassengerFormData) => void
 }) {
   const formRef = useRef<HTMLDivElement>(null)
+  const [countryCode, setCountryCode] = useState<(typeof COUNTRY_CODES)[number]>('+91')
 
   useLayoutEffect(() => {
     if (!formRef.current) return
@@ -38,8 +48,10 @@ export function PassengerForm({
             <User size={18} className="text-[#1e3a8a]" />
           </div>
           <div>
-            <h2 className="font-bold text-slate-900 text-base">Passenger Details</h2>
-            <p className="text-slate-400 text-xs mt-0.5">Enter details exactly as on your passport / ID</p>
+            <h2 className="font-bold text-slate-900 text-base">{title ?? 'Passenger Details'}</h2>
+            <p className="text-slate-400 text-xs mt-0.5">
+              {seatLabel ? `Seat ${seatLabel} · ` : ''}Enter details exactly as on your passport / ID
+            </p>
           </div>
         </div>
       </div>
@@ -50,6 +62,7 @@ export function PassengerForm({
           const Icon = field.icon
           const val = value[field.key]
           const isEmpty = !val
+          const fieldError = errors[field.key]
 
           return (
             <div
@@ -60,18 +73,61 @@ export function PassengerForm({
                 {field.label}
               </label>
               <div className={`flex items-center gap-3 px-4 h-12 rounded-xl border-2 transition-all bg-slate-50 ${
-                isEmpty ? 'border-slate-200' : 'border-[#1e3a8a]/30 bg-blue-50/30'
+                fieldError
+                  ? 'border-red-300 bg-red-50/60'
+                  : isEmpty
+                  ? 'border-slate-200'
+                  : 'border-[#1e3a8a]/30 bg-blue-50/30'
               } focus-within:border-[#1e3a8a] focus-within:bg-white focus-within:shadow-sm focus-within:shadow-blue-900/10`}>
-                <Icon size={15} className={isEmpty ? 'text-slate-300' : 'text-[#1e3a8a]'} />
-                <input
-                  className="flex-1 bg-transparent border-none outline-none text-sm font-medium text-slate-900 placeholder:text-slate-300"
-                  onChange={(e) => onChange({ ...value, [field.key]: e.target.value })}
-                  placeholder={field.placeholder}
-                  required
-                  type={field.type}
-                  value={val}
-                />
+                <Icon size={15} className={fieldError ? 'text-red-400' : isEmpty ? 'text-slate-300' : 'text-[#1e3a8a]'} />
+                {field.key === 'gender' ? (
+                  <select
+                    className="flex-1 bg-transparent border-none outline-none text-sm font-medium text-slate-900"
+                    onChange={(e) => onChange({ ...value, gender: e.target.value })}
+                    value={value.gender}
+                  >
+                    <option value="">Select gender</option>
+                    <option value="MALE">Male</option>
+                    <option value="FEMALE">Female</option>
+                    <option value="OTHER">Other</option>
+                  </select>
+                ) : field.key === 'phoneNumber' ? (
+                  <>
+                    <select
+                      className="bg-transparent border-none outline-none text-sm font-medium text-slate-900"
+                      onChange={(e) => setCountryCode(e.target.value as (typeof COUNTRY_CODES)[number])}
+                      value={countryCode}
+                    >
+                      {COUNTRY_CODES.map((code) => (
+                        <option key={code} value={code}>{code}</option>
+                      ))}
+                    </select>
+                    <input
+                      className="flex-1 bg-transparent border-none outline-none text-sm font-medium text-slate-900 placeholder:text-slate-300"
+                      inputMode="numeric"
+                      maxLength={10}
+                      onChange={(e) => onChange({ ...value, phoneNumber: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                      placeholder="9876543210"
+                      required
+                      type="tel"
+                      value={value.phoneNumber}
+                    />
+                  </>
+                ) : (
+                  <input
+                    className="flex-1 bg-transparent border-none outline-none text-sm font-medium text-slate-900 placeholder:text-slate-300"
+                    max={field.key === 'dateOfBirth' ? new Date().toISOString().slice(0, 10) : undefined}
+                    onChange={(e) => onChange({ ...value, [field.key]: e.target.value })}
+                    placeholder={field.placeholder}
+                    required
+                    type={field.type}
+                    value={val}
+                  />
+                )}
               </div>
+              {fieldError ? (
+                <p className="text-[11px] font-medium text-red-600">{fieldError}</p>
+              ) : null}
             </div>
           )
         })}

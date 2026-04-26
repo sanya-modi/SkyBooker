@@ -6,8 +6,8 @@ import type { SeatResult } from '../../services/api'
 /* ─── pricing ─────────────────────────────────────────── */
 export const SEAT_PRICES: Record<string, number> = {
   ECONOMY: 0,
-  BUSINESS: 2500,
-  FIRST: 5000,
+  BUSINESS: 4000,
+  FIRST: 6000,
 }
 
 export function getEffectiveSeatClass(seat: Pick<SeatResult, 'seatNumber' | 'seatClass'>): 'ECONOMY' | 'BUSINESS' | 'FIRST' {
@@ -18,7 +18,20 @@ export function getEffectiveSeatClass(seat: Pick<SeatResult, 'seatNumber' | 'sea
 
 export function getSeatPrice(seats: SeatResult[], seatNumber: string): number {
   const seat = seats.find((s) => s.seatNumber === seatNumber)
-  return seat ? (SEAT_PRICES[getEffectiveSeatClass(seat)] ?? 0) : 0
+  if (!seat) return 0
+
+  const effectiveClass = getEffectiveSeatClass(seat)
+  const seatColumn = seat.seatNumber.slice(-1)
+  const rowNumber = Number.parseInt(seat.seatNumber, 10)
+  const classPrice = SEAT_PRICES[effectiveClass] ?? 0
+  const positionPrice = seatColumn === 'A' || seatColumn === 'F'
+    ? 2000
+    : seatColumn === 'B' || seatColumn === 'E'
+    ? 1000
+    : 500
+  const legroomPrice = rowNumber === 1 || rowNumber === 10 || rowNumber === 20 ? 1000 : 0
+
+  return classPrice + positionPrice + legroomPrice
 }
 
 /* ─── class styling ────────────────────────────────────── */
@@ -75,11 +88,13 @@ function SkeletonRow() {
 interface SeatPickerProps {
   seats: SeatResult[]          // all seats for this flight
   loading: boolean
-  selectedSeatNumber: string
-  onSelect: (seatNumber: string) => void
+  selectedSeatNumbers: string[]
+  maxSelectableSeats: number
+  onSelectionLimitReached?: (message: string) => void
+  onSelect: (seatNumbers: string[]) => void
 }
 
-export function SeatPicker({ seats, loading, selectedSeatNumber, onSelect }: SeatPickerProps) {
+export function SeatPicker({ seats, loading, selectedSeatNumbers, maxSelectableSeats, onSelectionLimitReached, onSelect }: SeatPickerProps) {
   const [activeClass, setActiveClass] = useState<'ALL' | 'ECONOMY' | 'BUSINESS' | 'FIRST'>('ALL')
   const [showAll, setShowAll] = useState(false)
   const mapRef = useRef<HTMLDivElement>(null)
@@ -107,8 +122,17 @@ export function SeatPicker({ seats, loading, selectedSeatNumber, onSelect }: Sea
   /* seat click */
   function handleClick(seat: SeatResult) {
     if (seat.status !== 'AVAILABLE') return
-    const next = seat.seatNumber === selectedSeatNumber ? '' : seat.seatNumber
-    onSelect(next)
+    const isSelected = selectedSeatNumbers.includes(seat.seatNumber)
+
+    if (isSelected) {
+      onSelect(selectedSeatNumbers.filter((seatNumber) => seatNumber !== seat.seatNumber))
+    } else {
+      if (selectedSeatNumbers.length >= maxSelectableSeats) {
+        onSelectionLimitReached?.(`You can select up to ${maxSelectableSeats} seats`)
+        return
+      }
+      onSelect([...selectedSeatNumbers, seat.seatNumber])
+    }
 
     // bounce animation
     if (mapRef.current) {
@@ -129,7 +153,9 @@ export function SeatPicker({ seats, loading, selectedSeatNumber, onSelect }: Sea
     booked: seats.filter((s) => s.status === 'BOOKED').length,
   }
 
-  const selectedSeat = seats.find((s) => s.seatNumber === selectedSeatNumber)
+  const selectedSeat = selectedSeatNumbers.length === 1
+    ? seats.find((s) => s.seatNumber === selectedSeatNumbers[0])
+    : null
 
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
@@ -140,6 +166,7 @@ export function SeatPicker({ seats, loading, selectedSeatNumber, onSelect }: Sea
           <div>
             <h2 className="text-white font-bold text-lg leading-tight">Select Your Seat</h2>
             <p className="text-blue-200 text-xs mt-1">Click any available seat to select it</p>
+            <p className="text-blue-200 text-xs mt-1">You can select up to {maxSelectableSeats} seats</p>
           </div>
           <div className="flex items-center gap-2 bg-white/10 px-3 py-1.5 rounded-xl flex-shrink-0">
             <Clock size={13} className="text-blue-300" />
@@ -257,7 +284,7 @@ export function SeatPicker({ seats, loading, selectedSeatNumber, onSelect }: Sea
 
                           if (!seat) return <div key={ci} className="w-[34px] h-[34px]" />
 
-                          const isSelected = seat.seatNumber === selectedSeatNumber
+                          const isSelected = selectedSeatNumbers.includes(seat.seatNumber)
                           const isAvail = seat.status === 'AVAILABLE'
                           const isHeld = seat.status === 'HELD'
                           const cfg = CLS[getEffectiveSeatClass(seat)] ?? CLS.ECONOMY
@@ -361,7 +388,7 @@ export function SeatPicker({ seats, loading, selectedSeatNumber, onSelect }: Sea
       )}
 
       {/* ── no seat warning ── */}
-      {!loading && !selectedSeat && (
+      {!loading && selectedSeatNumbers.length === 0 && (
         <div className="mx-5 mb-5 flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
           <Info size={14} className="text-amber-500 flex-shrink-0" />
           <p className="text-amber-700 text-xs font-medium">Please select a seat to continue to payment</p>

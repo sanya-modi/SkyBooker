@@ -5,6 +5,8 @@ import type { Airport } from '../../services/api'
 import { AirportAutocomplete } from './airport-autocomplete'
 import { Button } from './button'
 
+const MAX_PASSENGERS = 10
+
 interface SearchFormProps {
   initialValue?: SearchCriteria | null
   loading?: boolean
@@ -35,9 +37,35 @@ export function SearchForm({ initialValue, loading = false, onSubmit, onFromChan
   }
   const [departureDate, setDepartureDate] = useState(initialValue?.departureDate ?? '')
   const [returnDate, setReturnDate] = useState(initialValue?.returnDate ?? '')
-  const [passengers, setPassengers] = useState(String(initialValue?.passengers ?? 1))
+  const [passengers, setPassengers] = useState(String(Math.min(initialValue?.passengers ?? 1, MAX_PASSENGERS)))
   const [directOnly, setDirectOnly] = useState(initialValue?.directOnly ?? true)
   const [error, setError] = useState('')
+  const [passengerLimitError, setPassengerLimitError] = useState('')
+
+  function handlePassengersChange(value: string) {
+    if (value === '') {
+      setPassengers('')
+      setPassengerLimitError('')
+      return
+    }
+
+    const digitsOnly = value.replace(/\D/g, '')
+    if (!digitsOnly) {
+      setPassengers('1')
+      setPassengerLimitError('')
+      return
+    }
+
+    const nextValue = Number(digitsOnly)
+    if (nextValue > MAX_PASSENGERS) {
+      setPassengers(String(MAX_PASSENGERS))
+      setPassengerLimitError('Maximum 10 passengers allowed')
+      return
+    }
+
+    setPassengers(String(Math.max(1, nextValue)))
+    setPassengerLimitError('')
+  }
 
   function validate() {
     if (!fromAirport || !toAirport) return 'Please choose both origin and destination airports.'
@@ -88,6 +116,7 @@ export function SearchForm({ initialValue, loading = false, onSubmit, onFromChan
       </div>
 
       {error ? <div className="search-error">{error}</div> : null}
+      {!error && passengerLimitError ? <div className="search-error">{passengerLimitError}</div> : null}
 
       <div className="landing-search-grid">
         <AirportAutocomplete
@@ -128,7 +157,8 @@ export function SearchForm({ initialValue, loading = false, onSubmit, onFromChan
         <SearchInput
           icon={<UsersRound size={18} />}
           min="1"
-          onChange={setPassengers}
+          max={String(MAX_PASSENGERS)}
+          onChange={handlePassengersChange}
           placeholder="Passengers"
           type="number"
           value={passengers}
@@ -148,6 +178,7 @@ function SearchInput({
   onChange,
   type = 'text',
   min,
+  max,
 }: {
   icon: React.ReactNode
   placeholder: string
@@ -155,11 +186,12 @@ function SearchInput({
   onChange: (value: string) => void
   type?: 'text' | 'date' | 'number'
   min?: string
+  max?: string
 }) {
   return (
     <div className="landing-input">
       {icon}
-      <input min={min} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} type={type} value={value} />
+      <input max={max} min={min} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} type={type} value={value} />
     </div>
   )
 }
