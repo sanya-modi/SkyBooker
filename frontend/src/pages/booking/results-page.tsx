@@ -78,6 +78,8 @@ export function ResultsPage() {
   const returnDate = params.get('returnDate') ?? ''
   const passengers = Number(params.get('passengers') ?? '1')
   const tripType = (params.get('tripType') as 'roundtrip' | 'oneway') || 'roundtrip'
+  const hasValidRouteIds = Number.isFinite(fromId) && fromId > 0 && Number.isFinite(toId) && toId > 0
+  const hasValidDepartureDate = Boolean(departureDate) && !Number.isNaN(new Date(departureDate).getTime())
 
   // Hero entrance animation
   useLayoutEffect(() => {
@@ -93,13 +95,20 @@ export function ResultsPage() {
       setLoading(true)
       setError('')
       try {
-        const [airportList, airlineList, flightList] = await Promise.all([
+        const [airportList, airlineList] = await Promise.all([
           getAllAirportsCached(),
           getAllAirlinesCached(),
-          searchFlights(fromId, toId, departureDate),
         ])
         setAirports(airportList)
         setAirlines(airlineList)
+
+        if (!hasValidRouteIds || !hasValidDepartureDate) {
+          setAllFlights([])
+          setError('Please select valid travel details.')
+          return
+        }
+
+        const flightList = await searchFlights(fromId, toId, departureDate)
         setAllFlights(flightList)
 
         const prices = flightList.map((f) => Number(f.baseFare))
@@ -122,13 +131,19 @@ export function ResultsPage() {
           passengers, tripType, directOnly: false,
         })
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unable to load flights.')
+        setAllFlights([])
+        const message = err instanceof Error ? err.message : ''
+        setError(
+          message.includes('LocalDateTime') || message.includes('Failed to convert value')
+            ? 'Please select valid travel dates.'
+            : 'No flights found.'
+        )
       } finally {
         setLoading(false)
       }
     }
     void load()
-  }, [fromId, toId, departureDate]) // eslint-disable-line
+  }, [departureDate, fromId, hasValidDepartureDate, hasValidRouteIds, passengers, returnDate, setSearchCriteria, toId, tripType]) // eslint-disable-line
 
   // Animate list when flights change
   useEffect(() => {

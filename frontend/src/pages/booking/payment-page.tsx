@@ -9,7 +9,7 @@ import { getSeatPrice } from '../../components/booking/seat-picker'
 import { TopNav } from '../../components/booking/top-nav'
 import { useAuth } from '../../context/auth-context'
 import { useBookingFlow } from '../../context/booking-flow-context'
-import { bookingApi, flightApi, paymentApi, seatApi, type EnrichedFlightResult } from '../../services/api'
+import { bookingApi, flightApi, paymentApi, seatApi, type EnrichedFlightResult, type SeatResult } from '../../services/api'
 
 declare global {
   interface Window {
@@ -25,6 +25,11 @@ function fmtTime(v: string) {
   return new Date(v).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false })
 }
 
+function isSeatConflictError(message: string) {
+  const normalized = message.toLowerCase()
+  return normalized.includes('duplicate key') || normalized.includes('seat already booked') || normalized.includes('seat is already booked')
+}
+
 type PaymentMethod = 'CREDIT_CARD' | 'UPI' | 'NET_BANKING' | 'WALLET'
 
 const PAYMENT_METHODS = [
@@ -38,9 +43,9 @@ export function PaymentPage() {
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const { isLoggedIn, user } = useAuth()
-  const { selectedFlight, selectedSeatId, selectedMealId, selectedBaggageId, passenger, setConfirmedBooking } = useBookingFlow()
+  const { passengers, selectedFlight, selectedSeatIds, selectedMealId, selectedBaggageId, passenger, setConfirmedBooking } = useBookingFlow()
   const [flight, setFlight] = useState<EnrichedFlightResult | null>(selectedFlight)
-  const [seats, setSeats] = useState<any[]>([])
+  const [seats, setSeats] = useState<SeatResult[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>('CREDIT_CARD')
@@ -61,10 +66,10 @@ export function PaymentPage() {
   }, [flightId, isLoggedIn, navigate])
 
   useEffect(() => {
-    if (!selectedSeatId) {
+    if (selectedSeatIds.length === 0) {
       navigate(`/booking?flightId=${flightId}`)
     }
-  }, [flightId, navigate, selectedSeatId])
+  }, [flightId, navigate, selectedSeatIds])
 
   useEffect(() => {
     async function load() {
@@ -77,14 +82,14 @@ export function PaymentPage() {
   useEffect(() => {
     async function loadSeats() {
       if (!flightId) return
-      const available = await seatApi.getAvailable(flightId)
-      setSeats(available)
+      const allSeats = await seatApi.getAllByFlight(flightId)
+      setSeats(allSeats)
     }
     void loadSeats()
   }, [flightId])
 
   const taxes = useMemo(() => Math.round(Number(flight?.baseFare ?? 0) * 0.12), [flight])
-  const seatCharge = useMemo(() => getSeatPrice(seats, selectedSeatId), [seats, selectedSeatId])
+  const seatCharge = useMemo(() => selectedSeatIds.reduce((sum, seatNumber) => sum + getSeatPrice(seats, seatNumber), 0), [seats, selectedSeatIds])
   const mealCharge = useMemo(() => MEALS.find(m => m.id === selectedMealId)?.price ?? 0, [selectedMealId])
   const baggageCharge = useMemo(() => BAGGAGE.find(b => b.id === selectedBaggageId)?.price ?? 0, [selectedBaggageId])
   const total = Number(flight?.baseFare ?? 0) + taxes + seatCharge + mealCharge + baggageCharge
@@ -95,19 +100,33 @@ export function PaymentPage() {
     setError('')
     
     try {
+      const latestSeats = await seatApi.getAllByFlight(flight.id)
+      setSeats(latestSeats)
+
+      const unavailableSeat = selectedSeatIds.find((seatNumber) => {
+        const seat = latestSeats.find((entry) => entry.seatNumber === seatNumber)
+        return !seat || seat.status !== 'AVAILABLE'
+      })
+
+      if (unavailableSeat) {
+        setError('This seat is already booked. Please select another seat.')
+        setSubmitting(false)
+        return
+      }
+
       console.log('Creating booking...', {
         userId: user.userId,
         flightId: flight.id,
-        numberOfPassengers: 1,
-        selectedSeats: [selectedSeatId],
+        numberOfPassengers: selectedSeatIds.length,
+        selectedSeats: selectedSeatIds,
       })
 
       // Step 1: Create booking with PENDING status
       const booking = await bookingApi.create({
         userId: user.userId,
         flightId: flight.id,
-        numberOfPassengers: 1,
-        selectedSeats: [selectedSeatId],
+        numberOfPassengers: selectedSeatIds.length,
+        selectedSeats: selectedSeatIds,
       })
 
       console.log('Booking created:', booking)
@@ -122,7 +141,7 @@ export function PaymentPage() {
           paymentMethod: selectedMethod
         },
         user.email,
-        `${passenger.firstName} ${passenger.lastName}` || user.email
+        passengers[0]?.firstName || `${passenger.firstName} ${passenger.lastName}` || user.email
       )
 
       console.log('Razorpay order created:', orderData)
@@ -154,9 +173,9 @@ export function PaymentPage() {
           }
         },
         prefill: {
-          name: `${passenger.firstName} ${passenger.lastName}`,
+          name: passengers[0]?.firstName || `${passenger.firstName} ${passenger.lastName}`,
           email: user.email,
-          contact: passenger.phoneNumber,
+          contact: passengers[0]?.phoneNumber || passenger.phoneNumber,
         },
         theme: {
           color: '#00236f',
@@ -173,7 +192,8 @@ export function PaymentPage() {
       razorpay.open()
     } catch (err) {
       console.error('Payment initiation failed:', err)
-      setError(err instanceof Error ? err.message : 'Unable to initiate payment.')
+      const message = err instanceof Error ? err.message : 'Unable to initiate payment.'
+      setError(isSeatConflictError(message) ? 'This seat is already booked. Please select another seat.' : message)
       setSubmitting(false)
     }
   }

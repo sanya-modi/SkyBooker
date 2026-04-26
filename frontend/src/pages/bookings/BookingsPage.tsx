@@ -1,8 +1,8 @@
 // export { default } from '../../app/bookings/page'
 import { useState, useEffect } from "react"
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { CustomerHeader } from "@/components/layout/customer-header"
 import { BottomNav } from "@/components/layout/bottom-nav"
+import { TopNav } from "@/components/booking/top-nav"
 import { 
   Plane, 
   Download, 
@@ -22,7 +22,7 @@ import {
   Ban
 } from "lucide-react"
 import { useAuth } from "@/context/auth-context"
-import { bookingApi, flightApi, airportApi, airlineApi, type BookingResult, type FlightResult, type Airport, type Airline } from "@/services/api"
+import { bookingApi, flightApi, airportApi, airlineApi, passengerApi, type BookingResult, type FlightResult, type Airport, type Airline, type PassengerResult } from "@/services/api"
 
 import { CancellationModal } from "@/components/bookings/cancellation-modal"
 
@@ -31,12 +31,13 @@ interface EnrichedBooking extends BookingResult {
   departureAirport?: Airport
   arrivalAirport?: Airport
   airline?: Airline
+  passengers?: PassengerResult[]
 }
 
 export default function MyBookingsPage() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { user, isLoggedIn } = useAuth()
+  const { user, isLoggedIn, isAuthReady } = useAuth()
   const [bookings, setBookings] = useState<EnrichedBooking[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -46,8 +47,13 @@ export default function MyBookingsPage() {
   const [downloadingId, setDownloadingId] = useState<number | null>(null)
   const [showCancelModal, setShowCancelModal] = useState(false)
   const [bookingToCancel, setBookingToCancel] = useState<EnrichedBooking | null>(null)
+  const [cancelRestrictionMessageId, setCancelRestrictionMessageId] = useState<number | null>(null)
 
   useEffect(() => {
+    if (!isAuthReady) {
+      return
+    }
+
     if (!isLoggedIn) {
       navigate('/login', {
         replace: true,
@@ -55,8 +61,8 @@ export default function MyBookingsPage() {
       })
       return
     }
-    loadBookings()
-  }, [isLoggedIn, location.hash, location.pathname, location.search, navigate, user])
+    void loadBookings()
+  }, [isAuthReady, isLoggedIn, location.hash, location.pathname, location.search, navigate, user])
 
   const loadBookings = async () => {
     if (!user) return
@@ -71,22 +77,28 @@ export default function MyBookingsPage() {
       const enrichedBookings = await Promise.all(
         bookingsData.map(async (booking) => {
           try {
-            const [flight, airports, airlines] = await Promise.all([
+            const [flight, airports, airlines, passengers] = await Promise.all([
               flightApi.getById(booking.flightId),
               airportApi.getAll(),
-              airlineApi.getAll()
+              airlineApi.getAll(),
+              passengerApi.getByBooking(booking.id).catch(() => [])
             ])
             
             const departureAirport = airports.find(a => a.id === flight.departureAirportId)
             const arrivalAirport = airports.find(a => a.id === flight.arrivalAirportId)
             const airline = airlines.find(a => a.id === flight.airlineId)
+            const selectedSeats = booking.selectedSeats?.length
+              ? booking.selectedSeats
+              : passengers.map((passenger) => passenger.seatNumber).filter(Boolean)
             
             return {
               ...booking,
+              selectedSeats,
               flight,
               departureAirport,
               arrivalAirport,
-              airline
+              airline,
+              passengers,
             }
           } catch (err) {
             console.error('Error enriching booking:', err)
@@ -98,16 +110,37 @@ export default function MyBookingsPage() {
       setBookings(enrichedBookings)
     } catch (err) {
       console.error('Error loading bookings:', err)
-      setError(err instanceof Error ? err.message : 'Failed to load bookings')
+      setError('Unable to load trips')
     } finally {
       setLoading(false)
     }
   }
 
+  const isPastBooking = (booking: EnrichedBooking) => {
+    if (!booking.flight?.departureTime) {
+      return booking.status.toUpperCase() === 'COMPLETED'
+    }
+
+    return new Date(booking.flight.departureTime).getTime() < Date.now()
+  }
+
+  const isCancellationRestricted = (booking: EnrichedBooking) => {
+    if (!booking.flight?.departureTime) return false
+
+    const departureTime = new Date(booking.flight.departureTime).getTime()
+    return departureTime - Date.now() <= 24 * 60 * 60 * 1000
+  }
+
   const handleCancelBooking = async (bookingId: number) => {
     const booking = bookings.find(b => b.id === bookingId)
     if (!booking) return
+
+    if (isCancellationRestricted(booking)) {
+      setCancelRestrictionMessageId(bookingId)
+      return
+    }
     
+    setCancelRestrictionMessageId(null)
     setBookingToCancel(booking)
     setShowCancelModal(true)
   }
@@ -216,11 +249,13 @@ export default function MyBookingsPage() {
 
     // Filter by tab
     if (activeTab === 'upcoming') {
-      filtered = filtered.filter(b => 
-        b.status.toUpperCase() === 'CONFIRMED' || b.status.toUpperCase() === 'PENDING'
+      filtered = filtered.filter((booking) =>
+        booking.status.toUpperCase() !== 'CANCELLED' && !isPastBooking(booking)
       )
     } else if (activeTab === 'past') {
-      filtered = filtered.filter(b => b.status.toUpperCase() === 'COMPLETED')
+      filtered = filtered.filter((booking) =>
+        booking.status.toUpperCase() !== 'CANCELLED' && isPastBooking(booking)
+      )
     } else if (activeTab === 'cancelled') {
       filtered = filtered.filter(b => b.status.toUpperCase() === 'CANCELLED')
     }
@@ -240,6 +275,17 @@ export default function MyBookingsPage() {
 
   const filteredBookings = filterBookings()
 
+  if (!isAuthReady || (isLoggedIn && !user)) {
+    return (
+      <div className="min-h-screen bg-[#f7f9fb] flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 text-[#00236f] animate-spin mx-auto mb-4" />
+          <p className="text-slate-600 font-medium">Loading your trips...</p>
+        </div>
+      </div>
+    )
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#f7f9fb] flex items-center justify-center">
@@ -253,7 +299,7 @@ export default function MyBookingsPage() {
 
   return (
     <div className="min-h-screen bg-[#f7f9fb] pb-32 md:pb-0">
-      <CustomerHeader />
+      <TopNav />
 
       <main className="max-w-7xl mx-auto px-4 md:px-6 py-8 pt-24">
         {/* Header Section */}
@@ -361,9 +407,13 @@ export default function MyBookingsPage() {
             {filteredBookings.map((booking) => {
               const statusBadge = getStatusBadge(booking.status)
               const StatusIcon = statusBadge.icon
-              const isUpcoming = booking.status.toUpperCase() === 'CONFIRMED' || booking.status.toUpperCase() === 'PENDING'
+              const isUpcoming = booking.status.toUpperCase() !== 'CANCELLED' && !isPastBooking(booking)
               const isCancelling = cancellingId === booking.id
               const isDownloading = downloadingId === booking.id
+              const cancellationRestricted = isCancellationRestricted(booking)
+              const seatLabels = booking.selectedSeats?.length
+                ? booking.selectedSeats.join(', ')
+                : booking.passengers?.map((passenger) => passenger.seatNumber).filter(Boolean).join(', ') || 'Not assigned'
 
               return (
                 <div
@@ -451,7 +501,7 @@ export default function MyBookingsPage() {
                         <div>
                           <p className="text-xs text-slate-500 mb-1">Seats</p>
                           <p className="text-sm font-bold text-slate-800">
-                            {booking.selectedSeats?.join(', ') || 'Not assigned'}
+                            {seatLabels}
                           </p>
                         </div>
                       </div>
@@ -499,7 +549,11 @@ export default function MyBookingsPage() {
                           <button
                             onClick={() => handleCancelBooking(booking.id)}
                             disabled={isCancelling}
-                            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-red-50 text-red-600 rounded-xl font-bold hover:bg-red-100 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold transition-all ${
+                              cancellationRestricted
+                                ? 'bg-red-50 text-red-300 cursor-not-allowed'
+                                : 'bg-red-50 text-red-600 hover:bg-red-100'
+                            } disabled:opacity-50 disabled:cursor-not-allowed`}
                           >
                             {isCancelling ? (
                               <>
@@ -516,6 +570,11 @@ export default function MyBookingsPage() {
                         </>
                       )}
                     </div>
+                    {cancelRestrictionMessageId === booking.id || cancellationRestricted ? (
+                      <p className="mt-3 text-sm font-medium text-red-600">
+                        Cancellation is not allowed within 24 hours of departure
+                      </p>
+                    ) : null}
                   </div>
                 </div>
               )

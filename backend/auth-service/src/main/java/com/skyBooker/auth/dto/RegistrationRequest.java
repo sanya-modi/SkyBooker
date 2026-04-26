@@ -3,6 +3,7 @@ package com.skyBooker.auth.dto;
 import com.skyBooker.auth.validation.ValidationPatterns;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -37,9 +38,16 @@ public class RegistrationRequest {
     @Pattern(regexp = ValidationPatterns.PHONE_NUMBER, message = "Phone number must be 10 digits or E.164 format")
     private String phoneNumber;
 
+    @NotNull(message = "Role is required")
+    private UserRole role;
+
     @Pattern(regexp = ValidationPatterns.PASSPORT, message = "Passport number format is invalid")
     private String passportNumber;
 
     @Pattern(regexp = ValidationPatterns.NATIONALITY, message = "Nationality format is invalid")
     private String nationality;
+
+    public enum UserRole {
+        PASSENGER, ADMIN, AIRLINE_STAFF
+    }
 }

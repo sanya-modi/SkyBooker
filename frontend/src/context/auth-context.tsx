@@ -11,8 +11,10 @@ export interface AuthUser {
 
 interface AuthContextType {
   user: AuthUser | null
+  profile: UserResponse | null
   token: string | null
   isLoggedIn: boolean
+  isAuthReady: boolean
   login: (email: string, password: string) => Promise<AuthResponseData>
   register: (data: {
     firstName: string
@@ -30,27 +32,75 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | null>(null)
+const PROFILE_STORAGE_KEY = 'skybooker_profile'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
+  const [profile, setProfile] = useState<UserResponse | null>(null)
   const [token, setToken] = useState<string | null>(null)
+  const [isAuthReady, setIsAuthReady] = useState(false)
+
+  const syncProfile = useCallback((baseUser: AuthUser, nextProfile: UserResponse | null) => {
+    if (!nextProfile) {
+      setProfile(null)
+      localStorage.removeItem(PROFILE_STORAGE_KEY)
+      return
+    }
+
+    const syncedUser: AuthUser = {
+      ...baseUser,
+      firstName: nextProfile.firstName,
+      lastName: nextProfile.lastName,
+    }
+
+    setUser(syncedUser)
+    setProfile(nextProfile)
+    localStorage.setItem('skybooker_user', JSON.stringify(syncedUser))
+    localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(nextProfile))
+  }, [])
+
+  const loadProfile = useCallback(async (baseUser: AuthUser) => {
+    try {
+      const nextProfile = await authApi.getUserById(baseUser.userId)
+      syncProfile(baseUser, nextProfile)
+    } catch {
+      syncProfile(baseUser, null)
+    }
+  }, [syncProfile])
 
   useEffect(() => {
     const savedToken = localStorage.getItem('skybooker_token')
     const savedUser = localStorage.getItem('skybooker_user')
+    const savedProfile = localStorage.getItem(PROFILE_STORAGE_KEY)
 
-    if (!savedToken || !savedUser) return
+    if (!savedToken || !savedUser) {
+      setIsAuthReady(true)
+      return
+    }
 
     try {
+      const nextUser = JSON.parse(savedUser) as AuthUser
       setToken(savedToken)
-      setUser(JSON.parse(savedUser) as AuthUser)
+      setUser(nextUser)
+      if (savedProfile) {
+        try {
+          const nextProfile = JSON.parse(savedProfile) as UserResponse
+          setProfile(nextProfile)
+        } catch {
+          localStorage.removeItem(PROFILE_STORAGE_KEY)
+        }
+      }
+      void loadProfile(nextUser)
     } catch {
       localStorage.removeItem('skybooker_token')
       localStorage.removeItem('skybooker_user')
+      localStorage.removeItem(PROFILE_STORAGE_KEY)
+    } finally {
+      setIsAuthReady(true)
     }
-  }, [])
+  }, [loadProfile])
 
-  const setAuthFromResponse = useCallback((response: AuthResponseData) => {
+  const setAuthFromResponse = useCallback(async (response: AuthResponseData) => {
     const nextUser: AuthUser = {
       userId: response.userId,
       email: response.email,
@@ -63,11 +113,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(response.token)
     localStorage.setItem('skybooker_token', response.token)
     localStorage.setItem('skybooker_user', JSON.stringify(nextUser))
-  }, [])
+    await loadProfile(nextUser)
+  }, [loadProfile])
 
   const login = useCallback(async (email: string, password: string) => {
     const response = await authApi.login({ email, password })
-    setAuthFromResponse(response)
+    await setAuthFromResponse(response)
     return response
   }, [setAuthFromResponse])
 
@@ -82,7 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     nationality?: string
   }) => {
     const response = await authApi.register(data)
-    setAuthFromResponse(response)
+    await setAuthFromResponse(response)
     return response
   }, [setAuthFromResponse])
 
@@ -95,20 +146,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!user) throw new Error('Not authenticated')
     await authApi.deleteUser(user.userId)
     setUser(null)
+    setProfile(null)
     setToken(null)
     localStorage.removeItem('skybooker_token')
     localStorage.removeItem('skybooker_user')
+    localStorage.removeItem(PROFILE_STORAGE_KEY)
   }, [user])
 
   const logout = useCallback(() => {
     setUser(null)
+    setProfile(null)
     setToken(null)
     localStorage.removeItem('skybooker_token')
     localStorage.removeItem('skybooker_user')
+    localStorage.removeItem(PROFILE_STORAGE_KEY)
   }, [])
 
   return (
-    <AuthContext.Provider value={{ user, token, isLoggedIn: !!user, login, register, updateProfile, deleteAccount, logout }}>
+    <AuthContext.Provider value={{ user, profile, token, isLoggedIn: !!user, isAuthReady, login, register, updateProfile, deleteAccount, logout }}>
       {children}
     </AuthContext.Provider>
   )

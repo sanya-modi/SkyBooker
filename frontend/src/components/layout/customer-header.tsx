@@ -1,8 +1,10 @@
 "use client"
 
 import { Link } from "react-router-dom"
-import { ArrowLeft, Bell, User, Globe, CreditCard, Lock } from "lucide-react"
+import { ArrowLeft, Bell, Globe, CreditCard, Lock } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { ProfileMenu } from "@/components/layout/profile-menu"
+import { useAuth } from "@/context/auth-context"
 
 interface CustomerHeaderProps {
   title?: string
@@ -19,6 +21,8 @@ export function CustomerHeader({
   variant = 'default',
   onBack
 }: CustomerHeaderProps) {
+  const { isLoggedIn } = useAuth()
+
   return (
     <header className={cn(
       "fixed top-0 w-full z-50 transition-all duration-300",
@@ -76,12 +80,16 @@ export function CustomerHeader({
             <Bell className="w-5 h-5 text-[#00236f]" />
             <span className="absolute top-2 right-2 w-2 h-2 bg-green-500 rounded-full" />
           </button>
-          <Link 
-            to="/profile" 
-            className="w-10 h-10 rounded-full bg-[#f2f4f6] flex items-center justify-center overflow-hidden border-2 border-[#1e3a8a]/10"
-          >
-            <User className="w-5 h-5 text-[#4f5c8e]" />
-          </Link>
+          {isLoggedIn ? (
+            <ProfileMenu />
+          ) : (
+            <Link 
+              to="/auth/signin" 
+              className="w-10 h-10 rounded-full bg-[#f2f4f6] flex items-center justify-center overflow-hidden border-2 border-[#1e3a8a]/10"
+            >
+              <Lock className="w-5 h-5 text-[#4f5c8e]" />
+            </Link>
+          )}
         </div>
       </nav>
     </header>

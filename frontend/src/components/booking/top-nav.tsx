@@ -2,10 +2,10 @@ import { motion } from 'framer-motion'
 import { LogOut } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/auth-context'
-import { Button } from './button'
 import { Logo } from './logo'
 import { cn } from '@/lib/utils'
 import { useState } from 'react'
+import { ProfileMenu } from '@/components/layout/profile-menu'
 
 export function TopNav() {
   const navigate = useNavigate()
@@ -15,7 +15,7 @@ export function TopNav() {
   const normalizedRole = user?.role?.replace(/^ROLE_/, '').toUpperCase()
   const canAccessAdmin = normalizedRole === 'ADMIN'
   const canAccessAirline = normalizedRole === 'AIRLINE_STAFF'
-  const isLandingPage = location.pathname === '/'
+  const isGuestAuthHiddenRoute = location.pathname === '/' || location.pathname === '/results'
 
   const navLinks = [
     { href: '/', label: 'Explore' },
@@ -95,25 +95,11 @@ export function TopNav() {
                     ) : null}
                   </div>
                 )}
-                <button
-                  className="text-sm font-medium text-gray-700 hover:text-sky-600 transition-colors"
-                  onClick={() => navigate('/passenger')}
-                  type="button"
-                >
-                  {user?.email}
-                </button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={logout}
-                  className="flex items-center gap-2"
-                >
-                  <LogOut size={14} /> Logout
-                </Button>
+                <ProfileMenu />
               </>
             ) : (
               <>
-                {!isLandingPage ? (
+                {!isGuestAuthHiddenRoute ? (
                   <button
                     onClick={() => navigate('/auth/signin')}
                     className="px-4 py-2 text-sm font-semibold text-sky-600 hover:text-sky-700 transition-colors"
@@ -196,29 +182,13 @@ export function TopNav() {
                       Airline
                     </button>
                   ) : null}
-                  <button
-                    onClick={() => {
-                      navigate('/passenger')
-                      setMobileMenuOpen(false)
-                    }}
-                    className="block w-full text-left px-4 py-2 text-sm text-gray-700"
-                  >
-                    {user?.email}
-                  </button>
-                  <Button
-                    variant="secondary"
-                    className="w-full"
-                    onClick={() => {
-                      logout()
-                      setMobileMenuOpen(false)
-                    }}
-                  >
-                    <LogOut size={14} /> Logout
-                  </Button>
+                  <div className="px-4 py-2">
+                    <ProfileMenu />
+                  </div>
                 </>
               ) : (
                 <>
-                  {!isLandingPage ? (
+                  {!isGuestAuthHiddenRoute ? (
                     <button
                       onClick={() => {
                         navigate('/auth/signin')

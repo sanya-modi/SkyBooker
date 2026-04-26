@@ -13,7 +13,6 @@ import {
   Users,
   CreditCard,
   Download,
-  Ban,
   CheckCircle2,
   AlertCircle,
   Loader2,
@@ -24,8 +23,6 @@ import {
 } from "lucide-react"
 import { useAuth } from "@/context/auth-context"
 import { bookingApi, flightApi, airportApi, airlineApi, passengerApi, paymentApi, type BookingResult, type FlightResult, type Airport, type Airline, type PassengerResult, type PaymentResult } from "@/services/api"
-
-import { CancellationModal } from "@/components/bookings/cancellation-modal"
 
 interface EnrichedBooking extends BookingResult {
   flight?: FlightResult
@@ -43,9 +40,7 @@ export default function BookingDetailPage() {
   const [booking, setBooking] = useState<EnrichedBooking | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [cancellingBooking, setCancellingBooking] = useState(false)
   const [downloadingTicket, setDownloadingTicket] = useState(false)
-  const [showCancelModal, setShowCancelModal] = useState(false)
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -79,6 +74,9 @@ export default function BookingDetailPage() {
 
       setBooking({
         ...bookingData,
+        selectedSeats: bookingData.selectedSeats?.length
+          ? bookingData.selectedSeats
+          : passengers.map((passenger) => passenger.seatNumber).filter(Boolean),
         flight,
         departureAirport,
         arrivalAirport,
@@ -91,26 +89,6 @@ export default function BookingDetailPage() {
       setError(err instanceof Error ? err.message : 'Failed to load booking details')
     } finally {
       setLoading(false)
-    }
-  }
-
-  const handleCancelBooking = async () => {
-    setShowCancelModal(true)
-  }
-
-  const confirmCancellation = async () => {
-    if (!booking) return
-
-    try {
-      setCancellingBooking(true)
-      await bookingApi.cancel(booking.id)
-      setShowCancelModal(false)
-      navigate('/bookings')
-    } catch (err) {
-      console.error('Error cancelling booking:', err)
-      throw err // Let modal handle the error
-    } finally {
-      setCancellingBooking(false)
     }
   }
 
@@ -205,6 +183,9 @@ export default function BookingDetailPage() {
   const statusBadge = getStatusBadge(booking.status)
   const StatusIcon = statusBadge.icon
   const isUpcoming = booking.status.toUpperCase() === 'CONFIRMED' || booking.status.toUpperCase() === 'PENDING'
+  const seatLabels = booking.selectedSeats?.length
+    ? booking.selectedSeats.join(', ')
+    : booking.passengers?.map((passenger) => passenger.seatNumber).filter(Boolean).join(', ') || 'Not assigned'
 
   return (
     <div className="min-h-screen bg-[#f7f9fb]">
@@ -337,7 +318,7 @@ export default function BookingDetailPage() {
                     <span className="text-sm font-bold">Seats</span>
                   </div>
                   <p className="text-lg font-black text-[#00236f]">
-                    {booking.selectedSeats?.join(', ') || 'Not assigned'}
+                    {seatLabels}
                   </p>
                 </div>
               </div>
@@ -423,43 +404,23 @@ export default function BookingDetailPage() {
               <h3 className="font-bold text-slate-800 mb-4">Quick Actions</h3>
               <div className="space-y-3">
                 {isUpcoming && (
-                  <>
-                    <button
-                      onClick={handleDownloadTicket}
-                      disabled={downloadingTicket}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-[#00236f] to-[#1e3a8a] text-white rounded-xl font-bold hover:shadow-lg transition-all disabled:opacity-50"
-                    >
-                      {downloadingTicket ? (
-                        <>
-                          <Loader2 className="w-5 h-5 animate-spin" />
-                          Downloading...
-                        </>
-                      ) : (
-                        <>
-                          <Download className="w-5 h-5" />
-                          Download E-Ticket
-                        </>
-                      )}
-                    </button>
-                    
-                    <button
-                      onClick={handleCancelBooking}
-                      disabled={cancellingBooking}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-50 text-red-600 rounded-xl font-bold hover:bg-red-100 transition-all disabled:opacity-50"
-                    >
-                      {cancellingBooking ? (
-                        <>
-                          <Loader2 className="w-5 h-5 animate-spin" />
-                          Cancelling...
-                        </>
-                      ) : (
-                        <>
-                          <Ban className="w-5 h-5" />
-                          Cancel Booking
-                        </>
-                      )}
-                    </button>
-                  </>
+                  <button
+                    onClick={handleDownloadTicket}
+                    disabled={downloadingTicket}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-[#00236f] to-[#1e3a8a] text-white rounded-xl font-bold hover:shadow-lg transition-all disabled:opacity-50"
+                  >
+                    {downloadingTicket ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Downloading...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-5 h-5" />
+                        Download E-Ticket
+                      </>
+                    )}
+                  </button>
                 )}
               </div>
             </div>
@@ -507,16 +468,6 @@ export default function BookingDetailPage() {
           </div>
         </div>
       </main>
-      
-      {/* Cancellation Modal */}
-      {booking && (
-        <CancellationModal
-          isOpen={showCancelModal}
-          onClose={() => setShowCancelModal(false)}
-          onConfirm={confirmCancellation}
-          booking={booking}
-        />
-      )}
     </div>
   )
 }

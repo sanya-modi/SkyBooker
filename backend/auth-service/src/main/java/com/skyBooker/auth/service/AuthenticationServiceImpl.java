@@ -26,6 +26,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     // ================= REGISTER =================
     @Override
     public AuthResponse register(RegistrationRequest request) {
+        if (request == null) {
+            throw new AuthException("Registration request is required", "INVALID_REQUEST");
+        }
+
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new AuthException("Email already exists", "EMAIL_EXISTS");
         }
@@ -39,7 +43,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         user.setPassportNumber(request.getPassportNumber());
         user.setNationality(request.getNationality());
         user.setAuthProvider(User.AuthProvider.LOCAL);
-        user.setRole(User.UserRole.PASSENGER);
+        user.setRole(mapRole(request.getRole()));
         user.setIsActive(true);
 
         User savedUser = userRepository.save(user);
@@ -55,6 +59,18 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 token,
                 savedUser.getRole().toString()
         );
+    }
+
+    private User.UserRole mapRole(RegistrationRequest.UserRole role) {
+        if (role == null) {
+            return User.UserRole.PASSENGER;
+        }
+
+        return switch (role) {
+            case ADMIN -> User.UserRole.ADMIN;
+            case AIRLINE_STAFF -> User.UserRole.AIRLINE_STAFF;
+            case PASSENGER -> User.UserRole.PASSENGER;
+        };
     }
 
     // ================= LOGIN =================

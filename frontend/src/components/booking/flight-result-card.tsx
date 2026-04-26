@@ -99,17 +99,17 @@ export function FlightResultCard({
       onMouseLeave={onMouseLeave}
     >
       {/* ── Top strip: airline + route ── */}
-      <div className="px-6 py-5 flex flex-wrap items-center gap-4 border-b border-slate-100">
+      <div className="px-5 py-4 flex flex-wrap items-center gap-3 border-b border-slate-100">
 
         {/* Airline badge */}
         <div
-          className="flex items-center gap-2.5 px-3 py-2 rounded-xl border flex-shrink-0"
+          className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border flex-shrink-0"
           style={{ background: b.bg, borderColor: b.border }}
         >
-          <span className="text-sm font-black tracking-wide" style={{ color: b.text }}>{iata ?? 'SB'}</span>
-          <div className="w-px h-4 bg-current opacity-20" style={{ color: b.text }} />
+          <span className="text-xs font-black tracking-wide" style={{ color: b.text }}>{iata ?? 'SB'}</span>
+          <div className="w-px h-3.5 bg-current opacity-20" style={{ color: b.text }} />
           <div>
-            <p className="text-xs font-bold leading-none" style={{ color: b.text }}>
+            <p className="text-[11px] font-bold leading-none" style={{ color: b.text }}>
               {flight.airline?.name ?? 'Airline'}
             </p>
             <p className="text-[10px] opacity-60 font-medium mt-0.5" style={{ color: b.text }}>
@@ -188,7 +188,7 @@ export function FlightResultCard({
         {TIERS.map((tier) => {
           const price = Math.round(base * tier.mult)
           return (
-            <div key={tier.key} className={`px-5 py-4 flex flex-col gap-3 ${tier.key === 'flexi' ? 'bg-blue-50/40' : ''}`}>
+            <div key={tier.key} className={`px-4 py-3.5 flex flex-col gap-2.5 ${tier.key === 'flexi' ? 'bg-blue-50/40' : ''}`}>
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <div className="flex items-center gap-2">
@@ -205,14 +205,14 @@ export function FlightResultCard({
                       </span>
                     )}
                   </div>
-                  <p className="text-xl font-black text-[#1e3a8a] leading-tight mt-0.5">
+                  <p className="text-lg font-black text-[#1e3a8a] leading-tight mt-0.5">
                     {fmt(price)}
                   </p>
                   <p className="text-[10px] text-slate-400 font-medium">per person</p>
                 </div>
               </div>
 
-              <ul className="flex flex-col gap-1.5 flex-1">
+              <ul className="flex flex-col gap-1 flex-1">
                 {tier.perks.map((perk) => (
                   <li key={perk.text} className="flex items-center gap-1.5 text-[11px] text-slate-600 font-medium">
                     <perk.icon size={11} className="text-[#1e3a8a] flex-shrink-0" />
@@ -222,7 +222,7 @@ export function FlightResultCard({
               </ul>
 
               <button
-                className={`w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                className={`w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-sm font-bold transition-all ${
                   tier.primary
                     ? 'bg-[#1e3a8a] text-white hover:bg-[#162d5a] shadow-md shadow-blue-900/20'
                     : tier.key === 'flexi'

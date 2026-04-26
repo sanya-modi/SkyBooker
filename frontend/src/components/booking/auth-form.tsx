@@ -43,7 +43,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
       ? (location.state as { from: string }).from
       : null
 
-  const redirectTarget = redirectFromState || searchParams.get('redirect') || '/'
+  const redirectTarget = redirectFromState || searchParams.get('redirect')
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -51,6 +51,8 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
     setSubmitting(true)
 
     try {
+      let nextRole = role
+
       if (isSignUp) {
         if (password !== confirm) {
           throw new Error('Passwords do not match.')
@@ -58,12 +60,14 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
 
         const [firstName = 'Sky', ...rest] = fullName.trim().split(/\s+/)
         const lastName = rest.join(' ') || 'Traveler'
-        await register({ firstName, lastName, email, password, phoneNumber, role })
+        const response = await register({ firstName, lastName, email, password, phoneNumber, role })
+        nextRole = response.role
       } else {
-        await login(email, password)
+        const response = await login(email, password)
+        nextRole = response.role
       }
 
-      navigate(redirectTarget, { replace: true })
+      navigate(redirectTarget ?? getDefaultRedirectForRole(nextRole), { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Authentication failed.')
     } finally {
@@ -228,6 +232,20 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
       </section>
     </main>
   )
+}
+
+function getDefaultRedirectForRole(role: string) {
+  const normalizedRole = role.replace(/^ROLE_/, '').toUpperCase()
+
+  if (normalizedRole === 'ADMIN') {
+    return '/admin'
+  }
+
+  if (normalizedRole === 'AIRLINE_STAFF') {
+    return '/airline'
+  }
+
+  return '/'
 }
 
 function AuthField({
