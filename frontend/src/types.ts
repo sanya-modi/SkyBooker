@@ -55,4 +55,5 @@ export interface Booking {
   totalPrice: number
   departDate: string
   status: 'Confirmed'
+  seatNumber?: string
 }

@@ -1,6 +1,6 @@
 import { gsap } from 'gsap'
-import { CheckCircle2, Download, Mail, MessageSquare, Plane, MapPin, Calendar, Clock, User, CreditCard, Luggage, UtensilsCrossed, Home, Share2, Printer } from 'lucide-react'
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { CheckCircle2, Download, Mail, MessageSquare, Plane, Home, Share2, Printer } from 'lucide-react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import QRCode from 'qrcode'
 import { TopNav } from '../../components/booking/top-nav'
@@ -14,21 +14,40 @@ function fmt(n: number) {
 }
 
 function fmtDate(v: string) {
-  return new Date(v).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+  return new Date(v).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: '2-digit' })
 }
 
 function fmtTime(v: string) {
   return new Date(v).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false })
 }
 
+/* ── Field label + value pair ── */
+function Field({ label, value, valueClass = '' }: { label: string; value: string; valueClass?: string }) {
+  return (
+    <div>
+      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{label}</p>
+      <p className={`font-black text-slate-800 leading-tight ${valueClass}`}>{value}</p>
+    </div>
+  )
+}
+
 export function ConfirmationPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
-  const { confirmedBooking, selectedFlight, selectedSeatId, selectedMealId, selectedBaggageId, passenger, resetFlow } = useBookingFlow()
+  const {
+    confirmedBooking,
+    selectedFlight,
+    selectedSeatId,
+    selectedMealId,
+    selectedBaggageId,
+    passenger,
+    resetFlow,
+  } = useBookingFlow()
+
   const [qrCode, setQrCode] = useState('')
   const [emailSent, setEmailSent] = useState(false)
   const [smsSent, setSmsSent] = useState(false)
-  
+
   const successRef = useRef<HTMLDivElement>(null)
   const ticketRef = useRef<HTMLDivElement>(null)
 
@@ -37,23 +56,29 @@ export function ConfirmationPage() {
     gsap.fromTo(ticketRef.current, { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.7, delay: 0.3, ease: 'power3.out' })
   }, [])
 
+  /* Generate QR Code with Passenger and Flight Details */
   useEffect(() => {
-    if (confirmedBooking?.pnr) {
-      QRCode.toDataURL(`SKYBOOKER-${confirmedBooking.pnr}`, { width: 200, margin: 1 })
+    if (confirmedBooking?.pnr && selectedFlight && passenger) {
+      const qrData = `Name: ${passenger.firstName} ${passenger.lastName}\nPNR: ${confirmedBooking.pnr}\nFlight: ${selectedFlight.flightNumber}\nRoute: ${selectedFlight.departureAirport?.iataCode} to ${selectedFlight.arrivalAirport?.iataCode}`;
+      
+      QRCode.toDataURL(qrData, { width: 220, margin: 1, color: { dark: '#0f172a', light: '#ffffff' } })
         .then(setQrCode)
         .catch(console.error)
     }
-  }, [confirmedBooking])
+  }, [confirmedBooking, selectedFlight, passenger])
 
   useEffect(() => {
-    // Simulate sending email and SMS
-    const timer1 = setTimeout(() => setEmailSent(true), 1500)
-    const timer2 = setTimeout(() => setSmsSent(true), 2000)
-    return () => {
-      clearTimeout(timer1)
-      clearTimeout(timer2)
-    }
+    const t1 = setTimeout(() => setEmailSent(true), 1500)
+    const t2 = setTimeout(() => setSmsSent(true), 2000)
+    return () => { clearTimeout(t1); clearTimeout(t2) }
   }, [])
+
+  /* derive a stable gate from PNR */
+  const gate = useMemo(() => {
+    if (!confirmedBooking?.pnr || !selectedFlight?.flightNumber) return 'A1'
+    const num = (confirmedBooking.pnr.charCodeAt(0) % 9) + 1
+    return `${selectedFlight.flightNumber.charAt(0)}${num}`
+  }, [confirmedBooking, selectedFlight])
 
   if (!confirmedBooking || !selectedFlight) {
     return (
@@ -62,7 +87,7 @@ export function ConfirmationPage() {
           <p className="text-slate-600 mb-4">No booking found</p>
           <button
             onClick={() => navigate('/')}
-            className="px-6 py-3 bg-[#00236f] text-white rounded-xl font-semibold hover:bg-[#1e3a8a] transition-all"
+            className="px-6 py-3 bg-[#3b82f6] text-white rounded-xl font-semibold hover:bg-[#2563eb] transition-all"
           >
             Go to Home
           </button>
@@ -71,13 +96,7 @@ export function ConfirmationPage() {
     )
   }
 
-  const meal = MEALS.find(m => m.id === selectedMealId)
-  const baggage = BAGGAGE.find(b => b.id === selectedBaggageId)
-
-  const handleDownloadTicket = () => {
-    window.print()
-  }
-
+  const handleDownloadTicket = () => window.print()
   const handleShareTicket = async () => {
     if (navigator.share) {
       try {
@@ -86,245 +105,162 @@ export function ConfirmationPage() {
           text: `My flight booking - PNR: ${confirmedBooking.pnr}`,
           url: window.location.href,
         })
-      } catch (err) {
-        console.log('Share cancelled')
-      }
+      } catch {}
     }
   }
 
+  /* ─────────────────────────────────── */
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-50">
+    <div className="min-h-screen bg-slate-100 flex flex-col">
       <TopNav />
 
-      <div className="max-w-[1000px] mx-auto px-6 py-8 pt-[80px]">
-        {/* Success Animation */}
+      <div className="flex-1 max-w-[1100px] w-full mx-auto px-4 sm:px-6 py-8 pt-[80px]">
+
+        {/* ── Success Badge ── */}
         <div ref={successRef} className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-green-400 to-green-600 shadow-lg shadow-green-500/30 mb-4">
-            <CheckCircle2 size={40} className="text-white" />
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-500 shadow-lg shadow-green-500/30 mb-4">
+            <CheckCircle2 size={32} className="text-white" />
           </div>
           <h1 className="text-3xl font-black text-slate-800 mb-2">Booking Confirmed! 🎉</h1>
           <p className="text-slate-600 text-lg">Your journey is all set. Have a great flight!</p>
         </div>
 
-        {/* Notification Status */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all ${
-            emailSent ? 'border-green-200 bg-green-50' : 'border-slate-200 bg-white'
-          }`}>
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-              emailSent ? 'bg-green-500' : 'bg-slate-200'
-            }`}>
-              <Mail size={18} className={emailSent ? 'text-white' : 'text-slate-400'} />
-            </div>
-            <div>
-              <p className="text-sm font-bold text-slate-800">Email Sent</p>
-              <p className="text-xs text-slate-500">{emailSent ? user?.email : 'Sending...'}</p>
-            </div>
-          </div>
-          <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all ${
-            smsSent ? 'border-green-200 bg-green-50' : 'border-slate-200 bg-white'
-          }`}>
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-              smsSent ? 'bg-green-500' : 'bg-slate-200'
-            }`}>
-              <MessageSquare size={18} className={smsSent ? 'text-white' : 'text-slate-400'} />
-            </div>
-            <div>
-              <p className="text-sm font-bold text-slate-800">SMS Sent</p>
-              <p className="text-xs text-slate-500">{smsSent ? passenger.phoneNumber : 'Sending...'}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Modern E-Ticket */}
-        <div ref={ticketRef} className="bg-white rounded-3xl shadow-2xl overflow-hidden mb-6">
-          {/* Ticket Header */}
-          <div className="bg-gradient-to-r from-[#00236f] via-[#1e3a8a] to-[#1d4ed8] px-8 py-6 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32" />
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full -ml-24 -mb-24" />
+        {/* ══════════════════════════════════════
+             BOARDING PASS TICKET UI
+        ══════════════════════════════════════ */}
+        <div ref={ticketRef} className="rounded-xl shadow-xl overflow-hidden mb-6 flex flex-col md:flex-row border z-10 border-slate-200" >
+          
+          {/* ── LEFT / MAIN SECTION ── */}
+          <div className="flex-1 flex flex-col min-w-0">
             
-            <div className="relative flex justify-between items-start">
-              <div>
-                <p className="text-blue-200 text-xs font-bold uppercase tracking-widest mb-2">E-Ticket</p>
-                <h2 className="text-white text-2xl font-black mb-1">SkyBooker Airlines</h2>
-                <p className="text-blue-200 text-sm">Booking Reference: <span className="text-white font-bold">{confirmedBooking.pnr}</span></p>
-              </div>
-              <div className="text-right">
-                <div className="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-xl">
-                  <p className="text-blue-200 text-xs mb-1">Status</p>
-                  <p className="text-white font-black text-lg">CONFIRMED</p>
-                </div>
-              </div>
+            {/* Main Header */}
+            <div className="bg-[#3b82f6] px-8 py-4 flex items-center">
+              <Plane size={24} className="text-white rotate-45 fill-white mr-3" />
+              <span className="text-white font-bold tracking-widest text-lg sm:text-xl uppercase">
+                Boarding Pass
+              </span>
             </div>
-          </div>
 
-          {/* Flight Route */}
-          <div className="px-8 py-6 border-b border-slate-100">
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <p className="text-slate-500 text-xs font-semibold mb-1">FROM</p>
-                <p className="text-3xl font-black text-[#00236f] mb-1">{selectedFlight.departureAirport?.iataCode}</p>
-                <p className="text-sm font-semibold text-slate-700">{selectedFlight.departureAirport?.city}</p>
-                <p className="text-xs text-slate-500">{selectedFlight.departureAirport?.name}</p>
-              </div>
+            {/* Main Body (Plain White) */}
+            <div className="flex-1 flex relative bg-white" style={{ backgroundImage: `url('/BlankMap-World_gray.svg')`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', backgroundBlendMode: 'multiply', backgroundColor: 'rgba(255,255,255,0.95)' }}>
+              
+              {/* Ticket Details */}
+              <div className="flex-1 p-8 sm:p-10 flex flex-col justify-between">
 
-              <div className="flex flex-col items-center px-6">
-                <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mb-2">
-                  <Plane size={28} className="text-[#00236f]" />
+                {/* Info Row 1 */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
+                  <Field label="Passenger" value={`${passenger.firstName} ${passenger.lastName}`} valueClass="text-sm truncate" />
+                  <Field label="Flight"    value={selectedFlight.flightNumber}                   valueClass="text-sm" />
+                  <Field label="Date"      value={fmtDate(selectedFlight.departureTime)}         valueClass="text-sm" />
+                  <Field label="Seat No."  value={selectedSeatId ?? '—'}                         valueClass="text-sm" />
                 </div>
-                <div className="w-32 h-px bg-gradient-to-r from-transparent via-slate-300 to-transparent" />
-                <p className="text-xs font-bold text-slate-500 mt-2">{selectedFlight.flightNumber}</p>
-              </div>
 
-              <div className="flex-1 text-right">
-                <p className="text-slate-500 text-xs font-semibold mb-1">TO</p>
-                <p className="text-3xl font-black text-[#00236f] mb-1">{selectedFlight.arrivalAirport?.iataCode}</p>
-                <p className="text-sm font-semibold text-slate-700">{selectedFlight.arrivalAirport?.city}</p>
-                <p className="text-xs text-slate-500">{selectedFlight.arrivalAirport?.name}</p>
-              </div>
-            </div>
-          </div>
+                {/* Info Row 2 (Large Source & Destination) */}
+                <div className="flex items-center justify-center gap-6 sm:gap-12 py-12">
+                  <p className="text-6xl sm:text-7xl font-black text-slate-800 tracking-widest">
+                    {selectedFlight.departureAirport?.iataCode}
+                  </p>
+                  <Plane size={48} className="text-slate-800 rotate-45 fill-slate-800 shrink-0" />
+                  <p className="text-6xl sm:text-7xl font-black text-slate-800 tracking-widest">
+                    {selectedFlight.arrivalAirport?.iataCode}
+                  </p>
+                </div>
 
-          {/* Flight Details */}
-          <div className="px-8 py-6 bg-slate-50 border-b border-slate-100">
-            <div className="grid grid-cols-4 gap-6">
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <Calendar size={16} className="text-[#00236f]" />
-                  <p className="text-xs font-bold text-slate-500 uppercase">Date</p>
-                </div>
-                <p className="text-sm font-black text-slate-800">{fmtDate(selectedFlight.departureTime)}</p>
-              </div>
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <Clock size={16} className="text-[#00236f]" />
-                  <p className="text-xs font-bold text-slate-500 uppercase">Departure</p>
-                </div>
-                <p className="text-sm font-black text-slate-800">{fmtTime(selectedFlight.departureTime)}</p>
-              </div>
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <Clock size={16} className="text-[#00236f]" />
-                  <p className="text-xs font-bold text-slate-500 uppercase">Arrival</p>
-                </div>
-                <p className="text-sm font-black text-slate-800">{fmtTime(selectedFlight.arrivalTime)}</p>
-              </div>
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <MapPin size={16} className="text-[#00236f]" />
-                  <p className="text-xs font-bold text-slate-500 uppercase">Seat</p>
-                </div>
-                <p className="text-sm font-black text-slate-800">{selectedSeatId}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Passenger & Add-ons */}
-          <div className="px-8 py-6 border-b border-slate-100">
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <User size={18} className="text-[#00236f]" />
-                  <p className="text-sm font-bold text-slate-700 uppercase">Passenger Details</p>
-                </div>
-                <p className="text-lg font-black text-slate-800 mb-1">
-                  {passenger.firstName} {passenger.lastName}
-                </p>
-                <p className="text-sm text-slate-600">{passenger.email}</p>
-                <p className="text-sm text-slate-600">{passenger.phoneNumber}</p>
-              </div>
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <CreditCard size={18} className="text-[#00236f]" />
-                  <p className="text-sm font-bold text-slate-700 uppercase">Add-ons</p>
-                </div>
-                {meal && (
-                  <div className="flex items-center gap-2 mb-2">
-                    <UtensilsCrossed size={14} className="text-slate-500" />
-                    <p className="text-sm text-slate-700">{meal.name} - {fmt(meal.price)}</p>
+                {/* Info Row 3 */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-[11px] font-bold text-[#3b82f6] uppercase tracking-widest mb-1">Gate</p>
+                    <p className="text-3xl font-black text-slate-800">{gate}</p>
                   </div>
-                )}
-                {baggage && (
-                  <div className="flex items-center gap-2">
-                    <Luggage size={14} className="text-slate-500" />
-                    <p className="text-sm text-slate-700">Extra Baggage {baggage.weight} - {fmt(baggage.price)}</p>
+                  <div>
+                    <p className="text-[11px] font-bold text-[#3b82f6] uppercase tracking-widest mb-1">Boarding Time</p>
+                    <p className="text-3xl font-black text-slate-800">{fmtTime(selectedFlight.departureTime)}</p>
                   </div>
-                )}
-                {!meal && !baggage && (
-                  <p className="text-sm text-slate-500">No add-ons selected</p>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* QR Code & Fare */}
-          <div className="px-8 py-6 flex items-center justify-between">
-            <div className="flex items-center gap-6">
-              {qrCode && (
-                <div className="bg-white p-3 rounded-xl border-2 border-slate-200">
-                  <img src={qrCode} alt="QR Code" className="w-24 h-24" />
-                  <p className="text-xs text-center text-slate-500 mt-2 font-semibold">Scan at Airport</p>
                 </div>
-              )}
-              <div>
-                <p className="text-xs font-bold text-slate-500 uppercase mb-2">Booking ID</p>
-                <p className="text-lg font-black text-slate-800 mb-3">{confirmedBooking.id}</p>
-                <p className="text-xs text-slate-500">Keep this QR code handy for</p>
-                <p className="text-xs text-slate-500">quick check-in at the airport</p>
               </div>
-            </div>
-            <div className="text-right">
-              <p className="text-xs font-bold text-slate-500 uppercase mb-2">Total Fare</p>
-              <p className="text-3xl font-black text-[#00236f] mb-1">{fmt(confirmedBooking.totalFare)}</p>
-              <p className="text-xs text-slate-500">Inclusive of all taxes</p>
             </div>
           </div>
 
-          {/* Ticket Footer */}
-          <div className="bg-gradient-to-r from-slate-100 to-slate-50 px-8 py-4 border-t border-slate-200">
-            <div className="flex items-center justify-between text-xs text-slate-600">
-              <p>© 2024 SkyBooker Airlines. All rights reserved.</p>
-              <p>For support: support@skybooker.com | +91-1800-123-4567</p>
+          {/* ── PERFORATED DIVIDER ── */}
+          <div className="hidden md:flex flex-col w-0 border-r-2 border-dashed border-slate-300 relative z-10 bg-white" />
+
+          {/* ── RIGHT / STUB SECTION ── */}
+          <div className="w-full md:w-80 flex flex-col shrink-0 border-t-2 border-dashed border-slate-300 md:border-t-0">
+            
+            {/* Stub Header */}
+            <div className="bg-[#3b82f6] px-6 py-4 flex items-center">
+              <span className="text-white font-bold tracking-widest text-lg sm:text-xl uppercase">
+                Boarding Pass
+              </span>
+            </div>
+
+            {/* Stub Body */}
+            <div className="flex-1 bg-white p-6 sm:p-8 flex flex-col justify-between">
+              <div className="space-y-5">
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Passenger Name</p>
+                  <p className="text-sm font-black text-slate-800 leading-tight uppercase">{passenger.firstName}</p>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-3 mb-0.5">Passenger Surname</p>
+                  <p className="text-sm font-black text-slate-800 leading-tight uppercase">{passenger.lastName}</p>
+                </div>
+
+                <div className="space-y-1">
+                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Route</p>
+                  <p className="text-sm font-black text-slate-800">
+                    {selectedFlight.departureAirport?.iataCode} <span className="text-slate-400 mx-1">→</span> {selectedFlight.arrivalAirport?.iataCode}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 pt-2">
+                  <Field label="Seat No." value={selectedSeatId ?? '—'} valueClass="text-sm" />
+                  <Field label="Boarding Time" value={fmtTime(selectedFlight.departureTime)} valueClass="text-sm" />
+                </div>
+              </div>
+
+              {/* Functional QR Code */}
+              <div className="mt-8 flex justify-center w-full">
+                {qrCode ? (
+                  <img src={qrCode} alt="Scan for details" className="w-32 h-32 rounded-lg border border-slate-200" />
+                ) : (
+                  <div className="w-32 h-32 rounded-lg bg-slate-100 animate-pulse border border-slate-200" />
+                )}
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
+        {/* ── Action Buttons ── */}
+        <div className="flex flex-wrap justify-center gap-4 mt-8">
           <button
             onClick={handleDownloadTicket}
-            className="flex items-center justify-center gap-2 px-6 py-4 bg-white border-2 border-slate-200 rounded-xl font-bold text-slate-700 hover:border-[#00236f] hover:bg-blue-50 hover:text-[#00236f] transition-all"
+            className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-300 shadow-sm rounded-lg font-bold text-slate-700 hover:bg-slate-50 transition-all text-sm"
           >
-            <Download size={20} />
+            <Download size={18} />
             Download PDF
           </button>
           <button
             onClick={handleDownloadTicket}
-            className="flex items-center justify-center gap-2 px-6 py-4 bg-white border-2 border-slate-200 rounded-xl font-bold text-slate-700 hover:border-[#00236f] hover:bg-blue-50 hover:text-[#00236f] transition-all"
+            className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-300 shadow-sm rounded-lg font-bold text-slate-700 hover:bg-slate-50 transition-all text-sm"
           >
-            <Printer size={20} />
+            <Printer size={18} />
             Print Ticket
           </button>
           <button
             onClick={handleShareTicket}
-            className="flex items-center justify-center gap-2 px-6 py-4 bg-white border-2 border-slate-200 rounded-xl font-bold text-slate-700 hover:border-[#00236f] hover:bg-blue-50 hover:text-[#00236f] transition-all"
+            className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-300 shadow-sm rounded-lg font-bold text-slate-700 hover:bg-slate-50 transition-all text-sm"
           >
-            <Share2 size={20} />
+            <Share2 size={18} />
             Share
+          </button>
+          <button
+            onClick={() => { resetFlow(); navigate('/') }}
+            className="flex items-center gap-2 px-6 py-3 bg-[#3b82f6] text-white rounded-lg font-bold hover:bg-[#2563eb] transition-all text-sm ml-auto"
+          >
+            <Home size={18} />
+            Back to Home
           </button>
         </div>
 
-        {/* Back to Home */}
-        <button
-          onClick={() => {
-            resetFlow()
-            navigate('/')
-          }}
-          className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-[#00236f] to-[#1e3a8a] text-white rounded-xl font-bold hover:shadow-lg hover:shadow-blue-500/30 transition-all"
-        >
-          <Home size={20} />
-          Back to Home
-        </button>
       </div>
     </div>
   )

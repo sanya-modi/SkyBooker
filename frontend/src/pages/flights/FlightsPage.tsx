@@ -4,12 +4,14 @@ import { Link, useNavigate } from 'react-router-dom'
 import { CustomerHeader } from "@/components/layout/customer-header"
 import { BottomNav } from "@/components/layout/bottom-nav"
 import { FlightCard } from "@/components/flights/flight-card"
+import { Slider } from "@/components/ui/slider"
 import type { Flight } from "@/lib/types"
-import { 
+import {
   Calendar,
   Check,
   X
 } from "lucide-react"
+
 
 const mockFlights: Flight[] = [
   {
@@ -44,6 +46,7 @@ export default function FlightsPage() {
   const [sortBy, setSortBy] = useState<'value' | 'cheapest' | 'fastest'>('value')
   const [priceRange, setPriceRange] = useState([400, 5000])
   const [selectedStops, setSelectedStops] = useState<number[]>([0, 1])
+  const [selectedAirlines, setSelectedAirlines] = useState<string[]>(['British Airways', 'Lufthansa'])
 
   const handleFlightSelect = (flight: Flight, fareClass: string) => {
     navigate(`/flights/${flight.id}/book?class=${fareClass}`)
@@ -92,14 +95,13 @@ export default function FlightsPage() {
               <h2 className="text-xs font-bold tracking-[0.05em] uppercase text-slate-400 mb-6">
                 Price Range
               </h2>
-              <input 
-                type="range" 
-                min="400" 
-                max="5000" 
-                step="50"
-                value={priceRange[1]}
-                onChange={(e) => setPriceRange([priceRange[0], parseInt(e.target.value)])}
-                className="w-full h-1 bg-[#e6e8ea] rounded-lg appearance-none cursor-pointer accent-[#00236f] mb-2"
+              <Slider
+                min={400}
+                max={5000}
+                step={50}
+                value={priceRange}
+                onValueChange={setPriceRange}
+                className="mb-4"
               />
               <div className="flex justify-between text-sm font-medium text-slate-600">
                 <span>${priceRange[0]}</span>
@@ -145,14 +147,22 @@ export default function FlightsPage() {
               <h2 className="text-xs font-bold tracking-[0.05em] uppercase text-slate-400 mb-6">
                 Airlines
               </h2>
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {['British Airways', 'Japan Airlines', 'Lufthansa', 'Emirates'].map((airline) => (
-                  <label key={airline} className="flex items-center gap-3 cursor-pointer group">
+                  <label key={airline} className="flex items-center gap-3 cursor-pointer group p-2 rounded-md hover:bg-[#f7f9fb] transition-colors">
                     <input 
                       type="checkbox"
-                      className="w-5 h-5 rounded border-slate-200 text-[#00236f] focus:ring-[#00236f]/20"
+                      checked={selectedAirlines.includes(airline)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedAirlines([...selectedAirlines, airline])
+                        } else {
+                          setSelectedAirlines(selectedAirlines.filter(a => a !== airline))
+                        }
+                      }}
+                      className="w-4 h-4 rounded border-slate-200 text-[#00236f] focus:ring-[#00236f]/20"
                     />
-                    <span className="text-sm font-medium group-hover:text-[#00236f] transition-colors">
+                    <span className="text-sm font-medium text-slate-600 group-hover:text-[#00236f] transition-colors">
                       {airline}
                     </span>
                   </label>
