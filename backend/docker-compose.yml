@@ -1,0 +1,467 @@
+services:
+  postgres-auth:
+    image: postgres:15-alpine
+    container_name: postgres-auth
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    environment:
+      POSTGRES_DB: auth_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - auth_db_data:/var/lib/postgresql/data
+    networks:
+      - skyBooker-network
+
+  postgres-flight:
+    image: postgres:15-alpine
+    container_name: postgres-flight
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    environment:
+      POSTGRES_DB: flight_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5434:5432"
+    volumes:
+      - flight_db_data:/var/lib/postgresql/data
+    networks:
+      - skyBooker-network
+
+  postgres-seat:
+    image: postgres:15-alpine
+    container_name: postgres-seat
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    environment:
+      POSTGRES_DB: seat_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5435:5432"
+    volumes:
+      - seat_db_data:/var/lib/postgresql/data
+    networks:
+      - skyBooker-network
+
+  postgres-booking:
+    image: postgres:15-alpine
+    container_name: postgres-booking
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    environment:
+      POSTGRES_DB: booking_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5436:5432"
+    volumes:
+      - booking_db_data:/var/lib/postgresql/data
+    networks:
+      - skyBooker-network
+
+  postgres-passenger:
+    image: postgres:15-alpine
+    container_name: postgres-passenger
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    environment:
+      POSTGRES_DB: passenger_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5437:5432"
+    volumes:
+      - passenger_db_data:/var/lib/postgresql/data
+    networks:
+      - skyBooker-network
+
+  postgres-payment:
+    image: postgres:15-alpine
+    container_name: postgres-payment
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    environment:
+      POSTGRES_DB: payment_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5438:5432"
+    volumes:
+      - payment_db_data:/var/lib/postgresql/data
+    networks:
+      - skyBooker-network
+
+  postgres-notification:
+    image: postgres:15-alpine
+    container_name: postgres-notification
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    environment:
+      POSTGRES_DB: notification_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5439:5432"
+    volumes:
+      - notification_db_data:/var/lib/postgresql/data
+    networks:
+      - skyBooker-network
+
+  postgres-airline-airport:
+    image: postgres:15-alpine
+    container_name: postgres-airline-airport
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    environment:
+      POSTGRES_DB: airline_airport_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5440:5432"
+    volumes:
+      - airline_airport_db_data:/var/lib/postgresql/data
+    networks:
+      - skyBooker-network
+
+  postgres-admin:
+    image: postgres:15-alpine
+    container_name: postgres-admin
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    environment:
+      POSTGRES_DB: admin_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5441:5432"
+    volumes:
+      - admin_db_data:/var/lib/postgresql/data
+    networks:
+      - skyBooker-network
+
+  eureka-server:
+    build:
+      context: .
+      dockerfile: ./eureka-server/Dockerfile
+    container_name: eureka-server
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8761/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "8761:8761"
+    environment:
+      SPRING_APPLICATION_NAME: eureka-server
+    networks:
+      - skyBooker-network
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: ./api-gateway/Dockerfile
+    container_name: api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      SPRING_APPLICATION_NAME: api-gateway
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - skyBooker-network
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: ./auth-service/Dockerfile
+    container_name: auth-service
+    ports:
+      - "8081:8081"
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-auth:5432/auth_db
+      SPRING_APPLICATION_NAME: auth-service
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+    depends_on:
+      postgres-auth:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - skyBooker-network
+
+  flight-service:
+    build:
+      context: .
+      dockerfile: ./flight-service/Dockerfile
+    container_name: flight-service
+    ports:
+      - "8082:8082"
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-flight:5432/flight_db
+      SPRING_APPLICATION_NAME: flight-service
+    depends_on:
+      postgres-flight:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - skyBooker-network
+
+  seat-service:
+    build:
+      context: .
+      dockerfile: ./seat-service/Dockerfile
+    container_name: seat-service
+    ports:
+      - "8083:8083"
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-seat:5432/seat_db
+      SPRING_APPLICATION_NAME: seat-service
+    depends_on:
+      postgres-seat:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - skyBooker-network
+
+  booking-service:
+    build:
+      context: .
+      dockerfile: ./booking-service/Dockerfile
+    container_name: booking-service
+    ports:
+      - "8084:8084"
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-booking:5432/booking_db
+      SPRING_APPLICATION_NAME: booking-service
+      FLIGHT_SERVICE_URL: http://flight-service:8082
+      NOTIFICATION_SERVICE_URL: http://notification-service:8087
+      AUTH_SERVICE_URL: http://auth-service:8081
+    depends_on:
+      postgres-booking:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - skyBooker-network
+
+  passenger-service:
+    build:
+      context: .
+      dockerfile: ./passenger-service/Dockerfile
+    container_name: passenger-service
+    ports:
+      - "8085:8085"
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-passenger:5432/passenger_db
+      SPRING_APPLICATION_NAME: passenger-service
+    depends_on:
+      postgres-passenger:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - skyBooker-network
+
+  payment-service:
+    build:
+      context: .
+      dockerfile: ./payment-service/Dockerfile
+    container_name: payment-service
+    ports:
+      - "8086:8086"
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-payment:5432/payment_db
+      SPRING_APPLICATION_NAME: payment-service
+      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID}
+      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET}
+      BOOKING_SERVICE_URL: http://booking-service:8084
+    depends_on:
+      postgres-payment:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - skyBooker-network
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: ./notification-service/Dockerfile
+    container_name: notification-service
+    ports:
+      - "8087:8087"
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-notification:5432/notification_db
+      SPRING_APPLICATION_NAME: notification-service
+    depends_on:
+      postgres-notification:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - skyBooker-network
+
+  airline-airport-service:
+    build:
+      context: .
+      dockerfile: ./airline-airport-service/Dockerfile
+    container_name: airline-airport-service
+    ports:
+      - "8088:8088"
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-airline-airport:5432/airline_airport_db
+      SPRING_APPLICATION_NAME: airline-airport-service
+    depends_on:
+      postgres-airline-airport:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - skyBooker-network
+
+  admin-service:
+    build:
+      context: .
+      dockerfile: ./admin-service/Dockerfile
+    container_name: admin-service
+    ports:
+      - "8089:8089"
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-admin:5432/admin_db
+      SPRING_APPLICATION_NAME: admin-service
+    depends_on:
+      postgres-admin:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - skyBooker-network
+
+  admin-user-service:
+     build:
+       context: .
+       dockerfile: ./admin-user-service/Dockerfile
+     container_name: admin-user-service
+     ports:
+       - "8090:8090"
+     environment:
+       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-admin:5432/admin_db
+       SPRING_APPLICATION_NAME: admin-user-service
+       SERVER_PORT: 8090
+     depends_on:
+       postgres-admin:
+         condition: service_healthy
+       eureka-server:
+         condition: service_healthy
+     networks:
+       - skyBooker-network
+
+#  frontend:
+#     build:
+#       context: ../frontend
+#       dockerfile: Dockerfile
+#     container_name: skybooker-frontend
+#     ports:
+#       - "3000:80"
+#     environment:
+#       VITE_API_URL: http://api-gateway:8080
+#     depends_on:
+#       - api-gateway
+#     networks:
+#       - skyBooker-network
+
+  sonarqube:
+    image: sonarqube:lts-community
+    container_name: sonarqube
+    ports:
+      - "9000:9000"
+    environment:
+      - SONAR_JDBC_URL=jdbc:postgresql://postgres-sonar:5432/sonar_db
+      - SONAR_JDBC_USERNAME=postgres
+      - SONAR_JDBC_PASSWORD=postgres
+    depends_on:
+      postgres-sonar:
+        condition: service_healthy
+    networks:
+      - skyBooker-network
+
+  postgres-sonar:
+    image: postgres:15-alpine
+    container_name: postgres-sonar
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    environment:
+      POSTGRES_DB: sonar_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5442:5432"
+    volumes:
+      - sonar_db_data:/var/lib/postgresql/data
+    networks:
+      - skyBooker-network
+
+volumes:
+  auth_db_data:
+  flight_db_data:
+  seat_db_data:
+  booking_db_data:
+  passenger_db_data:
+  payment_db_data:
+  notification_db_data:
+  airline_airport_db_data:
+  admin_db_data:
+  sonar_db_data:
+
+networks:
+  skyBooker-network:
+    driver: bridge
+
