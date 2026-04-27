@@ -36,6 +36,10 @@ public class Passenger {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    private Category category;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private Gender gender;
 
     @Column(nullable = false, length = 50)
@@ -63,5 +67,9 @@ public class Passenger {
 
     public enum Gender {
         MALE, FEMALE, OTHER
+    }
+
+    public enum Category {
+        ADULT, CHILD, INFANT
     }
 }

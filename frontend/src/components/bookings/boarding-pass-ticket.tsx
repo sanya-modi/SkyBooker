@@ -84,7 +84,7 @@ export function BoardingPassTicket({ passenger, flight, seatNumber, pnr, classNa
         </div>
 
         {/* Main Body */}
-        <div className="flex-1 flex relative bg-white">
+        <div className="flex-1 flex relative bg-white" style={{ backgroundImage: `url('/BlankMap-World_gray.svg')`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', backgroundBlendMode: 'multiply', backgroundColor: 'rgba(255,255,255,0.95)' }}>
           <div className="flex-1 p-8 sm:p-10 flex flex-col justify-between">
             {/* Info Row 1 */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">

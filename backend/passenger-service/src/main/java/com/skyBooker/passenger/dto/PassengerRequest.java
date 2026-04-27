@@ -36,6 +36,9 @@ public class PassengerRequest {
     @NotNull(message = "Date of birth is required")
     private LocalDate dateOfBirth;
 
+    @NotNull(message = "Category is required")
+    private Passenger.Category category;
+
     @NotNull(message = "Gender is required")
     private Passenger.Gender gender;
 

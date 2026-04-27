@@ -24,6 +24,7 @@ export interface PassengerFormData {
   firstName: string
   lastName: string
   dateOfBirth: string
+  category: string
   gender: string
   passportNumber: string
   email: string
@@ -60,6 +61,7 @@ const defaultPassenger: PassengerFormData = {
   firstName: '',
   lastName: '',
   dateOfBirth: '',
+  category: '',
   gender: '',
   passportNumber: '',
   email: '',

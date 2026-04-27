@@ -529,24 +529,6 @@ export default function MyBookingsPage() {
                       {isUpcoming && (
                         <>
                           <button
-                            onClick={() => handleDownloadTicket(booking.id, booking.pnr)}
-                            disabled={isDownloading}
-                            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-[#00236f] to-[#1e3a8a] text-white rounded-xl font-bold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {isDownloading ? (
-                              <>
-                                <Loader2 className="w-5 h-5 animate-spin" />
-                                Downloading...
-                              </>
-                            ) : (
-                              <>
-                                <Download className="w-5 h-5" />
-                                Download Ticket
-                              </>
-                            )}
-                          </button>
-                          
-                          <button
                             onClick={() => handleCancelBooking(booking.id)}
                             disabled={isCancelling}
                             className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold transition-all ${

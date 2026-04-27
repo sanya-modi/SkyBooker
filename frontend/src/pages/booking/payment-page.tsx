@@ -9,7 +9,7 @@ import { getEffectiveSeatClass, getSeatPrice } from '../../components/booking/se
 import { TopNav } from '../../components/booking/top-nav'
 import { useAuth } from '../../context/auth-context'
 import { useBookingFlow } from '../../context/booking-flow-context'
-import { bookingApi, flightApi, paymentApi, seatApi, type EnrichedFlightResult, type SeatResult } from '../../services/api'
+import { bookingApi, flightApi, passengerApi, paymentApi, seatApi, type EnrichedFlightResult, type SeatResult } from '../../services/api'
 
 declare global {
   interface Window {
@@ -42,7 +42,7 @@ const PAYMENT_METHODS = [
 export function PaymentPage() {
   const navigate = useNavigate()
   const [params] = useSearchParams()
-  const { isLoggedIn, user } = useAuth()
+  const { isLoggedIn, user, profile } = useAuth()
   const { passengers, selectedFlight, selectedSeatIds, selectedMealId, selectedBaggageId, passenger, setConfirmedBooking } = useBookingFlow()
   const [flight, setFlight] = useState<EnrichedFlightResult | null>(selectedFlight)
   const [seats, setSeats] = useState<SeatResult[]>([])
@@ -156,9 +156,28 @@ export function PaymentPage() {
         flightId: flight.id,
         numberOfPassengers: selectedSeatIds.length,
         selectedSeats: selectedSeatIds,
+        passengers: passengers.slice(0, selectedSeatIds.length).map((entry) => ({
+          dateOfBirth: entry.dateOfBirth,
+          category: entry.category as 'ADULT' | 'CHILD' | 'INFANT',
+        })),
       })
 
       console.log('Booking created:', booking)
+
+      await Promise.all(
+        passengers.slice(0, selectedSeatIds.length).map((entry) =>
+          passengerApi.create({
+            bookingId: booking.id,
+            firstName: entry.firstName.trim(),
+            lastName: entry.lastName.trim(),
+            passportNumber: entry.passportNumber.trim(),
+            dateOfBirth: entry.dateOfBirth,
+            category: entry.category as 'ADULT' | 'CHILD' | 'INFANT',
+            gender: entry.gender as 'MALE' | 'FEMALE' | 'OTHER',
+            nationality: profile?.nationality?.trim() || 'Indian',
+          }),
+        ),
+      )
 
       // Step 2: Create Razorpay order
       const orderData = await paymentApi.createOrder(

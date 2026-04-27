@@ -6,6 +6,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.Period;
 import java.util.List;
 
 @Service
@@ -17,6 +19,7 @@ public class PassengerServiceImpl implements PassengerService {
 
     @Override
     public Passenger createPassenger(Passenger passenger) {
+        validatePassengerCategoryAge(passenger.getDateOfBirth(), passenger.getCategory());
         return passengerRepository.save(passenger);
     }
 
@@ -55,11 +58,53 @@ public class PassengerServiceImpl implements PassengerService {
         if (passengerData.getSpecialRequests() != null) {
             passenger.setSpecialRequests(passengerData.getSpecialRequests());
         }
+        if (passengerData.getDateOfBirth() != null) {
+            passenger.setDateOfBirth(passengerData.getDateOfBirth());
+        }
+        if (passengerData.getCategory() != null) {
+            passenger.setCategory(passengerData.getCategory());
+        }
+        if (passengerData.getGender() != null) {
+            passenger.setGender(passengerData.getGender());
+        }
+        if (passengerData.getPassportNumber() != null) {
+            passenger.setPassportNumber(passengerData.getPassportNumber());
+        }
+        if (passengerData.getNationality() != null) {
+            passenger.setNationality(passengerData.getNationality());
+        }
+        validatePassengerCategoryAge(passenger.getDateOfBirth(), passenger.getCategory());
         return passengerRepository.save(passenger);
     }
 
     @Override
     public void deletePassenger(Long id) {
         passengerRepository.deleteById(id);
+    }
+
+    private void validatePassengerCategoryAge(LocalDate dateOfBirth, Passenger.Category category) {
+        int age = Period.between(dateOfBirth, LocalDate.now()).getYears();
+        if (age < 0) {
+            throw new IllegalArgumentException("Date of birth cannot be in the future");
+        }
+
+        switch (category) {
+            case ADULT -> {
+                if (age <= 12) {
+                    throw new IllegalArgumentException("Passenger must be older than 12 years");
+                }
+            }
+            case CHILD -> {
+                if (age < 2 || age > 12) {
+                    throw new IllegalArgumentException("Passenger age must be between 2 and 12 years");
+                }
+            }
+            case INFANT -> {
+                if (age >= 2) {
+                    throw new IllegalArgumentException("Passenger must be below 2 years");
+                }
+            }
+            default -> throw new IllegalArgumentException("Invalid passenger category");
+        }
     }
 }

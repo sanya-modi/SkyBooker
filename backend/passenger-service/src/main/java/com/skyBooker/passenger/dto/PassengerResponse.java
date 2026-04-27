@@ -18,6 +18,7 @@ public class PassengerResponse {
     private String lastName;
     private String passportNumber;
     private LocalDate dateOfBirth;
+    private Passenger.Category category;
     private Passenger.Gender gender;
     private String nationality;
     private String specialRequests;

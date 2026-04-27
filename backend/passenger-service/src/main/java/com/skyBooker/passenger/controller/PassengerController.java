@@ -72,6 +72,7 @@ public class PassengerController {
         passenger.setLastName(request.getLastName());
         passenger.setPassportNumber(request.getPassportNumber());
         passenger.setDateOfBirth(request.getDateOfBirth());
+        passenger.setCategory(request.getCategory());
         passenger.setGender(request.getGender());
         passenger.setNationality(request.getNationality());
         passenger.setSpecialRequests(request.getSpecialRequests());
@@ -86,6 +87,7 @@ public class PassengerController {
                 passenger.getLastName(),
                 passenger.getPassportNumber(),
                 passenger.getDateOfBirth(),
+                passenger.getCategory(),
                 passenger.getGender(),
                 passenger.getNationality(),
                 passenger.getSpecialRequests(),

@@ -7,6 +7,7 @@ const FIELDS = [
   { key: 'firstName', label: 'First Name', placeholder: 'As per passport', icon: User, type: 'text', col: 1 },
   { key: 'lastName', label: 'Last Name', placeholder: 'As per passport', icon: User, type: 'text', col: 1 },
   { key: 'dateOfBirth', label: 'Date of Birth', placeholder: '', icon: Calendar, type: 'date', col: 1 },
+  { key: 'category', label: 'Category', placeholder: '', icon: User, type: 'select', col: 1 },
   { key: 'gender', label: 'Gender', placeholder: '', icon: User, type: 'select', col: 1 },
   { key: 'passportNumber', label: 'Passport / ID Number', placeholder: 'A1234567', icon: Shield, type: 'text', col: 1 },
   { key: 'email', label: 'Email Address', placeholder: 'you@example.com', icon: Mail, type: 'email', col: 2 },
@@ -80,7 +81,18 @@ export function PassengerForm({
                   : 'border-[#1e3a8a]/30 bg-blue-50/30'
               } focus-within:border-[#1e3a8a] focus-within:bg-white focus-within:shadow-sm focus-within:shadow-blue-900/10`}>
                 <Icon size={15} className={fieldError ? 'text-red-400' : isEmpty ? 'text-slate-300' : 'text-[#1e3a8a]'} />
-                {field.key === 'gender' ? (
+                {field.key === 'category' ? (
+                  <select
+                    className="flex-1 bg-transparent border-none outline-none text-sm font-medium text-slate-900"
+                    onChange={(e) => onChange({ ...value, category: e.target.value })}
+                    value={value.category}
+                  >
+                    <option value="">Select category</option>
+                    <option value="ADULT">Adult</option>
+                    <option value="CHILD">Child</option>
+                    <option value="INFANT">Infant</option>
+                  </select>
+                ) : field.key === 'gender' ? (
                   <select
                     className="flex-1 bg-transparent border-none outline-none text-sm font-medium text-slate-900"
                     onChange={(e) => onChange({ ...value, gender: e.target.value })}

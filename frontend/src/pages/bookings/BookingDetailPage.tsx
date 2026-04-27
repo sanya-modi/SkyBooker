@@ -1,9 +1,10 @@
 // export { default } from '../../app/bookings/[id]/page'
 // "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useParams, useNavigate, Link } from "react-router-dom"
 import { CustomerHeader } from "@/components/layout/customer-header"
+import { BoardingPassTicket } from "@/components/bookings/boarding-pass-ticket"
 import { 
   ArrowLeft,
   Plane,
@@ -19,10 +20,11 @@ import {
   Mail,
   Phone,
   FileText,
-  QrCode
+  Ban
 } from "lucide-react"
 import { useAuth } from "@/context/auth-context"
 import { bookingApi, flightApi, airportApi, airlineApi, passengerApi, paymentApi, type BookingResult, type FlightResult, type Airport, type Airline, type PassengerResult, type PaymentResult } from "@/services/api"
+import { downloadBoardingPassSection } from "@/lib/boarding-pass-download"
 
 interface EnrichedBooking extends BookingResult {
   flight?: FlightResult
@@ -36,11 +38,12 @@ interface EnrichedBooking extends BookingResult {
 export default function BookingDetailPage() {
   const params = useParams()
   const navigate = useNavigate()
-  const { user, isLoggedIn } = useAuth()
+  const { isLoggedIn } = useAuth()
   const [booking, setBooking] = useState<EnrichedBooking | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [downloadingTicket, setDownloadingTicket] = useState(false)
+  const ticketGroupRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -98,15 +101,8 @@ export default function BookingDetailPage() {
     try {
       setDownloadingTicket(true)
       
-      const blob = await bookingApi.downloadTicket(booking.id)
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `E-Ticket-${booking.pnr}.pdf`
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
+      const elements = Array.from(ticketGroupRef.current?.querySelectorAll('[data-boarding-pass-card="true"]') ?? []) as HTMLElement[]
+      await downloadBoardingPassSection(`Boarding Pass ${booking.pnr}`, elements)
     } catch (err) {
       console.error('Error downloading ticket:', err)
       alert('Failed to download ticket. Please try again.')
@@ -186,6 +182,19 @@ export default function BookingDetailPage() {
   const seatLabels = booking.selectedSeats?.length
     ? booking.selectedSeats.join(', ')
     : booking.passengers?.map((passenger) => passenger.seatNumber).filter(Boolean).join(', ') || 'Not assigned'
+  const ticketPassengers = booking.passengers?.length
+    ? booking.passengers
+    : Array.from({ length: booking.numberOfPassengers }, (_, index) => ({
+        id: index,
+        bookingId: booking.id,
+        firstName: 'Passenger',
+        lastName: `${index + 1}`,
+        dateOfBirth: booking.bookingDate,
+        category: 'ADULT' as const,
+        gender: 'OTHER' as const,
+        passportNumber: '',
+        nationality: '',
+      }))
 
   return (
     <div className="min-h-screen bg-[#f7f9fb]">
@@ -337,7 +346,7 @@ export default function BookingDetailPage() {
                       <div className="flex items-center justify-between mb-3">
                         <h3 className="font-bold text-slate-800">Passenger {index + 1}</h3>
                         <span className="text-sm font-bold text-[#00236f] bg-blue-50 px-3 py-1 rounded-full">
-                          Seat {passenger.seatNumber}
+                          Seat {booking.selectedSeats[index] ?? '—'}
                         </span>
                       </div>
                       <div className="grid grid-cols-2 gap-4 text-sm">
@@ -361,12 +370,36 @@ export default function BookingDetailPage() {
                             {new Date(passenger.dateOfBirth).toLocaleDateString()}
                           </p>
                         </div>
+                        <div>
+                          <p className="text-slate-500 mb-1">Category</p>
+                          <p className="font-bold text-slate-800">{passenger.category}</p>
+                        </div>
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
             )}
+
+            <div className="hidden">
+              <div ref={ticketGroupRef}>
+                {booking.flight && ticketPassengers.map((passenger, index) => (
+                  <div data-boarding-pass-card="true" key={`${passenger.id}-${index}`}>
+                    <BoardingPassTicket
+                      flight={{
+                        flightNumber: booking.flight.flightNumber,
+                        departureTime: booking.flight.departureTime,
+                        departureAirport: booking.departureAirport,
+                        arrivalAirport: booking.arrivalAirport,
+                      }}
+                      passenger={{ firstName: passenger.firstName, lastName: passenger.lastName }}
+                      pnr={booking.pnr}
+                      seatNumber={booking.selectedSeats[index] ?? '—'}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
 
             {/* Fare Breakdown */}
             <div className="bg-white rounded-2xl p-6 shadow-sm">

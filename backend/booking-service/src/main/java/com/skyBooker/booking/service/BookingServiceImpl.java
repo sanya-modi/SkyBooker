@@ -13,7 +13,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.Period;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
@@ -42,6 +44,7 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public BookingResponse createBooking(BookingRequest request) {
+        validateBookingRequest(request);
         String pnr = generatePNR();
 
         BigDecimal baseFare = getFlightBaseFare(request.getFlightId())
@@ -56,6 +59,7 @@ public class BookingServiceImpl implements BookingService {
         booking.setUserId(request.getUserId());
         booking.setFlightId(request.getFlightId());
         booking.setNumberOfPassengers(request.getNumberOfPassengers());
+        booking.setSelectedSeats(request.getSelectedSeats());
         booking.setBaseFare(baseFare);
         booking.setTaxes(taxes);
         booking.setAncillaryCharges(ancillaryCharges);
@@ -65,12 +69,54 @@ public class BookingServiceImpl implements BookingService {
         return mapToResponse(savedBooking, request.getSelectedSeats());
     }
 
+    private void validateBookingRequest(BookingRequest request) {
+        if (request.getSelectedSeats() == null || request.getSelectedSeats().size() != request.getNumberOfPassengers()) {
+            throw new IllegalArgumentException("Selected seats must match the number of passengers");
+        }
+
+        if (request.getPassengers() != null && request.getPassengers().size() != request.getNumberOfPassengers()) {
+            throw new IllegalArgumentException("Passenger count must match the number of passengers");
+        }
+
+        if (request.getPassengers() != null) {
+            for (BookingRequest.PassengerValidationRequest passenger : request.getPassengers()) {
+                validatePassengerCategoryAge(passenger.getDateOfBirth(), passenger.getCategory());
+            }
+        }
+    }
+
+    private void validatePassengerCategoryAge(LocalDate dateOfBirth, BookingRequest.PassengerCategory category) {
+        int age = Period.between(dateOfBirth, LocalDate.now()).getYears();
+        if (age < 0) {
+            throw new IllegalArgumentException("Date of birth cannot be in the future");
+        }
+
+        switch (category) {
+            case ADULT -> {
+                if (age <= 12) {
+                    throw new IllegalArgumentException("Passenger must be older than 12 years");
+                }
+            }
+            case CHILD -> {
+                if (age < 2 || age > 12) {
+                    throw new IllegalArgumentException("Passenger age must be between 2 and 12 years");
+                }
+            }
+            case INFANT -> {
+                if (age >= 2) {
+                    throw new IllegalArgumentException("Passenger must be below 2 years");
+                }
+            }
+            default -> throw new IllegalArgumentException("Invalid passenger category");
+        }
+    }
+
     @Override
     @Transactional(readOnly = true)
     public BookingResponse getBookingById(Long id) {
         Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Booking not found"));
-        return mapToResponse(booking, List.of());
+        return mapToResponse(booking, booking.getSelectedSeats());
     }
 
     @Override
@@ -78,14 +124,14 @@ public class BookingServiceImpl implements BookingService {
     public BookingResponse getBookingByPnr(String pnr) {
         Booking booking = bookingRepository.findByPnr(pnr)
                 .orElseThrow(() -> new RuntimeException("Booking not found"));
-        return mapToResponse(booking, List.of());
+        return mapToResponse(booking, booking.getSelectedSeats());
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<BookingResponse> getBookingsByUserId(Long userId) {
         return bookingRepository.findByUserId(userId).stream()
-                .map(b -> mapToResponse(b, List.of()))
+                .map(b -> mapToResponse(b, b.getSelectedSeats()))
                 .collect(Collectors.toList());
     }
 
@@ -100,7 +146,7 @@ public class BookingServiceImpl implements BookingService {
             sendBookingConfirmationNotifications(updated);
         }
         
-        return mapToResponse(updated, List.of());
+        return mapToResponse(updated, updated.getSelectedSeats());
     }
 
     @Override
@@ -249,7 +295,7 @@ public class BookingServiceImpl implements BookingService {
     @Transactional(readOnly = true)
     public List<BookingResponse> getConfirmedBookingsByFlight(Long flightId) {
         return bookingRepository.findConfirmedBookingsByFlight(flightId).stream()
-                .map(b -> mapToResponse(b, List.of()))
+                .map(b -> mapToResponse(b, b.getSelectedSeats()))
                 .collect(Collectors.toList());
     }
 

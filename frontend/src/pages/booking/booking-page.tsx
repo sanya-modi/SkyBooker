@@ -16,10 +16,43 @@ type PassengerErrors = {
   firstName?: string
   lastName?: string
   dateOfBirth?: string
+  category?: string
   gender?: string
   passportNumber?: string
   email?: string
   phoneNumber?: string
+}
+
+function calculateAge(dateOfBirth: string) {
+  const today = new Date()
+  const dob = new Date(dateOfBirth)
+  let age = today.getFullYear() - dob.getFullYear()
+  const monthDiff = today.getMonth() - dob.getMonth()
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+    age -= 1
+  }
+  return age
+}
+
+function getCategoryAgeError(category: string, dateOfBirth: string) {
+  if (!category || !dateOfBirth) return undefined
+
+  const age = calculateAge(dateOfBirth)
+  if (Number.isNaN(age) || age < 0) {
+    return 'Date of birth cannot be in the future'
+  }
+
+  if (category === 'ADULT' && age <= 12) {
+    return 'Passenger must be older than 12 years'
+  }
+  if (category === 'CHILD' && (age < 2 || age > 12)) {
+    return 'Passenger age must be between 2 and 12 years'
+  }
+  if (category === 'INFANT' && age >= 2) {
+    return 'Passenger must be below 2 years'
+  }
+
+  return undefined
 }
 
 function enrichFlight(f: Awaited<ReturnType<typeof flightApi.getById>>): EnrichedFlightResult {
@@ -179,12 +212,16 @@ export function BookingPage() {
       if (!passenger.lastName.trim()) errors.lastName = 'Last name is required'
       if (!passenger.dateOfBirth) errors.dateOfBirth = 'Date of birth is required'
       else if (dob && dob.getTime() > today.getTime()) errors.dateOfBirth = 'Date of birth cannot be in the future'
+      if (!passenger.category.trim()) errors.category = 'Category is required'
       if (!passenger.gender.trim()) errors.gender = 'Gender is required'
       if (!passenger.phoneNumber.trim()) errors.phoneNumber = 'Mobile number is required'
       else if (!/^\d{10}$/.test(passenger.phoneNumber.trim())) errors.phoneNumber = 'Mobile number must be exactly 10 digits'
       if (!passport) errors.passportNumber = 'Passport number is required'
       else if ((passportCounts[passport] ?? 0) > 1) errors.passportNumber = 'Passport number must be unique'
       if (!passenger.email.trim()) errors.email = 'Email address is required'
+
+      const categoryAgeError = getCategoryAgeError(passenger.category, passenger.dateOfBirth)
+      if (categoryAgeError) errors.dateOfBirth = categoryAgeError
 
       return errors
     })
@@ -305,6 +342,7 @@ export function BookingPage() {
                 firstName: '',
                 lastName: '',
                 dateOfBirth: '',
+                category: '',
                 gender: '',
                 passportNumber: '',
                 email: user?.email || '',

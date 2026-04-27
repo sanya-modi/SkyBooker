@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
+import java.time.LocalDate;
 
 @Data
 @NoArgsConstructor
@@ -28,5 +29,22 @@ public class BookingRequest {
     @NotNull(message = "Selected seats are required")
     private List<String> selectedSeats;
 
+    private List<PassengerValidationRequest> passengers;
+
     private String specialRequests;
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class PassengerValidationRequest {
+        @NotNull(message = "Date of birth is required")
+        private LocalDate dateOfBirth;
+
+        @NotNull(message = "Passenger category is required")
+        private PassengerCategory category;
+    }
+
+    public enum PassengerCategory {
+        ADULT, CHILD, INFANT
+    }
 }

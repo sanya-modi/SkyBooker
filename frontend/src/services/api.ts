@@ -118,6 +118,11 @@ export interface BookingResult {
   selectedSeats: string[]
 }
 
+export interface BookingPassengerValidationPayload {
+  dateOfBirth: string
+  category: 'ADULT' | 'CHILD' | 'INFANT'
+}
+
 export const authApi = {
   register: (body: {
     firstName: string
@@ -246,6 +251,7 @@ export const bookingApi = {
     numberOfPassengers: number
     selectedSeats: string[]
     specialRequests?: string
+    passengers?: BookingPassengerValidationPayload[]
   }) => request<BookingResult>('/bookings', { method: 'POST', body: JSON.stringify(body) }),
   getByPnr: (pnr: string) => request<BookingResult>(`/bookings/pnr/${pnr}`),
   getByUser: (userId: number) => request<BookingResult[]>(`/bookings/user/${userId}`),
@@ -328,10 +334,24 @@ export interface PassengerResult {
   firstName: string
   lastName: string
   dateOfBirth: string
+  category: 'ADULT' | 'CHILD' | 'INFANT'
+  gender: 'MALE' | 'FEMALE' | 'OTHER'
   passportNumber: string
   nationality: string
-  seatNumber: string
-  mealPreference: string | null
+  seatNumber?: string
+  mealPreference?: string | null
+}
+
+export interface PassengerCreateRequest {
+  bookingId: number
+  firstName: string
+  lastName: string
+  passportNumber: string
+  dateOfBirth: string
+  category: 'ADULT' | 'CHILD' | 'INFANT'
+  gender: 'MALE' | 'FEMALE' | 'OTHER'
+  nationality: string
+  specialRequests?: string
 }
 
 export const paymentApi = {
@@ -355,5 +375,7 @@ export const paymentApi = {
 }
 
 export const passengerApi = {
+  create: (body: PassengerCreateRequest) =>
+    request<PassengerResult>('/passengers', { method: 'POST', body: JSON.stringify(body) }),
   getByBooking: (bookingId: number) => request<PassengerResult[]>(`/passengers/booking/${bookingId}`),
 }
