@@ -1,7 +1,6 @@
 // export { default } from '../../app/airline/flights/page'
 import { useState, useEffect } from "react"
 import { Link, useNavigate } from 'react-router-dom'
-import { AirlineHeader } from "@/components/airline/airline-header"
 import {
   Plane,
   Plus,
@@ -76,10 +75,7 @@ export default function ViewFlightsPage() {
   })
 
   return (
-    <div className="min-h-screen bg-[#f7f9fb]">
-      <AirlineHeader />
-
-      <main className="max-w-7xl mx-auto px-4 md:px-6 py-8 pt-24">
+    <div className="max-w-7xl mx-auto px-4 md:px-6 py-8">
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl md:text-4xl font-black text-[#00236f] mb-2">Flight Management</h1>
@@ -237,8 +233,6 @@ export default function ViewFlightsPage() {
             </div>
           )}
         </div>
-      </main>
     </div>
   )
 }
-

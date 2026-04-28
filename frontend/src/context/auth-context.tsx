@@ -16,6 +16,7 @@ interface AuthContextType {
   isLoggedIn: boolean
   isAuthReady: boolean
   login: (email: string, password: string) => Promise<AuthResponseData>
+  loginWithGoogle: (idToken: string) => Promise<AuthResponseData>
   register: (data: {
     firstName: string
     lastName: string
@@ -122,6 +123,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return response
   }, [setAuthFromResponse])
 
+  const loginWithGoogle = useCallback(async (idToken: string) => {
+    const response = await authApi.loginWithGoogle({ idToken })
+    await setAuthFromResponse(response)
+    return response
+  }, [setAuthFromResponse])
+
   const register = useCallback(async (data: {
     firstName: string
     lastName: string
@@ -163,7 +170,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   return (
-    <AuthContext.Provider value={{ user, profile, token, isLoggedIn: !!user, isAuthReady, login, register, updateProfile, deleteAccount, logout }}>
+    <AuthContext.Provider value={{ user, profile, token, isLoggedIn: !!user, isAuthReady, login, loginWithGoogle, register, updateProfile, deleteAccount, logout }}>
       {children}
     </AuthContext.Provider>
   )

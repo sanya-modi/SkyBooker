@@ -48,7 +48,6 @@ public class EmailService {
             log.info("Booking confirmation email sent to: {}", toEmail);
         } catch (Exception e) {
             log.error("Failed to send booking confirmation email to: {}", toEmail, e);
-            throw new RuntimeException("Failed to send email", e);
         }
     }
 

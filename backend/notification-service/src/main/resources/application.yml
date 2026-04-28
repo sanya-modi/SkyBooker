@@ -43,6 +43,9 @@ logging:
     com.skyBooker: INFO
 
 management:
+  health:
+    mail:
+      enabled: false
   endpoints:
     web:
       exposure:

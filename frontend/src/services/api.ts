@@ -19,8 +19,11 @@ async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
     let message = `Request failed: ${response.status}`
 
     try {
-      const parsed = JSON.parse(errorBody) as { message?: string; error?: string }
-      message = parsed.message || parsed.error || message
+      const parsed = JSON.parse(errorBody) as { message?: string; error?: string; errors?: Record<string, string> }
+      const validationErrors = parsed.errors ? Object.values(parsed.errors).filter(Boolean) : []
+      message = validationErrors.length > 0
+        ? validationErrors.join(' | ')
+        : parsed.message || parsed.error || message
     } catch {
       // ignore invalid json
     }
@@ -346,6 +349,8 @@ export interface PassengerCreateRequest {
   bookingId: number
   firstName: string
   lastName: string
+  email?: string
+  phoneNumber?: string
   passportNumber: string
   dateOfBirth: string
   category: 'ADULT' | 'CHILD' | 'INFANT'
@@ -364,11 +369,7 @@ export const paymentApi = {
   verify: (body: { razorpayOrderId: string; razorpayPaymentId: string; razorpaySignature: string }) =>
     request<PaymentResult>('/payments/razorpay/verify', { 
       method: 'POST', 
-      body: JSON.stringify({ 
-        orderId: body.razorpayOrderId, 
-        paymentId: body.razorpayPaymentId, 
-        signature: body.razorpaySignature 
-      }) 
+      body: JSON.stringify(body)
     }),
   getByBooking: (bookingId: number) => request<PaymentResult[]>(`/payments/booking/${bookingId}`),
   getByUser: (userId: number) => request<PaymentResult[]>(`/payments/user/${userId}`),

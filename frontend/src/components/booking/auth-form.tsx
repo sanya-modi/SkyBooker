@@ -1,5 +1,6 @@
 import { ArrowRight, LockKeyhole, Mail, ShieldCheck, User, UsersRound } from 'lucide-react'
 import { useState } from 'react'
+import { GoogleLogin, type CredentialResponse } from '@react-oauth/google'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../context/auth-context'
 import { Button } from './button'
@@ -15,16 +16,16 @@ const signupRoleOptions: Array<{ value: SignupRole; label: string }> = [
 ]
 
 const validationPatterns = {
-  email: '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$',
-  password: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,15}$',
-  phoneNumber: '^(?:[0-9]{10}|\\+?[1-9]\\d{1,14})$',
+  email: '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+.[A-Za-z]{2,}',
+  password: '(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[@$!%*?&])[A-Za-z0-9@$!%*?&]{8,15}',
+  phoneNumber: '([0-9]{10}|\\+?[1-9][0-9]{1,14})',
 } as const
 
 export function AuthForm({ mode }: { mode: AuthMode }) {
   const navigate = useNavigate()
   const location = useLocation()
   const [searchParams] = useSearchParams()
-  const { login, register } = useAuth()
+  const { login, loginWithGoogle, register } = useAuth()
   const [fullName, setFullName] = useState('')
   const [phoneNumber, setPhoneNumber] = useState('')
   const [email, setEmail] = useState('')
@@ -73,6 +74,31 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
     } finally {
       setSubmitting(false)
     }
+  }
+
+  async function handleGoogleSuccess(response: CredentialResponse) {
+    const idToken = response.credential
+
+    if (!idToken) {
+      setError('Google authentication did not return a valid token.')
+      return
+    }
+
+    setError('')
+    setSubmitting(true)
+
+    try {
+      const authResponse = await loginWithGoogle(idToken)
+      navigate(redirectTarget ?? getDefaultRedirectForRole(authResponse.role), { replace: true })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Google authentication failed.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  function handleGoogleError() {
+    setError('Google authentication failed.')
   }
 
   function getFieldErrorMessage(field: string, value: string, validity: ValidityState) {
@@ -151,6 +177,17 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
               </div>
 
               {error ? <div className="search-error">{error}</div> : null}
+
+              <div>
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={handleGoogleError}
+                  shape="pill"
+                  size="large"
+                  text="continue_with"
+                  width="320"
+                />
+              </div>
 
               <form className="auth-form" onSubmit={handleSubmit}>
                 {isSignUp ? (
@@ -238,11 +275,11 @@ function getDefaultRedirectForRole(role: string) {
   const normalizedRole = role.replace(/^ROLE_/, '').toUpperCase()
 
   if (normalizedRole === 'ADMIN') {
-    return '/admin'
+    return '/admin/dashboard'
   }
 
   if (normalizedRole === 'AIRLINE_STAFF') {
-    return '/airline'
+    return '/airline/dashboard'
   }
 
   return '/'

@@ -273,6 +273,8 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-booking:5432/booking_db
       SPRING_APPLICATION_NAME: booking-service
       FLIGHT_SERVICE_URL: http://flight-service:8082
+      SEAT_SERVICE_URL: http://seat-service:8083
+      PAYMENT_SERVICE_URL: http://payment-service:8086
       NOTIFICATION_SERVICE_URL: http://notification-service:8087
       AUTH_SERVICE_URL: http://auth-service:8081
     depends_on:

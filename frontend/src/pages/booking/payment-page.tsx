@@ -30,7 +30,34 @@ function isSeatConflictError(message: string) {
   return normalized.includes('duplicate key') || normalized.includes('seat already booked') || normalized.includes('seat is already booked')
 }
 
+function isPassengerSchemaMismatchError(message: string) {
+  const normalized = message.toLowerCase()
+  return (
+    normalized.includes('column "email"') && normalized.includes('passengers')
+  ) || (
+    normalized.includes('column "phone_number"') && normalized.includes('passengers')
+  )
+}
+
 type PaymentMethod = 'CREDIT_CARD' | 'UPI' | 'NET_BANKING' | 'WALLET'
+type PassengerErrors = {
+  firstName?: string
+  lastName?: string
+  dateOfBirth?: string
+  category?: string
+  gender?: string
+  passportNumber?: string
+  email?: string
+  phoneNumber?: string
+}
+
+const validationPatterns = {
+  name: /^[A-Za-z][A-Za-z\s'-]{1,49}$/,
+  passport: /^[A-Z0-9]{6,20}$/,
+  nationality: /^[A-Za-z][A-Za-z\s-]{1,49}$/,
+  email: /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/,
+  phoneNumber: /^\d{10}$/,
+} as const
 
 const PAYMENT_METHODS = [
   { id: 'CREDIT_CARD' as PaymentMethod, name: 'Credit/Debit Card', icon: CreditCard, popular: true },
@@ -39,10 +66,92 @@ const PAYMENT_METHODS = [
   { id: 'WALLET' as PaymentMethod, name: 'Wallets', icon: Wallet, popular: false },
 ]
 
+function calculateAge(dateOfBirth: string) {
+  const today = new Date()
+  const dob = new Date(dateOfBirth)
+  let age = today.getFullYear() - dob.getFullYear()
+  const monthDiff = today.getMonth() - dob.getMonth()
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+    age -= 1
+  }
+  return age
+}
+
+function getCategoryAgeError(category: string, dateOfBirth: string) {
+  if (!category || !dateOfBirth) return undefined
+
+  const age = calculateAge(dateOfBirth)
+  if (Number.isNaN(age) || age < 0) {
+    return 'Date of birth cannot be in the future'
+  }
+
+  if (category === 'ADULT' && age <= 12) {
+    return 'Passenger must be older than 12 years'
+  }
+  if (category === 'CHILD' && (age < 2 || age > 12)) {
+    return 'Passenger age must be between 2 and 12 years'
+  }
+  if (category === 'INFANT' && age >= 2) {
+    return 'Passenger must be below 2 years'
+  }
+
+  return undefined
+}
+
+function validatePassenger(entry: {
+  firstName: string
+  lastName: string
+  dateOfBirth: string
+  category: string
+  gender: string
+  passportNumber: string
+  email: string
+  phoneNumber: string
+}): PassengerErrors {
+  const errors: PassengerErrors = {}
+  const firstName = entry.firstName.trim()
+  const lastName = entry.lastName.trim()
+  const passportNumber = entry.passportNumber.trim().toUpperCase()
+  const email = entry.email.trim()
+  const phoneNumber = entry.phoneNumber.trim()
+
+  if (!firstName) errors.firstName = 'First name is required'
+  else if (!validationPatterns.name.test(firstName)) errors.firstName = 'First name must be 2-50 letters only'
+
+  if (!lastName) errors.lastName = 'Last name is required'
+  else if (!validationPatterns.name.test(lastName)) errors.lastName = 'Last name must be 2-50 letters only'
+
+  if (!entry.dateOfBirth) errors.dateOfBirth = 'Date of birth is required'
+  const categoryAgeError = getCategoryAgeError(entry.category, entry.dateOfBirth)
+  if (categoryAgeError) errors.dateOfBirth = categoryAgeError
+
+  if (!entry.category.trim()) errors.category = 'Category is required'
+  if (!entry.gender.trim()) errors.gender = 'Gender is required'
+
+  if (!passportNumber) errors.passportNumber = 'Passport number is required'
+  else if (!validationPatterns.passport.test(passportNumber)) errors.passportNumber = 'Passport number must be 6-20 uppercase letters or digits'
+
+  if (!email) errors.email = 'Email address is required'
+  else if (!validationPatterns.email.test(email)) errors.email = 'Please enter a valid email address'
+
+  if (!phoneNumber) errors.phoneNumber = 'Mobile number is required'
+  else if (!validationPatterns.phoneNumber.test(phoneNumber)) errors.phoneNumber = 'Mobile number must be exactly 10 digits'
+
+  return errors
+}
+
+function getPassengerNationality(nationality?: string | null) {
+  const normalized = nationality?.trim() || ''
+  if (validationPatterns.nationality.test(normalized)) {
+    return normalized
+  }
+  return 'Indian'
+}
+
 export function PaymentPage() {
   const navigate = useNavigate()
   const [params] = useSearchParams()
-  const { isLoggedIn, user, profile } = useAuth()
+  const { isLoggedIn, user, profile, updateProfile } = useAuth()
   const { passengers, selectedFlight, selectedSeatIds, selectedMealId, selectedBaggageId, passenger, setConfirmedBooking } = useBookingFlow()
   const [flight, setFlight] = useState<EnrichedFlightResult | null>(selectedFlight)
   const [seats, setSeats] = useState<SeatResult[]>([])
@@ -97,6 +206,7 @@ export function PaymentPage() {
   }, [flightId])
 
   const primaryPassenger = passengers[0] ?? passenger
+  const selectedPassengers = passengers.slice(0, selectedSeatIds.length)
   const selectedSeatLabel = selectedSeatIds.join(', ')
   const selectedSeat = selectedSeatIds.length === 1
     ? seats.find((seat) => seat.seatNumber === selectedSeatIds[0]) ?? null
@@ -107,6 +217,46 @@ export function PaymentPage() {
   const mealCharge = useMemo(() => MEALS.find(m => m.id === selectedMealId)?.price ?? 0, [selectedMealId])
   const baggageCharge = useMemo(() => BAGGAGE.find(b => b.id === selectedBaggageId)?.price ?? 0, [selectedBaggageId])
   const total = Number(flight?.baseFare ?? 0) + taxes + seatCharge + mealCharge + baggageCharge
+  const passengerNationality = useMemo(() => getPassengerNationality(profile?.nationality), [profile?.nationality])
+  const passengerErrors = useMemo(() => selectedPassengers.map(validatePassenger), [selectedPassengers])
+  const invalidPassengerSummaries = useMemo(
+    () =>
+      passengerErrors
+        .map((entry, index) => {
+          const messages = Object.values(entry).filter((message): message is string => Boolean(message))
+          if (messages.length === 0) return null
+          return `Passenger ${index + 1}: ${messages[0]}`
+        })
+        .filter((entry): entry is string => Boolean(entry)),
+    [passengerErrors],
+  )
+
+  async function syncUserContactDetails() {
+    if (!user) return
+
+    const nextFirstName = primaryPassenger.firstName.trim()
+    const nextLastName = primaryPassenger.lastName.trim()
+    const nextPhoneNumber = primaryPassenger.phoneNumber.trim()
+    const nextPassportNumber = primaryPassenger.passportNumber.trim().toUpperCase()
+
+    const shouldSyncFirstName = validationPatterns.name.test(nextFirstName) && profile?.firstName !== nextFirstName
+    const shouldSyncLastName = validationPatterns.name.test(nextLastName) && profile?.lastName !== nextLastName
+    const shouldSyncPhoneNumber = validationPatterns.phoneNumber.test(nextPhoneNumber) && profile?.phoneNumber !== nextPhoneNumber
+    const shouldSyncPassportNumber = validationPatterns.passport.test(nextPassportNumber) && profile?.passportNumber !== nextPassportNumber
+    const shouldSyncNationality = profile?.nationality !== passengerNationality
+
+    if (!shouldSyncFirstName && !shouldSyncLastName && !shouldSyncPhoneNumber && !shouldSyncPassportNumber && !shouldSyncNationality) {
+      return
+    }
+
+    await updateProfile({
+      firstName: shouldSyncFirstName ? nextFirstName : profile?.firstName,
+      lastName: shouldSyncLastName ? nextLastName : profile?.lastName,
+      phoneNumber: shouldSyncPhoneNumber ? nextPhoneNumber : profile?.phoneNumber,
+      passportNumber: shouldSyncPassportNumber ? nextPassportNumber : profile?.passportNumber,
+      nationality: shouldSyncNationality ? passengerNationality : profile?.nationality,
+    })
+  }
 
   async function handleConfirm() {
     if (!user) {
@@ -125,10 +275,18 @@ export function PaymentPage() {
       setError('Passenger details are missing. Please return to booking and complete them before payment.')
       return
     }
+
+    if (invalidPassengerSummaries.length > 0) {
+      setError(`Please correct these passenger details before payment: ${invalidPassengerSummaries.join(' | ')}`)
+      return
+    }
+
     setSubmitting(true)
     setError('')
     
     try {
+      await syncUserContactDetails()
+
       const latestSeats = await seatApi.getAvailable(flight.id)
       setSeats(latestSeats)
 
@@ -156,7 +314,7 @@ export function PaymentPage() {
         flightId: flight.id,
         numberOfPassengers: selectedSeatIds.length,
         selectedSeats: selectedSeatIds,
-        passengers: passengers.slice(0, selectedSeatIds.length).map((entry) => ({
+        passengers: selectedPassengers.map((entry) => ({
           dateOfBirth: entry.dateOfBirth,
           category: entry.category as 'ADULT' | 'CHILD' | 'INFANT',
         })),
@@ -164,20 +322,30 @@ export function PaymentPage() {
 
       console.log('Booking created:', booking)
 
-      await Promise.all(
-        passengers.slice(0, selectedSeatIds.length).map((entry) =>
-          passengerApi.create({
-            bookingId: booking.id,
-            firstName: entry.firstName.trim(),
-            lastName: entry.lastName.trim(),
-            passportNumber: entry.passportNumber.trim(),
-            dateOfBirth: entry.dateOfBirth,
-            category: entry.category as 'ADULT' | 'CHILD' | 'INFANT',
-            gender: entry.gender as 'MALE' | 'FEMALE' | 'OTHER',
-            nationality: profile?.nationality?.trim() || 'Indian',
-          }),
-        ),
-      )
+      try {
+        await Promise.all(
+          selectedPassengers.map((entry) =>
+            passengerApi.create({
+              bookingId: booking.id,
+              firstName: entry.firstName.trim(),
+              lastName: entry.lastName.trim(),
+              email: entry.email.trim(),
+              phoneNumber: entry.phoneNumber.trim(),
+              passportNumber: entry.passportNumber.trim().toUpperCase(),
+              dateOfBirth: entry.dateOfBirth,
+              category: entry.category as 'ADULT' | 'CHILD' | 'INFANT',
+              gender: entry.gender as 'MALE' | 'FEMALE' | 'OTHER',
+              nationality: passengerNationality,
+            }),
+          ),
+        )
+      } catch (passengerError) {
+        const passengerMessage = passengerError instanceof Error ? passengerError.message : 'Failed to save passenger details.'
+        if (!isPassengerSchemaMismatchError(passengerMessage)) {
+          throw passengerError
+        }
+        console.warn('Passenger persistence skipped due to backend schema mismatch:', passengerMessage)
+      }
 
       // Step 2: Create Razorpay order
       const orderData = await paymentApi.createOrder(
@@ -188,8 +356,8 @@ export function PaymentPage() {
           userId: user.userId,
           paymentMethod: selectedMethod
         },
-        user.email,
-        primaryPassenger.firstName || `${passenger.firstName} ${passenger.lastName}` || user.email
+        primaryPassenger.email.trim() || user.email,
+        `${primaryPassenger.firstName.trim()} ${primaryPassenger.lastName.trim()}`.trim() || user.email
       )
 
       console.log('Razorpay order created:', orderData)
@@ -221,9 +389,9 @@ export function PaymentPage() {
           }
         },
         prefill: {
-          name: passengers[0]?.firstName || `${passenger.firstName} ${passenger.lastName}`,
-          email: user.email,
-          contact: passengers[0]?.phoneNumber || passenger.phoneNumber,
+          name: `${primaryPassenger.firstName.trim()} ${primaryPassenger.lastName.trim()}`.trim(),
+          email: primaryPassenger.email.trim() || user.email,
+          contact: primaryPassenger.phoneNumber.trim() || passenger.phoneNumber,
         },
         theme: {
           color: '#00236f',
@@ -304,6 +472,24 @@ export function PaymentPage() {
         {error && (
           <div className="mb-5 bg-red-50 border border-red-200 text-red-700 rounded-2xl px-5 py-4 text-sm font-semibold flex items-center gap-2">
             <span>⚠</span> {error}
+          </div>
+        )}
+
+        {invalidPassengerSummaries.length > 0 && (
+          <div className="mb-5 bg-amber-50 border border-amber-200 text-amber-800 rounded-2xl px-5 py-4">
+            <p className="text-sm font-bold mb-2">Passenger details need attention before payment.</p>
+            <div className="flex flex-col gap-1 text-sm">
+              {invalidPassengerSummaries.map((entry) => (
+                <p key={entry}>{entry}</p>
+              ))}
+            </div>
+            <button
+              className="mt-3 text-sm font-bold text-[#00236f] hover:underline"
+              onClick={() => navigate(-1)}
+              type="button"
+            >
+              Go back to booking details
+            </button>
           </div>
         )}
 

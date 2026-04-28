@@ -1,7 +1,6 @@
 // export { default } from '../../app/airline/flights/add/page'
 import { useState, useEffect } from "react"
 import { Link, useNavigate } from 'react-router-dom'
-import { AirlineHeader } from "@/components/airline/airline-header"
 import { ArrowLeft, Plane, Loader2, CheckCircle2 } from "lucide-react"
 import { useAuth } from "@/context/auth-context"
 import { flightApi, airportApi, airlineApi, seatApi, type Airport, type Airline } from "@/services/api"
@@ -84,9 +83,7 @@ export default function AddFlightPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-[#f7f9fb]">
-        <AirlineHeader />
-        <main className="max-w-4xl mx-auto px-4 md:px-6 py-8 pt-24">
+      <div className="max-w-4xl mx-auto px-4 md:px-6 py-8">
           <div className="bg-white rounded-2xl shadow-sm p-8 text-center">
             <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
               <CheckCircle2 className="w-10 h-10 text-green-600" />
@@ -94,16 +91,12 @@ export default function AddFlightPage() {
             <h2 className="text-3xl font-black text-slate-800 mb-2">Flight Created Successfully!</h2>
             <p className="text-slate-600 mb-6">Redirecting to flights list...</p>
           </div>
-        </main>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-[#f7f9fb]">
-      <AirlineHeader />
-
-      <main className="max-w-4xl mx-auto px-4 md:px-6 py-8 pt-24">
+    <div className="max-w-4xl mx-auto px-4 md:px-6 py-8">
         <Link
           to="/airline/flights"
           className="inline-flex items-center gap-2 text-[#00236f] font-bold mb-6 hover:underline"
@@ -296,8 +289,6 @@ export default function AddFlightPage() {
             </div>
           </form>
         </div>
-      </main>
     </div>
   )
 }
-

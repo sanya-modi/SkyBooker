@@ -3,7 +3,6 @@
 
 import { useState, useEffect } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
-import { AirlineHeader } from "@/components/airline/airline-header"
 import { ArrowLeft, Plane, Loader2, CheckCircle2 } from "lucide-react"
 import { useAuth } from "@/context/auth-context"
 import { flightApi, airportApi, airlineApi, type Airport, type Airline, type FlightResult } from "@/services/api"
@@ -104,9 +103,7 @@ export default function EditFlightPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-[#f7f9fb]">
-        <AirlineHeader />
-        <main className="max-w-4xl mx-auto px-4 md:px-6 py-8 pt-24">
+      <div className="max-w-4xl mx-auto px-4 md:px-6 py-8">
           <div className="bg-white rounded-2xl shadow-sm p-8 text-center">
             <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
               <CheckCircle2 className="w-10 h-10 text-green-600" />
@@ -114,30 +111,23 @@ export default function EditFlightPage() {
             <h2 className="text-3xl font-black text-slate-800 mb-2">Flight Updated Successfully!</h2>
             <p className="text-slate-600 mb-6">Redirecting to flights list...</p>
           </div>
-        </main>
       </div>
     )
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#f7f9fb]">
-        <AirlineHeader />
-        <main className="max-w-4xl mx-auto px-4 md:px-6 py-8 pt-24">
+      <div className="max-w-4xl mx-auto px-4 md:px-6 py-8">
           <div className="text-center py-12">
             <div className="inline-block w-8 h-8 border-4 border-[#00236f] border-t-transparent rounded-full animate-spin" />
             <p className="text-slate-600 mt-4">Loading flight data...</p>
           </div>
-        </main>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-[#f7f9fb]">
-      <AirlineHeader />
-
-      <main className="max-w-4xl mx-auto px-4 md:px-6 py-8 pt-24">
+    <div className="max-w-4xl mx-auto px-4 md:px-6 py-8">
         <Link
           to="/airline/flights"
           className="inline-flex items-center gap-2 text-[#00236f] font-bold mb-6 hover:underline"
@@ -308,7 +298,6 @@ export default function EditFlightPage() {
             </div>
           </form>
         </div>
-      </main>
     </div>
   )
 }

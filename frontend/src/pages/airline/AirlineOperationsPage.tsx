@@ -1,7 +1,6 @@
 // export { default } from '../../app/airline/operations/page'
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { AirlineHeader } from "@/components/airline/airline-header"
 import {
   Plane,
   Users,
@@ -118,10 +117,7 @@ export default function OperationsPage() {
   )
 
   return (
-    <div className="min-h-screen bg-[#f7f9fb]">
-      <AirlineHeader />
-
-      <main className="max-w-7xl mx-auto px-4 md:px-6 py-8 pt-24">
+    <div className="max-w-7xl mx-auto px-4 md:px-6 py-8">
         <div className="mb-8">
           <h1 className="text-3xl md:text-4xl font-black text-[#00236f] mb-2">Flight Operations</h1>
           <p className="text-slate-600">Update flight status and view passenger manifest</p>
@@ -375,8 +371,6 @@ export default function OperationsPage() {
             )}
           </div>
         </div>
-      </main>
     </div>
   )
 }
-

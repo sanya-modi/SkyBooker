@@ -93,31 +93,31 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     public Payment verifyAndProcessPayment(PaymentVerificationRequest request) {
         try {
-            String signatureBody = request.getOrderId() + "|" + request.getPaymentId();
+            String signatureBody = request.getRazorpayOrderId() + "|" + request.getRazorpayPaymentId();
             String expectedSignature = hmacSHA256(signatureBody, razorpayKeySecret);
 
             System.out.println("Verifying payment signature:");
-            System.out.println("Order ID: " + request.getOrderId());
-            System.out.println("Payment ID: " + request.getPaymentId());
-            System.out.println("Received Signature: " + request.getSignature());
+            System.out.println("Order ID: " + request.getRazorpayOrderId());
+            System.out.println("Payment ID: " + request.getRazorpayPaymentId());
+            System.out.println("Received Signature: " + request.getRazorpaySignature());
             System.out.println("Expected Signature: " + expectedSignature);
             System.out.println("Signature Body: " + signatureBody);
 
-            if (!expectedSignature.equals(request.getSignature())) {
-                throw new RuntimeException("Payment signature verification failed. Expected: " + expectedSignature + ", Received: " + request.getSignature());
+            if (!expectedSignature.equals(request.getRazorpaySignature())) {
+                throw new RuntimeException("Payment signature verification failed. Expected: " + expectedSignature + ", Received: " + request.getRazorpaySignature());
             }
 
-            Payment payment = paymentRepository.findByRazorpayOrderId(request.getOrderId())
+            Payment payment = paymentRepository.findByRazorpayOrderId(request.getRazorpayOrderId())
                     .orElseThrow(() -> new RuntimeException("Payment record not found"));
 
             if (Payment.PaymentStatus.SUCCESS.equals(payment.getStatus())
-                    && request.getPaymentId().equals(payment.getRazorpayPaymentId())) {
+                    && request.getRazorpayPaymentId().equals(payment.getRazorpayPaymentId())) {
                 return payment;
             }
 
             payment.setStatus(Payment.PaymentStatus.SUCCESS);
-            payment.setRazorpayPaymentId(request.getPaymentId());
-            payment.setGatewayTransactionId(request.getPaymentId());
+            payment.setRazorpayPaymentId(request.getRazorpayPaymentId());
+            payment.setGatewayTransactionId(request.getRazorpayPaymentId());
 
             Payment saved = paymentRepository.save(payment);
             confirmBooking(saved.getBookingId());

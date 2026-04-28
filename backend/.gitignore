@@ -1,0 +1,138 @@
+# ===============================
+
+# Java / Spring Boot (Maven)
+
+# ===============================
+
+# Compiled files
+
+*.class
+
+# Logs
+
+*.log
+logs/
+*.out
+
+# Maven build output
+
+target/
+
+# Packaged artifacts
+
+*.jar
+*.war
+*.ear
+
+# Maven internal
+
+.mvn/timing.properties
+
+# Keep Maven Wrapper
+
+!mvnw
+!mvnw.cmd
+!.mvn/wrapper/maven-wrapper.jar
+
+# ===============================
+
+# Gradle (if any service uses it)
+
+# ===============================
+
+.gradle/
+build/
+
+# ===============================
+
+# React / Node.js
+
+# ===============================
+
+node_modules/
+build/
+dist/
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+.cache/
+.parcel-cache/
+
+# ===============================
+
+# Environment Variables
+
+# ===============================
+
+.env
+.env.*
+!.env.example
+
+# ===============================
+
+# IDE METADATA (STRICT)
+
+# ===============================
+
+# IntelliJ IDEA
+
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+# VS Code
+
+.vscode/
+
+# Eclipse
+
+.project
+.classpath
+.settings/
+
+# ===============================
+
+# OS Files
+
+# ===============================
+
+.DS_Store
+Thumbs.db
+Desktop.ini
+*~
+
+# ===============================
+
+# Testing / Coverage
+
+# ===============================
+
+coverage/
+*.lcov
+
+# ===============================
+
+# Temp / Misc
+
+# ===============================
+
+*.swp
+*.swo
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# ===============================
+
+# Runtime / Docker
+
+# ===============================
+
+*.pid
+*.seed
+*.pid.lock

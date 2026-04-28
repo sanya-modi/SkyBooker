@@ -50,5 +50,7 @@ springdoc:
 # Service URLs for direct communication
 services:
   flight-base-url: ${FLIGHT_SERVICE_URL:http://localhost:8082}
+  seat-base-url: ${SEAT_SERVICE_URL:http://localhost:8083}
+  payment-base-url: ${PAYMENT_SERVICE_URL:http://localhost:8086}
   notification-base-url: ${NOTIFICATION_SERVICE_URL:http://localhost:8087}
   auth-base-url: ${AUTH_SERVICE_URL:http://localhost:8081}

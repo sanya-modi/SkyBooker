@@ -23,6 +23,13 @@ type PassengerErrors = {
   phoneNumber?: string
 }
 
+const validationPatterns = {
+  name: /^[A-Za-z][A-Za-z\s'-]{1,49}$/,
+  passport: /^[A-Z0-9]{6,20}$/,
+  email: /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/,
+  phoneNumber: /^\d{10}$/,
+} as const
+
 function calculateAge(dateOfBirth: string) {
   const today = new Date()
   const dob = new Date(dateOfBirth)
@@ -206,19 +213,29 @@ export function BookingPage() {
       const dob = passenger.dateOfBirth ? new Date(passenger.dateOfBirth) : null
       const today = new Date()
       today.setHours(0, 0, 0, 0)
+      const firstName = passenger.firstName.trim()
+      const lastName = passenger.lastName.trim()
       const passport = passenger.passportNumber.trim().toUpperCase()
+      const email = passenger.email.trim()
+      const phoneNumber = passenger.phoneNumber.trim()
 
-      if (!passenger.firstName.trim()) errors.firstName = 'First name is required'
-      if (!passenger.lastName.trim()) errors.lastName = 'Last name is required'
+      if (!firstName) errors.firstName = 'First name is required'
+      else if (!validationPatterns.name.test(firstName)) errors.firstName = 'First name must be 2-50 letters only'
+
+      if (!lastName) errors.lastName = 'Last name is required'
+      else if (!validationPatterns.name.test(lastName)) errors.lastName = 'Last name must be 2-50 letters only'
+
       if (!passenger.dateOfBirth) errors.dateOfBirth = 'Date of birth is required'
       else if (dob && dob.getTime() > today.getTime()) errors.dateOfBirth = 'Date of birth cannot be in the future'
       if (!passenger.category.trim()) errors.category = 'Category is required'
       if (!passenger.gender.trim()) errors.gender = 'Gender is required'
-      if (!passenger.phoneNumber.trim()) errors.phoneNumber = 'Mobile number is required'
-      else if (!/^\d{10}$/.test(passenger.phoneNumber.trim())) errors.phoneNumber = 'Mobile number must be exactly 10 digits'
+      if (!phoneNumber) errors.phoneNumber = 'Mobile number is required'
+      else if (!validationPatterns.phoneNumber.test(phoneNumber)) errors.phoneNumber = 'Mobile number must be exactly 10 digits'
       if (!passport) errors.passportNumber = 'Passport number is required'
+      else if (!validationPatterns.passport.test(passport)) errors.passportNumber = 'Passport number must be 6-20 uppercase letters or digits'
       else if ((passportCounts[passport] ?? 0) > 1) errors.passportNumber = 'Passport number must be unique'
-      if (!passenger.email.trim()) errors.email = 'Email address is required'
+      if (!email) errors.email = 'Email address is required'
+      else if (!validationPatterns.email.test(email)) errors.email = 'Please enter a valid email address'
 
       const categoryAgeError = getCategoryAgeError(passenger.category, passenger.dateOfBirth)
       if (categoryAgeError) errors.dateOfBirth = categoryAgeError

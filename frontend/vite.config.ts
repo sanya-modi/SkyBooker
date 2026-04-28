@@ -18,21 +18,17 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      // Auth service — port 8081
-      '/auth': 'http://localhost:8081',
-      // Airline-airport service — port 8088
-      '/airports': 'http://localhost:8088',
-      '/airlines': 'http://localhost:8088',
-      // Flight service — port 8082
-      '/flights': 'http://localhost:8082',
-      // Seat service — port 8083
-      '/seats': 'http://localhost:8083',
-      // Booking service — port 8084
-      '/bookings': 'http://localhost:8084',
-      // Passenger service — port 8085
-      '/passengers': 'http://localhost:8085',
-      // Payment service — port 8086
-      '/payments': 'http://localhost:8086',
+      // Proxy all API requests through API Gateway on port 8080
+      '/auth': 'http://localhost:8080',
+      '/airports': 'http://localhost:8080',
+      '/airlines': 'http://localhost:8080',
+      '/flights': 'http://localhost:8080',
+      '/seats': 'http://localhost:8080',
+      '/bookings': 'http://localhost:8080',
+      '/passengers': 'http://localhost:8080',
+      '/payments': 'http://localhost:8080',
+      '/notifications': 'http://localhost:8080',
+      '/admin': 'http://localhost:8080',
     },
   },
 })

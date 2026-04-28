@@ -10,11 +10,11 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class PaymentVerificationRequest {
     @NotBlank(message = "Order ID is required")
-    private String orderId;
+    private String razorpayOrderId;
 
     @NotBlank(message = "Payment ID is required")
-    private String paymentId;
+    private String razorpayPaymentId;
 
     @NotBlank(message = "Signature is required")
-    private String signature;
+    private String razorpaySignature;
 }

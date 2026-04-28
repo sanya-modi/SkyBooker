@@ -42,6 +42,12 @@ public class BookingServiceImpl implements BookingService {
     @Value("${services.auth-base-url:http://localhost:8081}")
     private String authServiceUrl;
 
+    @Value("${services.seat-base-url:http://localhost:8083}")
+    private String seatServiceUrl;
+
+    @Value("${services.payment-base-url:http://localhost:8086}")
+    private String paymentServiceUrl;
+
     @Override
     public BookingResponse createBooking(BookingRequest request) {
         validateBookingRequest(request);
@@ -143,7 +149,11 @@ public class BookingServiceImpl implements BookingService {
         Booking updated = bookingRepository.save(booking);
         
         if (status == Booking.BookingStatus.CONFIRMED) {
-            sendBookingConfirmationNotifications(updated);
+            try {
+                sendBookingConfirmationNotifications(updated);
+            } catch (Exception e) {
+                log.error("Failed to send booking confirmation notifications for booking {}, but booking is confirmed", id, e);
+            }
         }
         
         return mapToResponse(updated, updated.getSelectedSeats());
@@ -210,6 +220,9 @@ public class BookingServiceImpl implements BookingService {
 
         try {
             FlightDTO flight = getFlightDetails(booking.getFlightId());
+            if (flight == null) {
+                throw new RuntimeException("Flight details not found for flight ID: " + booking.getFlightId());
+            }
             Map<String, Object> flightDetails = buildFlightDetailsMap(flight);
             return pdfTicketGenerator.generateModernTicket(booking, flightDetails);
         } catch (Exception ex) {
@@ -452,7 +465,7 @@ public class BookingServiceImpl implements BookingService {
                 for (String seatNumber : booking.getSelectedSeats()) {
                     webClientBuilder.build()
                             .delete()
-                            .uri("http://localhost:8084/seats/release/{flightId}/{seatNumber}", 
+                            .uri(seatServiceUrl + "/seats/release/{flightId}/{seatNumber}",
                                  booking.getFlightId(), seatNumber)
                             .retrieve()
                             .toBodilessEntity()
@@ -479,7 +492,7 @@ public class BookingServiceImpl implements BookingService {
 
                 webClientBuilder.build()
                         .post()
-                        .uri("http://localhost:8086/payments/{paymentId}/refund", booking.getPaymentId())
+                        .uri(paymentServiceUrl + "/payments/{paymentId}/refund", booking.getPaymentId())
                         .bodyValue(refundRequest)
                         .retrieve()
                         .toBodilessEntity()

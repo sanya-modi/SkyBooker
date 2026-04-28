@@ -1,0 +1,19 @@
+{
+  "email": "customer@example.com",
+  "phoneNumber": "+919876543210",
+  "pnr": "A3B7K9",
+  "bookingDetails": {
+    "flightNumber": "SB-1234",
+    "departureCode": "DEL",
+    "departureCity": "Delhi",
+    "arrivalCode": "BOM",
+    "arrivalCity": "Mumbai",
+    "date": "25 Dec 2024",
+    "departureTime": "10:30",
+    "arrivalTime": "12:45",
+    "baseFare": "₹5,000",
+    "taxes": "₹900",
+    "ancillary": "₹100",
+    "totalFare": "₹6,000"
+  }
+}
