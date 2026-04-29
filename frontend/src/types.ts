@@ -1,10 +1,12 @@
+import type { Airport } from './services/api'
+
 export type TripType = 'round-trip' | 'one-way' | 'multi-city'
 export type CabinClass = 'Economy' | 'Premium Economy' | 'Business'
 
 export interface SearchState {
   tripType: TripType
-  from: string
-  to: string
+  departureAirport: Airport | null
+  arrivalAirport: Airport | null
   departDate: string
   returnDate: string
   passengers: number

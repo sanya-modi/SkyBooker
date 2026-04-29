@@ -136,3 +136,8 @@ coverage/
 *.pid
 *.seed
 *.pid.lock
+
+*.md
+*.sh
+*.py
+*.bat

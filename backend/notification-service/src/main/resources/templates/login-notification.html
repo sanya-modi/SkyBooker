@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Notification</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f4f8;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background: #f0f4f8; padding: 40px 20px;">
+        <tr>
+            <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0" style="background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
+                    <!-- Header -->
+                    <tr>
+                        <td style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
+                            <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700;">🔐 Security Alert</h1>
+                        </td>
+                    </tr>
+                    
+                    <!-- Content -->
+                    <tr>
+                        <td style="padding: 40px 35px;">
+                            <h2 style="margin: 0 0 20px; color: #2d3748; font-size: 24px; font-weight: 600;">Hi <span th:text="${firstName}">User</span>,</h2>
+                            
+                            <p style="margin: 0 0 25px; color: #4a5568; font-size: 16px; line-height: 1.6;">
+                                We detected a new login to your SkyBooker account. If this was you, you can safely ignore this email.
+                            </p>
+                            
+                            <div style="background: #edf2f7; border-radius: 10px; padding: 25px; margin: 25px 0;">
+                                <h3 style="margin: 0 0 15px; color: #2d3748; font-size: 18px; font-weight: 600;">Login Details:</h3>
+                                
+                                <table width="100%" cellpadding="8" cellspacing="0">
+                                    <tr>
+                                        <td style="color: #718096; font-size: 14px; padding: 8px 0;">
+                                            <strong>🕐 Time:</strong>
+                                        </td>
+                                        <td style="color: #2d3748; font-size: 14px; padding: 8px 0;" th:text="${loginTime}">
+                                            01 Jan 2024, 10:30
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="color: #718096; font-size: 14px; padding: 8px 0;">
+                                            <strong>🌐 IP Address:</strong>
+                                        </td>
+                                        <td style="color: #2d3748; font-size: 14px; padding: 8px 0;" th:text="${ipAddress}">
+                                            192.168.1.1
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="color: #718096; font-size: 14px; padding: 8px 0;">
+                                            <strong>📱 Device:</strong>
+                                        </td>
+                                        <td style="color: #2d3748; font-size: 14px; padding: 8px 0;" th:text="${device}">
+                                            Chrome on Windows
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                            
+                            <div style="background: #fff5f5; border-left: 4px solid #fc8181; padding: 20px; margin: 25px 0; border-radius: 8px;">
+                                <p style="margin: 0; color: #742a2a; font-size: 15px; line-height: 1.6;">
+                                    <strong>⚠️ Didn't recognize this login?</strong><br>
+                                    Please secure your account immediately by changing your password and reviewing your account activity.
+                                </p>
+                            </div>
+                            
+                            <div style="text-align: center; margin: 30px 0;">
+                                <a href="http://localhost:3000/profile" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; text-decoration: none; padding: 14px 35px; border-radius: 50px; font-size: 15px; font-weight: 600; box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);">
+                                    Review Account Activity
+                                </a>
+                            </div>
+                            
+                            <p style="margin: 25px 0 0; color: #718096; font-size: 14px; line-height: 1.6; text-align: center;">
+                                For security reasons, we recommend using a strong, unique password.
+                            </p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background: #f7fafc; padding: 25px 35px; border-top: 1px solid #e2e8f0;">
+                            <p style="margin: 0 0 8px; color: #718096; font-size: 13px; text-align: center;">
+                                Stay Safe! 🛡️<br>
+                                <strong>The SkyBooker Security Team</strong>
+                            </p>
+                            <p style="margin: 12px 0 0; color: #a0aec0; font-size: 12px; text-align: center;">
+                                © 2024 SkyBooker. All rights reserved.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

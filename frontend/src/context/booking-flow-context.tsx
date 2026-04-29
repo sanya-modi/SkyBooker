@@ -185,6 +185,7 @@ export function BookingFlowProvider({ children }: PropsWithChildren) {
       setSelectedMealId,
       setSelectedBaggageId,
       resetFlow: () => {
+        setSearchCriteria(null)
         setSelectedFlight(null)
         setPreferredSeatClass(null)
         setSelectedSeatIds([])

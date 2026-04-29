@@ -141,6 +141,10 @@ export const authApi = {
     request<AuthResponseData>('/auth/login', { method: 'POST', body: JSON.stringify(body) }),
   loginWithGoogle: (body: { idToken: string }) =>
     request<AuthResponseData>('/auth/login/google', { method: 'POST', body: JSON.stringify(body) }),
+  forgotPassword: (body: { email: string }) =>
+    request<void>('/auth/forgot-password', { method: 'POST', body: JSON.stringify(body) }),
+  resetPassword: (body: { token: string; newPassword: string }) =>
+    request<void>('/auth/reset-password', { method: 'POST', body: JSON.stringify(body) }),
   getUserById: (userId: number) => request<UserResponse>(`/auth/users/${userId}`),
   getUserByEmail: (email: string) => request<UserResponse>(`/auth/users/email/${email}`),
   updateUser: (userId: number, body: Partial<UserResponse>) =>

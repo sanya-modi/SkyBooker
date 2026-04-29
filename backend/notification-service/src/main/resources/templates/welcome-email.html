@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to SkyBooker</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 20px;">
+        <tr>
+            <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0" style="background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+                    <!-- Header -->
+                    <tr>
+                        <td style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 30px; text-align: center;">
+                            <h1 style="margin: 0; color: #ffffff; font-size: 32px; font-weight: 700;">✈️ SkyBooker</h1>
+                            <p style="margin: 10px 0 0; color: #f0f0f0; font-size: 16px;">Your Journey Begins Here</p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Content -->
+                    <tr>
+                        <td style="padding: 50px 40px;">
+                            <h2 style="margin: 0 0 20px; color: #2d3748; font-size: 28px; font-weight: 600;">Welcome Aboard, <span th:text="${firstName}">User</span>! 🎉</h2>
+                            
+                            <p style="margin: 0 0 20px; color: #4a5568; font-size: 16px; line-height: 1.6;">
+                                Thank you for joining <strong>SkyBooker</strong> - your trusted partner for seamless flight bookings!
+                            </p>
+                            
+                            <p style="margin: 0 0 20px; color: #4a5568; font-size: 16px; line-height: 1.6;">
+                                We're thrilled to have you with us. Get ready to explore the world with:
+                            </p>
+                            
+                            <div style="background: #f7fafc; border-left: 4px solid #667eea; padding: 20px; margin: 25px 0; border-radius: 8px;">
+                                <ul style="margin: 0; padding-left: 20px; color: #2d3748;">
+                                    <li style="margin-bottom: 12px; font-size: 15px;">🌍 <strong>Global Flight Search</strong> - Find the best deals worldwide</li>
+                                    <li style="margin-bottom: 12px; font-size: 15px;">💺 <strong>Smart Seat Selection</strong> - Choose your perfect spot</li>
+                                    <li style="margin-bottom: 12px; font-size: 15px;">📱 <strong>Mobile Boarding Pass</strong> - Travel paperless</li>
+                                    <li style="margin-bottom: 12px; font-size: 15px;">🔔 <strong>Real-time Updates</strong> - Stay informed every step</li>
+                                    <li style="font-size: 15px;">💳 <strong>Secure Payments</strong> - Book with confidence</li>
+                                </ul>
+                            </div>
+                            
+                            <p style="margin: 30px 0 25px; color: #4a5568; font-size: 16px; line-height: 1.6;">
+                                Ready to book your next adventure?
+                            </p>
+                            
+                            <div style="text-align: center; margin: 35px 0;">
+                                <a href="http://localhost:3000" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 50px; font-size: 16px; font-weight: 600; box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);">
+                                    Start Exploring Flights
+                                </a>
+                            </div>
+                            
+                            <p style="margin: 30px 0 0; color: #718096; font-size: 14px; line-height: 1.6;">
+                                If you have any questions, our support team is here to help 24/7.
+                            </p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background: #f7fafc; padding: 30px 40px; border-top: 1px solid #e2e8f0;">
+                            <p style="margin: 0 0 10px; color: #718096; font-size: 13px; text-align: center;">
+                                Happy Travels! ✈️<br>
+                                <strong>The SkyBooker Team</strong>
+                            </p>
+                            <p style="margin: 15px 0 0; color: #a0aec0; font-size: 12px; text-align: center;">
+                                © 2024 SkyBooker. All rights reserved.<br>
+                                This email was sent to <span th:text="${firstName} + ' ' + ${lastName}">User</span>
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

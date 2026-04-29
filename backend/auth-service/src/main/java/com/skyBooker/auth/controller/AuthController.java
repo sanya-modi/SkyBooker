@@ -89,4 +89,16 @@ public class AuthController {
                 user.getIsActive()
         );
     }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<Void> forgotPassword(@Valid @RequestBody com.skyBooker.auth.dto.ForgotPasswordRequest request) {
+        authenticationService.forgotPassword(request.getEmail());
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<Void> resetPassword(@Valid @RequestBody com.skyBooker.auth.dto.ResetPasswordRequest request) {
+        authenticationService.resetPassword(request.getToken(), request.getNewPassword());
+        return ResponseEntity.ok().build();
+    }
 }

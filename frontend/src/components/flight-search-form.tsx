@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { buildSearchParams, defaultSearchState } from '../data/flights'
 import { useBookingContext } from '../context/booking-context'
 import type { SearchState, TripType } from '../types'
+import { AirportAutocomplete } from './booking/airport-autocomplete'
+import { Icon } from './ui/icon'
 
 interface FlightSearchFormProps {
   compact?: boolean
@@ -30,7 +32,7 @@ export function FlightSearchForm({
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     updateSearchDraft(form)
-    navigate(`/flights?${buildSearchParams(form)}`)
+    navigate(`/results?${buildSearchParams(form)}`)
   }
 
   return (
@@ -51,21 +53,21 @@ export function FlightSearchForm({
       <div className={compact ? 'search-form__row--compact' : 'search-form__row'}>
         <div className="field">
           <label htmlFor="from">From</label>
-          <input
-            id="from"
-            value={form.from}
-            onChange={(event) => updateField('from', event.target.value)}
+          <AirportAutocomplete
+            icon={<Icon name="flight_takeoff" />}
             placeholder="City or airport"
+            selectedAirport={form.departureAirport}
+            onSelect={(airport) => updateField('departureAirport', airport)}
           />
         </div>
 
         <div className="field">
           <label htmlFor="to">To</label>
-          <input
-            id="to"
-            value={form.to}
-            onChange={(event) => updateField('to', event.target.value)}
+          <AirportAutocomplete
+            icon={<Icon name="flight_land" />}
             placeholder="City or airport"
+            selectedAirport={form.arrivalAirport}
+            onSelect={(airport) => updateField('arrivalAirport', airport)}
           />
         </div>
 

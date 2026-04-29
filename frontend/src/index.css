@@ -18,6 +18,11 @@
   --sb-primary: #00236f;
   --sb-primary-soft: #1e3a8a;
   --sb-green: #22c55e;
+  
+  --primary: var(--sb-primary);
+  --primary-soft: var(--sb-primary-soft);
+  --green: var(--sb-green);
+
   --background: #f7f9fb;
   --foreground: #191c1e;
   --border: #e2e8f0;

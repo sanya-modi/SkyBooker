@@ -17,4 +17,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmailAndIsActiveTrue(String email);
 
     List<User> findByIsActiveTrue();
+
+    Optional<User> findByResetToken(String resetToken);
 }

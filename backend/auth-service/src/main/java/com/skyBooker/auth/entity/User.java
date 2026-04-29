@@ -61,6 +61,12 @@ public class User {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
+    @Column(nullable = true, length = 100)
+    private String resetToken;
+
+    @Column(nullable = true)
+    private LocalDateTime resetTokenExpiry;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();

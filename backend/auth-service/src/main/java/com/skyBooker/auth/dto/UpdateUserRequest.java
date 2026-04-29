@@ -17,7 +17,7 @@ public class UpdateUserRequest {
     @Pattern(regexp = ValidationPatterns.NAME, message = "Last name must be 2-50 alphabetic characters")
     private String lastName;
 
-    @Pattern(regexp = ValidationPatterns.PHONE_NUMBER, message = "Phone number must be 10 digits or E.164 format")
+    @Pattern(regexp = ValidationPatterns.PHONE_NUMBER, message = "Phone number must be exactly 10 digits")
     private String phoneNumber;
 
     @Pattern(regexp = ValidationPatterns.PASSPORT, message = "Passport number format is invalid")

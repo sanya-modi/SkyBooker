@@ -1,7 +1,7 @@
 import { ArrowRight, LockKeyhole, Mail, ShieldCheck, User, UsersRound } from 'lucide-react'
 import { useState } from 'react'
 import { GoogleLogin, type CredentialResponse } from '@react-oauth/google'
-import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../context/auth-context'
 import { Button } from './button'
 import { Logo } from './logo'
@@ -16,9 +16,9 @@ const signupRoleOptions: Array<{ value: SignupRole; label: string }> = [
 ]
 
 const validationPatterns = {
-  email: '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+.[A-Za-z]{2,}',
+  email: '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}',
   password: '(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[@$!%*?&])[A-Za-z0-9@$!%*?&]{8,15}',
-  phoneNumber: '([0-9]{10}|\\+?[1-9][0-9]{1,14})',
+  phoneNumber: '^[0-9]{10}$',
 } as const
 
 export function AuthForm({ mode }: { mode: AuthMode }) {
@@ -227,6 +227,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
                 <AuthField
                   icon={<LockKeyhole size={20} />}
                   label="Password"
+                  actionRight={!isSignUp ? <Link to="/forgot-password" className="text-xs font-semibold text-sky-600 hover:text-sky-700 hover:underline">Forgot?</Link> : null}
                   onChange={setPassword}
                   onInvalid={(event) => applyValidationMessage(event, 'password')}
                   onInput={clearValidationMessage}
@@ -246,7 +247,11 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
                   />
                 ) : null}
 
-                <Button className="auth-primary" disabled={submitting} size="lg" type="submit" variant="success">
+                <Button 
+                  className="w-full py-3 bg-gradient-to-r from-sky-500 to-blue-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2" 
+                  disabled={submitting} 
+                  type="submit"
+                >
                   {submitting ? 'Processing...' : isSignUp ? 'Create Account' : 'Sign In'}
                   {!submitting ? <ArrowRight size={18} /> : null}
                 </Button>
@@ -295,6 +300,7 @@ function AuthField({
   inputMode,
   onInvalid,
   onInput,
+  actionRight,
 }: {
   label: string
   icon: React.ReactNode
@@ -305,10 +311,14 @@ function AuthField({
   inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode']
   onInvalid?: (event: React.FormEvent<HTMLInputElement>) => void
   onInput?: (event: React.FormEvent<HTMLInputElement>) => void
+  actionRight?: React.ReactNode
 }) {
   return (
     <label className="auth-field">
-      <span>{label}</span>
+      <span className="flex justify-between w-full">
+        {label}
+        {actionRight && actionRight}
+      </span>
       <div>
         {icon}
         <input

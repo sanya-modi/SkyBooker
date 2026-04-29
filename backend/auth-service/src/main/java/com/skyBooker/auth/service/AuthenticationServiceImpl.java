@@ -22,6 +22,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final PasswordEncoder passwordEncoder;
     private final JwtProvider jwtProvider;
     private final GoogleOAuthProvider googleOAuthProvider;
+    private final NotificationPublisher notificationPublisher;
 
     // ================= REGISTER =================
     @Override
@@ -47,6 +48,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         user.setIsActive(true);
 
         User savedUser = userRepository.save(user);
+        
+        notificationPublisher.publishSignupEvent(savedUser.getEmail(), savedUser.getFirstName(), savedUser.getLastName());
 
         String token = jwtProvider.generateToken(
                 savedUser.getEmail(),
@@ -82,6 +85,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new AuthException("Invalid password", "INVALID_PASSWORD");
         }
+        
+        notificationPublisher.publishLoginEvent(user.getEmail(), user.getFirstName(), "Unknown", "Web Browser");
 
         String token = jwtProvider.generateToken(
                 user.getEmail(),
@@ -158,6 +163,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         }
 
         User user = userRepository.findByEmail(payload.getEmail()).orElse(null);
+        boolean isNewUser = false;
 
         if (user == null) {
             user = new User();
@@ -171,6 +177,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             user.setIsActive(true);
 
             user = userRepository.save(user);
+            isNewUser = true;
         } else if (!User.AuthProvider.GOOGLE.equals(user.getAuthProvider())) {
             user.setAuthProvider(User.AuthProvider.GOOGLE);
             user.setGoogleId(payload.getSub());
@@ -180,6 +187,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         if (!user.getIsActive()) {
             throw new AuthException("User account is inactive", "USER_INACTIVE");
         }
+
+        if (isNewUser) {
+            notificationPublisher.publishSignupEvent(user.getEmail(), user.getFirstName(), user.getLastName());
+        }
+        notificationPublisher.publishLoginEvent(user.getEmail(), user.getFirstName(), "Unknown", "Web Browser");
 
         String token = jwtProvider.generateToken(
                 user.getEmail(),
@@ -192,5 +204,42 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 token,
                 user.getRole().toString()
         );
+    }
+
+    // ================= PASSWORD RESET =================
+    @Override
+    public void forgotPassword(String email) {
+        User user = userRepository.findByEmail(email).orElse(null);
+        if (user == null || !user.getIsActive()) {
+            return; // Fail silently for security
+        }
+
+        if (User.AuthProvider.GOOGLE.equals(user.getAuthProvider())) {
+            throw new AuthException("You signed up with Google. Please use 'Continue with Google' to log in.", "INVALID_AUTH_PROVIDER");
+        }
+
+        String token = java.util.UUID.randomUUID().toString();
+        user.setResetToken(token);
+        user.setResetTokenExpiry(java.time.LocalDateTime.now().plusMinutes(15));
+        userRepository.save(user);
+
+        notificationPublisher.publishPasswordResetEvent(user.getEmail(), user.getFirstName(), token);
+    }
+
+    @Override
+    public void resetPassword(String token, String newPassword) {
+        User user = userRepository.findByResetToken(token)
+                .orElseThrow(() -> new AuthException("Invalid or expired reset token", "INVALID_TOKEN"));
+
+        if (user.getResetTokenExpiry() == null || user.getResetTokenExpiry().isBefore(java.time.LocalDateTime.now())) {
+            throw new AuthException("Reset token has expired", "TOKEN_EXPIRED");
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        user.setResetToken(null);
+        user.setResetTokenExpiry(null);
+        userRepository.save(user);
+
+        notificationPublisher.publishPasswordResetSuccessEvent(user.getEmail(), user.getFirstName());
     }
 }

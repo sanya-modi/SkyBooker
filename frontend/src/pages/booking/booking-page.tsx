@@ -171,13 +171,13 @@ export function BookingPage() {
     async function loadSeats() {
       setSeatsLoading(true)
       try {
-        let available = await seatApi.getAvailable(flightId)
+        let available = await seatApi.getAllByFlight(flightId)
 
-        if (available.length === 0) {
+        if (available.length < (flight?.totalSeats ?? 180)) {
           // initialize seats for this flight
           const totalSeats = flight?.totalSeats ?? 180
           await seatApi.initialize(flightId, totalSeats)
-          available = await seatApi.getAvailable(flightId)
+          available = await seatApi.getAllByFlight(flightId)
         }
 
         setSeats(available)

@@ -15,4 +15,6 @@ public interface AuthenticationService {
     User getUserByEmail(String email);
     User updateUser(Long userId, UpdateUserRequest user);
     void deleteUser(Long userId);
+    void forgotPassword(String email);
+    void resetPassword(String token, String newPassword);
 }

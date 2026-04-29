@@ -108,7 +108,7 @@ export function TopNav() {
                   </button>
                 ) : null}
                 <button
-                  onClick={() => navigate('/auth/signup')}
+                  onClick={() => navigate('/signup')}
                   className="px-5 py-2.5 text-sm font-semibold bg-gradient-to-r from-sky-500 to-blue-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all"
                 >
                   Sign Up
@@ -201,7 +201,7 @@ export function TopNav() {
                   ) : null}
                   <button
                     onClick={() => {
-                      navigate('/auth/signup')
+                      navigate('/signup')
                       setMobileMenuOpen(false)
                     }}
                     className="block w-full px-4 py-2 bg-gradient-to-r from-sky-500 to-blue-600 text-white rounded-lg text-center font-semibold"

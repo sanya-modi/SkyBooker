@@ -6,6 +6,7 @@ import com.skyBooker.booking.entity.Booking;
 import com.skyBooker.booking.repository.BookingRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -32,6 +33,7 @@ public class BookingServiceImpl implements BookingService {
     private final BookingRepository bookingRepository;
     private final WebClient.Builder webClientBuilder;
     private final PdfTicketGenerator pdfTicketGenerator;
+    private final RabbitTemplate rabbitTemplate;
 
     @Value("${services.flight-base-url:http://localhost:8082}")
     private String flightServiceUrl;
@@ -394,24 +396,14 @@ public class BookingServiceImpl implements BookingService {
             bookingDetails.put("ancillary", "₹" + booking.getAncillaryCharges());
             bookingDetails.put("totalFare", "₹" + booking.getTotalFare());
 
-            Map<String, Object> notificationRequest = new HashMap<>();
-            notificationRequest.put("email", user.getEmail());
-            notificationRequest.put("phoneNumber", user.getPhoneNumber());
-            notificationRequest.put("pnr", booking.getPnr());
-            notificationRequest.put("bookingDetails", bookingDetails);
-            notificationRequest.put("ticketPdf", ticketPdf);
+            Map<String, Object> event = new HashMap<>();
+            event.put("email", user.getEmail());
+            event.put("pnr", booking.getPnr());
+            event.put("bookingDetails", bookingDetails);
+            event.put("ticketPdf", ticketPdf);
 
-            webClientBuilder.build()
-                    .post()
-                    .uri(notificationServiceUrl + "/notifications/booking-confirmation")
-                    .bodyValue(notificationRequest)
-                    .retrieve()
-                    .toBodilessEntity()
-                    .onErrorResume(ex -> {
-                        log.error("Failed to send booking confirmation", ex);
-                        return reactor.core.publisher.Mono.empty();
-                    })
-                    .block();
+            rabbitTemplate.convertAndSend("notification.exchange", "notification.booking", event);
+            log.info("Published booking event for PNR: {}", booking.getPnr());
         } catch (Exception e) {
             log.error("Error sending booking confirmation notifications", e);
         }

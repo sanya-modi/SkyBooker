@@ -1,12 +1,31 @@
-// export { default } from '../../app/auth/forgot-password/page'
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
-
-import { Icon } from '@/components/ui/icon'
+import { authApi } from '@/services/api'
+import { PlaneTakeoff, Mail, ArrowRight, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 
 export default function ForgotPasswordPage() {
+  const [email, setEmail] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [success, setSuccess] = useState(false)
+  const [error, setError] = useState('')
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsSubmitting(true)
+    setError('')
+    try {
+      await authApi.forgotPassword({ email })
+      setSuccess(true)
+    } catch (err: any) {
+      setError(err.message || 'Failed to send reset link')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
   return (
     <div className="bg-white min-h-screen flex items-center justify-center p-6">
       <motion.main
@@ -49,7 +68,7 @@ export default function ForgotPasswordPage() {
             className="mb-8"
           >
             <Link to="/" className="flex items-center gap-2 mb-8">
-              <Icon name="flight_takeoff" filled className="text-primary text-3xl" />
+              <PlaneTakeoff className="text-primary w-8 h-8" />
               <span className="text-2xl font-extrabold tracking-tighter text-primary">SkyBooker</span>
             </Link>
             <h1 className="text-4xl font-extrabold tracking-tighter text-foreground mb-2">Reset Password</h1>
@@ -58,38 +77,60 @@ export default function ForgotPasswordPage() {
             </p>
           </motion.div>
 
-          <motion.form
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="space-y-5"
-          >
-            <div className="space-y-1.5">
-              <label className="text-[0.65rem] font-bold uppercase tracking-[0.1em] text-muted-foreground ml-4">
-                Email Address
-              </label>
-              <div className="relative group">
-                <Icon name="alternate_email" className="absolute left-5 top-1/2 -translate-y-1/2 text-muted-foreground text-xl transition-colors group-focus-within:text-primary" />
-                <Input
-                  type="email"
-                  placeholder="name@example.com"
-                  className="w-full pl-14 pr-6 py-6 bg-surface-container-low rounded-xl border-none focus:ring-2 focus:ring-primary/10 text-foreground placeholder:text-muted-foreground/40"
-                />
+          {success ? (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-green-50 text-green-700 p-6 rounded-xl border border-green-200 text-center"
+            >
+              <CheckCircle2 className="w-10 h-10 mb-2 mx-auto" />
+              <p className="font-bold">Reset link sent!</p>
+              <p className="text-sm mt-1">Check your inbox for instructions to reset your password.</p>
+            </motion.div>
+          ) : (
+            <motion.form
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="space-y-5"
+              onSubmit={handleSubmit}
+            >
+              {error && (
+                <div className="bg-red-50 text-red-600 p-3 rounded-xl border border-red-100 text-sm flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5" /> {error}
+                </div>
+              )}
+              <div className="space-y-1.5">
+                <label className="text-[0.65rem] font-bold uppercase tracking-[0.1em] text-muted-foreground ml-4">
+                  Email Address
+                </label>
+                <div className="relative group">
+                  <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-muted-foreground w-5 h-5 transition-colors group-focus-within:text-primary" />
+                  <Input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    placeholder="name@example.com"
+                    className="w-full pl-14 pr-6 py-6 bg-surface-container-low rounded-xl border-none focus:ring-2 focus:ring-primary/10 text-foreground placeholder:text-muted-foreground/40"
+                  />
+                </div>
               </div>
-            </div>
 
-            <div className="pt-4">
-              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                <Button
-                  type="submit"
-                  className="w-full bg-tertiary-container text-tertiary-container-foreground font-bold py-6 rounded-xl shadow-lg shadow-tertiary-container/20 hover:brightness-110 flex items-center justify-center gap-3"
-                >
-                  Send Reset Link
-                  <Icon name="arrow_forward" />
-                </Button>
-              </motion.div>
-            </div>
-          </motion.form>
+              <div className="pt-4">
+                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full bg-tertiary-container text-tertiary-container-foreground font-bold py-6 rounded-xl shadow-lg shadow-tertiary-container/20 hover:brightness-110 flex items-center justify-center gap-3 disabled:opacity-70"
+                  >
+                    {isSubmitting ? 'Sending...' : 'Send Reset Link'}
+                    <ArrowRight className="w-5 h-5" />
+                  </Button>
+                </motion.div>
+              </div>
+            </motion.form>
+          )}
 
           <motion.div
             initial={{ opacity: 0 }}
@@ -98,10 +139,10 @@ export default function ForgotPasswordPage() {
             className="mt-8 text-center"
           >
             <Link
-              to="/auth/signin"
+              to="/login"
               className="text-primary font-bold hover:underline flex items-center justify-center gap-2 text-sm"
             >
-              <Icon name="arrow_back" className="text-sm" />
+              <ArrowLeft className="w-4 h-4" />
               Back to Login
             </Link>
           </motion.div>

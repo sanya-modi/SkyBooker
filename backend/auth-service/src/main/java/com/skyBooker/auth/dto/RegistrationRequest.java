@@ -35,7 +35,7 @@ public class RegistrationRequest {
     private String password;
 
     @NotBlank(message = "Phone number is required")
-    @Pattern(regexp = ValidationPatterns.PHONE_NUMBER, message = "Phone number must be 10 digits or E.164 format")
+    @Pattern(regexp = ValidationPatterns.PHONE_NUMBER, message = "Phone number must be exactly 10 digits")
     private String phoneNumber;
 
     @NotNull(message = "Role is required")

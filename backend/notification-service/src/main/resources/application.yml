@@ -2,10 +2,12 @@ spring:
   application:
     name: notification-service
   datasource:
-    url: jdbc:postgresql://localhost:5439/notification_db
+    url: jdbc:postgresql://localhost:5432/notification_db
     username: postgres
     password: postgres
     driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 5
   jpa:
     hibernate:
       ddl-auto: update
@@ -26,6 +28,11 @@ spring:
           connectiontimeout: 5000
           timeout: 5000
           writetimeout: 5000
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
 
 eureka:
   client:

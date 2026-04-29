@@ -232,30 +232,7 @@ export function PaymentPage() {
   )
 
   async function syncUserContactDetails() {
-    if (!user) return
-
-    const nextFirstName = primaryPassenger.firstName.trim()
-    const nextLastName = primaryPassenger.lastName.trim()
-    const nextPhoneNumber = primaryPassenger.phoneNumber.trim()
-    const nextPassportNumber = primaryPassenger.passportNumber.trim().toUpperCase()
-
-    const shouldSyncFirstName = validationPatterns.name.test(nextFirstName) && profile?.firstName !== nextFirstName
-    const shouldSyncLastName = validationPatterns.name.test(nextLastName) && profile?.lastName !== nextLastName
-    const shouldSyncPhoneNumber = validationPatterns.phoneNumber.test(nextPhoneNumber) && profile?.phoneNumber !== nextPhoneNumber
-    const shouldSyncPassportNumber = validationPatterns.passport.test(nextPassportNumber) && profile?.passportNumber !== nextPassportNumber
-    const shouldSyncNationality = profile?.nationality !== passengerNationality
-
-    if (!shouldSyncFirstName && !shouldSyncLastName && !shouldSyncPhoneNumber && !shouldSyncPassportNumber && !shouldSyncNationality) {
-      return
-    }
-
-    await updateProfile({
-      firstName: shouldSyncFirstName ? nextFirstName : profile?.firstName,
-      lastName: shouldSyncLastName ? nextLastName : profile?.lastName,
-      phoneNumber: shouldSyncPhoneNumber ? nextPhoneNumber : profile?.phoneNumber,
-      passportNumber: shouldSyncPassportNumber ? nextPassportNumber : profile?.passportNumber,
-      nationality: shouldSyncNationality ? passengerNationality : profile?.nationality,
-    })
+    // Intentionally empty: do not update the user details by the information they are filling when booking the tickets
   }
 
   async function handleConfirm() {
@@ -285,7 +262,6 @@ export function PaymentPage() {
     setError('')
     
     try {
-      await syncUserContactDetails()
 
       const latestSeats = await seatApi.getAvailable(flight.id)
       setSeats(latestSeats)

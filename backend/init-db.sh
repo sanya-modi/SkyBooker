@@ -10,7 +10,7 @@ sleep 10
 
 # Load data into airline_airport_db
 echo "Loading airport and airline data..."
-psql -h postgres-airline-airport -U postgres -d airline_airport_db << EOF
+psql -h postgres -U postgres -d airline_airport_db << EOF
 -- Insert 10 Major Indian Airports
 INSERT INTO airports (name, iata_code, city, country, description, phone_number, email, is_active, created_at, updated_at) VALUES
 ('Indira Gandhi International Airport', 'DEL', 'Delhi', 'India', 'India''s largest airport serving the capital', '011-2437-9843', 'info@delhiairport.com', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
@@ -39,7 +39,7 @@ echo "Airport and airline data loaded!"
 
 # Load flight data
 echo "Loading flight data for June 2026..."
-psql -h postgres-flight -U postgres -d flight_db << EOF
+psql -h postgres -U postgres -d flight_db << EOF
 -- ONE-WAY FLIGHTS
 INSERT INTO flights (flight_number, aircraft_type, airline_id, departure_airport_id, arrival_airport_id, departure_time, arrival_time, total_seats, available_seats, base_fare, status, created_at, updated_at) VALUES
 ('6E101', 'A320', 1, 1, 2, '2026-06-01 08:00:00', '2026-06-01 10:30:00', 180, 180, 5500.00, 'ON_TIME', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),

@@ -231,9 +231,9 @@ public class PdfTicketGenerator {
         content.endText();
 
         String[][] fareItems = {
-            {"Base Fare:", "₹" + booking.getBaseFare()},
-            {"Taxes & Fees:", "₹" + booking.getTaxes()},
-            {"Ancillary:", "₹" + booking.getAncillaryCharges()}
+            {"Base Fare:", "INR " + booking.getBaseFare()},
+            {"Taxes & Fees:", "INR " + booking.getTaxes()},
+            {"Ancillary:", "INR " + booking.getAncillaryCharges()}
         };
 
         float itemY = yPos - 40;
@@ -268,7 +268,7 @@ public class PdfTicketGenerator {
         content.beginText();
         content.setFont(PDType1Font.HELVETICA_BOLD, 20);
         content.newLineAtOffset(pageWidth - margin - 100, yPos - 55);
-        content.showText("₹" + booking.getTotalFare());
+        content.showText("INR " + booking.getTotalFare());
         content.endText();
     }
 

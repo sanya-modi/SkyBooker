@@ -2,10 +2,12 @@ spring:
   application:
     name: booking-service
   datasource:
-    url: jdbc:postgresql://localhost:5436/booking_db
+    url: jdbc:postgresql://localhost:5432/booking_db
     username: postgres
     password: postgres
     driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 5
   jpa:
     hibernate:
       ddl-auto: update
@@ -15,6 +17,11 @@ spring:
     loadbalancer:
       ribbon:
         enabled: false
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
 
 eureka:
   client:

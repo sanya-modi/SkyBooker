@@ -88,7 +88,7 @@ export function TopNav({
                 Sign In
               </Link>
               <Link
-                href="/auth/signup"
+                href="/signup"
                 className="px-5 py-2.5 text-sm font-bold bg-primary text-primary-foreground rounded-full shadow-lg hover:scale-105 active:scale-95 transition-all"
               >
                 Sign Up

@@ -87,7 +87,7 @@ export function Navbar() {
                 Sign In
               </Button>
             </Link>
-            <Link to="/auth/signup">
+            <Link to="/signup">
               <Button className="bg-gradient-to-r from-sky-500 to-blue-600 text-white font-semibold shadow-lg hover:shadow-xl">
                 Sign Up
               </Button>
@@ -134,7 +134,7 @@ export function Navbar() {
                   Sign In
                 </Button>
               </Link>
-              <Link to="/auth/signup" className="block">
+              <Link to="/signup" className="block">
                 <Button className="w-full bg-gradient-to-r from-sky-500 to-blue-600">
                   Sign Up
                 </Button>

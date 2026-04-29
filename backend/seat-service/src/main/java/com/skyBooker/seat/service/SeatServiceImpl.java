@@ -25,16 +25,24 @@ public class SeatServiceImpl implements SeatService {
         int economyRows = (int) Math.ceil(totalSeats * 0.70 / seatsPerRow);
         int businessRows = (int) Math.ceil(totalSeats * 0.20 / seatsPerRow);
 
+        List<Seat> existingSeats = seatRepository.findByFlightId(flightId);
+        java.util.Set<String> existingSeatNumbers = existingSeats.stream()
+                .map(Seat::getSeatNumber)
+                .collect(java.util.stream.Collectors.toSet());
+
         int seatCount = 0;
 
         for (int row = 1; row <= economyRows && seatCount < totalSeats; row++) {
             for (String letter : seatLetters) {
                 if (seatCount < totalSeats) {
-                    Seat seat = new Seat();
-                    seat.setFlightId(flightId);
-                    seat.setSeatNumber(row + letter);
-                    seat.setSeatClass(Seat.SeatClass.ECONOMY);
-                    seatRepository.save(seat);
+                    String seatNum = row + letter;
+                    if (!existingSeatNumbers.contains(seatNum)) {
+                        Seat seat = new Seat();
+                        seat.setFlightId(flightId);
+                        seat.setSeatNumber(seatNum);
+                        seat.setSeatClass(Seat.SeatClass.ECONOMY);
+                        seatRepository.save(seat);
+                    }
                     seatCount++;
                 }
             }
@@ -43,11 +51,14 @@ public class SeatServiceImpl implements SeatService {
         for (int row = economyRows + 1; row <= economyRows + businessRows && seatCount < totalSeats; row++) {
             for (String letter : seatLetters) {
                 if (seatCount < totalSeats) {
-                    Seat seat = new Seat();
-                    seat.setFlightId(flightId);
-                    seat.setSeatNumber(row + letter);
-                    seat.setSeatClass(Seat.SeatClass.BUSINESS);
-                    seatRepository.save(seat);
+                    String seatNum = row + letter;
+                    if (!existingSeatNumbers.contains(seatNum)) {
+                        Seat seat = new Seat();
+                        seat.setFlightId(flightId);
+                        seat.setSeatNumber(seatNum);
+                        seat.setSeatClass(Seat.SeatClass.BUSINESS);
+                        seatRepository.save(seat);
+                    }
                     seatCount++;
                 }
             }
