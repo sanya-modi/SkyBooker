@@ -126,6 +126,18 @@ public class NotificationController {
         }
     }
 
+    @PostMapping("/support")
+    public ResponseEntity<String> sendSupportRequest(@Valid @RequestBody com.skyBooker.notification.dto.SupportRequest request) {
+        try {
+            // Send email to host
+            notificationServiceImpl.sendSupportEmails(request);
+            return ResponseEntity.ok("Support request sent successfully");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Failed to process support request: " + e.getMessage());
+        }
+    }
+
     private NotificationResponse mapToResponse(Notification notification) {
         return new NotificationResponse(
                 notification.getId(),

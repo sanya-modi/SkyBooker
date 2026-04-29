@@ -152,4 +152,11 @@ public class NotificationServiceImpl implements NotificationService {
     public void sendBookingConfirmationSms(String phoneNumber, String pnr, String flightNumber, String date) {
         smsService.sendBookingConfirmation(phoneNumber, pnr, flightNumber, date);
     }
+
+    public void sendSupportEmails(com.skyBooker.notification.dto.SupportRequest request) {
+        // Send email to host
+        emailService.sendSupportToHost(request.getTitle(), request.getDescription(), request.getUserEmail(), request.getFullName());
+        // Send thank you email to user
+        emailService.sendSupportThankYouToUser(request.getUserEmail(), request.getFullName());
+    }
 }

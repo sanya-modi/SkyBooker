@@ -2,9 +2,10 @@
 
 import { motion } from 'framer-motion'
 import Link from 'next/link'
-import Image from 'next/image'
+import { useState } from 'react'
 import { Icon } from '@/components/ui/icon'
 import { cn } from '@/lib/utils'
+import { SupportModal } from '@/components/layout/SupportModal'
 
 interface TopNavProps {
   variant?: 'default' | 'transparent'
@@ -17,7 +18,6 @@ const navLinks = [
   { href: '/', label: 'Explore', active: true },
   { href: '/deals', label: 'Deals' },
   { href: '/trips', label: 'My Trips' },
-  { href: '/support', label: 'Support' },
 ]
 
 export function TopNav({ 
@@ -26,6 +26,8 @@ export function TopNav({
   showNavLinks = true,
   className 
 }: TopNavProps) {
+  const [supportModalOpen, setSupportModalOpen] = useState(false)
+
   return (
     <motion.nav
       initial={{ y: -20, opacity: 0 }}
@@ -65,6 +67,12 @@ export function TopNav({
                 {link.label}
               </Link>
             ))}
+            <button
+              onClick={() => setSupportModalOpen(true)}
+              className="font-medium transition-colors text-muted-foreground hover:text-primary"
+            >
+              Support
+            </button>
           </div>
         )}
 
@@ -107,6 +115,7 @@ export function TopNav({
           )}
         </div>
       </div>
+      <SupportModal isOpen={supportModalOpen} onClose={() => setSupportModalOpen(false)} />
     </motion.nav>
   )
 }

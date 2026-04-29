@@ -4,16 +4,16 @@ import { Icon } from '@/components/ui/icon'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useState } from 'react'
+import { SupportModal } from '@/components/layout/SupportModal'
 
 export function Navbar() {
   const location = useLocation()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [supportModalOpen, setSupportModalOpen] = useState(false)
 
-  const navLinks = [
     { href: '/', label: 'Explore' },
     { href: '/flights', label: 'Flights' },
     { href: '/bookings', label: 'My Trips' },
-    { href: '/support', label: 'Support' },
   ]
 
   return (
@@ -55,6 +55,12 @@ export function Navbar() {
                 )}
               </Link>
             ))}
+            <button
+              onClick={() => setSupportModalOpen(true)}
+              className="font-medium transition-all relative py-2 text-gray-600 hover:text-sky-600"
+            >
+              Support
+            </button>
           </div>
 
           <div className="hidden md:flex items-center gap-4">
@@ -128,6 +134,15 @@ export function Navbar() {
                 {link.label}
               </Link>
             ))}
+            <button
+              className="block px-4 py-2 w-full text-left rounded-lg font-medium text-gray-600 hover:bg-sky-50"
+              onClick={() => {
+                setMobileMenuOpen(false)
+                setSupportModalOpen(true)
+              }}
+            >
+              Support
+            </button>
             <div className="pt-3 border-t space-y-2">
               <Link to="/auth/signin" className="block">
                 <Button variant="outline" className="w-full">
@@ -143,6 +158,8 @@ export function Navbar() {
           </div>
         </motion.div>
       )}
+
+      <SupportModal isOpen={supportModalOpen} onClose={() => setSupportModalOpen(false)} />
     </motion.nav>
   )
 }

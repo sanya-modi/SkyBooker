@@ -19,16 +19,56 @@ export default defineConfig({
   server: {
     proxy: {
       // Proxy all API requests through API Gateway on port 8080
-      '/auth': 'http://localhost:8080',
-      '/airports': 'http://localhost:8080',
-      '/airlines': 'http://localhost:8080',
-      '/flights': 'http://localhost:8080',
-      '/seats': 'http://localhost:8080',
-      '/bookings': 'http://localhost:8080',
-      '/passengers': 'http://localhost:8080',
-      '/payments': 'http://localhost:8080',
-      '/notifications': 'http://localhost:8080',
-      '/admin': 'http://localhost:8080',
+      '/auth': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        bypass: (req: any) => { if (req.headers.accept?.includes('text/html')) return '/index.html' }
+      },
+      '/airports': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        bypass: (req: any) => { if (req.headers.accept?.includes('text/html')) return '/index.html' }
+      },
+      '/airlines': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        bypass: (req: any) => { if (req.headers.accept?.includes('text/html')) return '/index.html' }
+      },
+      '/flights': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        bypass: (req: any) => { if (req.headers.accept?.includes('text/html')) return '/index.html' }
+      },
+      '/seats': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        bypass: (req: any) => { if (req.headers.accept?.includes('text/html')) return '/index.html' }
+      },
+      '/bookings': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        bypass: (req: any) => { if (req.headers.accept?.includes('text/html')) return '/index.html' }
+      },
+      '/passengers': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        bypass: (req: any) => { if (req.headers.accept?.includes('text/html')) return '/index.html' }
+      },
+      '/payments': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        bypass: (req: any) => { if (req.headers.accept?.includes('text/html')) return '/index.html' }
+      },
+      '/notifications': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        bypass: (req: any) => { if (req.headers.accept?.includes('text/html')) return '/index.html' }
+      },
+      '/admin': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        bypass: (req: any) => { if (req.headers.accept?.includes('text/html')) return '/index.html' }
+      },
     },
   },
 })

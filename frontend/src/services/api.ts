@@ -32,7 +32,13 @@ async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
   }
 
   const text = await response.text()
-  return (text ? JSON.parse(text) : null) as T
+  if (!text) return null as T
+  try {
+    return JSON.parse(text) as T
+  } catch {
+    // If response is plain text and not valid JSON
+    return text as unknown as T
+  }
 }
 
 export interface Airport {
@@ -149,8 +155,13 @@ export const authApi = {
   getUserByEmail: (email: string) => request<UserResponse>(`/auth/users/email/${email}`),
   updateUser: (userId: number, body: Partial<UserResponse>) =>
     request<UserResponse>(`/auth/users/${userId}`, { method: 'PUT', body: JSON.stringify(body) }),
-  deleteUser: (userId: number) =>
+    deleteUser: (userId: number) =>
     request<void>(`/auth/users/${userId}`, { method: 'DELETE' }),
+}
+
+export const supportApi = {
+  submitSupportRequest: (body: { title: string; description: string; userEmail: string; fullName: string }) =>
+    request<void>('/notifications/support', { method: 'POST', body: JSON.stringify(body) }),
 }
 
 export interface UserResponse {

@@ -6,12 +6,14 @@ import { Logo } from './logo'
 import { cn } from '@/lib/utils'
 import { useState } from 'react'
 import { ProfileMenu } from '@/components/layout/profile-menu'
+import { SupportModal } from '@/components/layout/SupportModal'
 
 export function TopNav() {
   const navigate = useNavigate()
   const location = useLocation()
   const { isLoggedIn, user, logout } = useAuth()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [supportModalOpen, setSupportModalOpen] = useState(false)
   const normalizedRole = user?.role?.replace(/^ROLE_/, '').toUpperCase()
   const canAccessAdmin = normalizedRole === 'ADMIN'
   const canAccessAirline = normalizedRole === 'AIRLINE_STAFF'
@@ -21,7 +23,6 @@ export function TopNav() {
     { href: '/', label: 'Explore' },
     { href: '/results', label: 'Flights' },
     { href: '/bookings', label: 'My Trips' },
-    { href: '/support', label: 'Support' },
   ]
 
   return (
@@ -68,6 +69,13 @@ export function TopNav() {
                 )}
               </button>
             ))}
+            <button
+              onClick={() => setSupportModalOpen(true)}
+              type="button"
+              className="font-medium transition-all relative py-2 text-gray-600 hover:text-sky-600"
+            >
+              Support
+            </button>
           </nav>
 
           <div className="hidden md:flex items-center gap-4">
@@ -157,6 +165,15 @@ export function TopNav() {
                 {link.label}
               </button>
             ))}
+            <button
+              onClick={() => {
+                setMobileMenuOpen(false)
+                setSupportModalOpen(true)
+              }}
+              className="block px-4 py-2 w-full text-left rounded-lg font-medium text-gray-600 hover:bg-sky-50"
+            >
+              Support
+            </button>
             <div className="pt-3 border-t space-y-2">
               {isLoggedIn ? (
                 <>
@@ -214,6 +231,7 @@ export function TopNav() {
           </div>
         </motion.div>
       )}
+      <SupportModal isOpen={supportModalOpen} onClose={() => setSupportModalOpen(false)} />
     </motion.header>
   )
 }

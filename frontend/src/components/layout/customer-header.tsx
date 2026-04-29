@@ -5,6 +5,8 @@ import { ArrowLeft, Bell, Globe, CreditCard, Lock } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ProfileMenu } from "@/components/layout/profile-menu"
 import { useAuth } from "@/context/auth-context"
+import { SupportModal } from "@/components/layout/SupportModal"
+import { useState } from "react"
 
 interface CustomerHeaderProps {
   title?: string
@@ -22,6 +24,7 @@ export function CustomerHeader({
   onBack
 }: CustomerHeaderProps) {
   const { isLoggedIn } = useAuth()
+  const [supportModalOpen, setSupportModalOpen] = useState(false)
 
   return (
     <header className={cn(
@@ -62,9 +65,12 @@ export function CustomerHeader({
           <Link to="/bookings" className="text-[#00236f] border-b-2 border-[#00236f]/40 pb-1 font-medium">
             Bookings
           </Link>
-          <Link to="/support" className="text-slate-600 font-medium hover:text-[#00236f] transition-colors">
+          <button 
+            onClick={() => setSupportModalOpen(true)} 
+            className="text-slate-600 font-medium hover:text-[#00236f] transition-colors"
+          >
             Support
-          </Link>
+          </button>
         </div>
 
         <div className="flex items-center gap-4">
@@ -92,6 +98,8 @@ export function CustomerHeader({
           )}
         </div>
       </nav>
+      
+      <SupportModal isOpen={supportModalOpen} onClose={() => setSupportModalOpen(false)} />
     </header>
   )
 }

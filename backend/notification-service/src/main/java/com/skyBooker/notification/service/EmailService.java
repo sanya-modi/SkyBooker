@@ -170,4 +170,49 @@ public class EmailService {
             log.error("Failed to send password reset success email to: {}", toEmail, e);
         }
     }
+    public void sendSupportToHost(String title, String description, String userEmail, String fullName) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
+
+            helper.setFrom(fromEmail);
+            helper.setTo(fromEmail); // Host email
+            helper.setSubject("SUPPORT REQUEST: " + title);
+
+            String textContent = "New Support Request from: " + fullName + " (" + userEmail + ")\n\n" +
+                    "Title: " + title + "\n\n" +
+                    "Description:\n" + description;
+            
+            helper.setText(textContent, false);
+
+            mailSender.send(message);
+            log.info("Support email sent to host for user: {}", userEmail);
+        } catch (Exception e) {
+            log.error("Failed to send support email to host for user: {}", userEmail, e);
+        }
+    }
+
+    public void sendSupportThankYouToUser(String toEmail, String fullName) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(fromEmail);
+            helper.setTo(toEmail);
+            helper.setSubject("SkyBooker Support - We have received your request");
+
+            // Create a simple HTML content directly or use a template
+            String htmlContent = "<h2>Hello " + (fullName != null ? fullName : "Traveler") + ",</h2>" +
+                    "<p>Thank you for reaching out to SkyBooker Support.</p>" +
+                    "<p>We have received your request and our team is reviewing it. We will connect with you within the next 24 hours.</p>" +
+                    "<br><p>Best regards,<br>The SkyBooker Team</p>";
+            
+            helper.setText(htmlContent, true);
+
+            mailSender.send(message);
+            log.info("Support thank you email sent to: {}", toEmail);
+        } catch (Exception e) {
+            log.error("Failed to send support thank you email to: {}", toEmail, e);
+        }
+    }
 }
