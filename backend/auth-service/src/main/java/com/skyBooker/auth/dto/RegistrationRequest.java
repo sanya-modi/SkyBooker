@@ -47,6 +47,8 @@ public class RegistrationRequest {
     @Pattern(regexp = ValidationPatterns.NATIONALITY, message = "Nationality format is invalid")
     private String nationality;
 
+    private Long airlineId;
+
     public enum UserRole {
         PASSENGER, ADMIN, AIRLINE_STAFF
     }

@@ -41,6 +41,9 @@ public class User {
     @Column(nullable = true, length = 50)
     private String nationality;
 
+    @Column(nullable = true)
+    private Long airlineId;
+
     @Column(nullable = true, unique = true)
     private String googleId;
 

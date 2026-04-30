@@ -142,6 +142,7 @@ export const authApi = {
     role: string
     passportNumber?: string
     nationality?: string
+    airlineId?: number
   }) => request<AuthResponseData>('/auth/register', { method: 'POST', body: JSON.stringify(body) }),
   login: (body: { email: string; password: string }) =>
     request<AuthResponseData>('/auth/login', { method: 'POST', body: JSON.stringify(body) }),
@@ -172,6 +173,7 @@ export interface UserResponse {
   phoneNumber: string
   passportNumber: string
   nationality: string
+  airlineId: number | null
   authProvider: string
   role: string
   isActive: boolean
@@ -305,6 +307,11 @@ export async function getAllAirlinesCached() {
   if (cachedAirlines) return cachedAirlines
   cachedAirlines = await airlineApi.getAll()
   return cachedAirlines
+}
+
+export function clearCache() {
+  cachedAirports = null
+  cachedAirlines = null
 }
 
 export async function searchFlights(

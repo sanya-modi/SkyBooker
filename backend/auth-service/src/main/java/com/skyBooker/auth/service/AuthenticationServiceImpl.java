@@ -43,6 +43,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         user.setPhoneNumber(request.getPhoneNumber());
         user.setPassportNumber(request.getPassportNumber());
         user.setNationality(request.getNationality());
+        user.setAirlineId(request.getAirlineId());
         user.setAuthProvider(User.AuthProvider.LOCAL);
         user.setRole(mapRole(request.getRole()));
         user.setIsActive(true);
@@ -148,7 +149,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     // ================= DELETE (SOFT DELETE) =================
     @Override
     public void deleteUser(Long userId) {
-        User user = getUserById(userId); // already checks active
+        User user = getUserById(userId);
         user.setIsActive(false);
         userRepository.save(user);
     }
@@ -211,7 +212,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     public void forgotPassword(String email) {
         User user = userRepository.findByEmail(email).orElse(null);
         if (user == null || !user.getIsActive()) {
-            return; // Fail silently for security
+            return;
         }
 
         if (User.AuthProvider.GOOGLE.equals(user.getAuthProvider())) {

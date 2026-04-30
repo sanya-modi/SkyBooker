@@ -1,6 +1,7 @@
-import { ArrowRight, LockKeyhole, Mail, ShieldCheck, User, UsersRound } from 'lucide-react'
-import { useState } from 'react'
+import { ArrowRight, LockKeyhole, Mail, Plane, ShieldCheck, User, UsersRound } from 'lucide-react'
+import { useState, useEffect } from 'react'
 import { GoogleLogin, type CredentialResponse } from '@react-oauth/google'
+import { airlineApi, type Airline } from '../../services/api'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../context/auth-context'
 import { Button } from './button'
@@ -32,7 +33,19 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [role, setRole] = useState<SignupRole>('PASSENGER')
+  const [airlineId, setAirlineId] = useState('')
+  const [airlines, setAirlines] = useState<Airline[]>([])
+  const [airlinesLoading, setAirlinesLoading] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (role !== 'AIRLINE_STAFF') return
+    setAirlinesLoading(true)
+    airlineApi.getAll()
+      .then(setAirlines)
+      .catch(() => setAirlines([]))
+      .finally(() => setAirlinesLoading(false))
+  }, [role])
   const [submitting, setSubmitting] = useState(false)
   const isSignUp = mode === 'signup'
 
@@ -61,7 +74,9 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
 
         const [firstName = 'Sky', ...rest] = fullName.trim().split(/\s+/)
         const lastName = rest.join(' ') || 'Traveler'
-        const response = await register({ firstName, lastName, email, password, phoneNumber, role })
+        const payload: Parameters<typeof register>[0] = { firstName, lastName, email, password, phoneNumber, role }
+        if (role === 'AIRLINE_STAFF' && airlineId) payload.airlineId = parseInt(airlineId)
+        const response = await register(payload)
         nextRole = response.role
       } else {
         const response = await login(email, password)
@@ -211,7 +226,26 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
                       type="tel"
                       value={phoneNumber}
                     />
-                    <AuthSelectField label="Role" onChange={setRole} options={signupRoleOptions} value={role} />
+                    <AuthSelectField label="Role" onChange={(v) => { setRole(v); setAirlineId('') }} options={signupRoleOptions} value={role} />
+                    {role === 'AIRLINE_STAFF' && (
+                      <label className="auth-field">
+                        <span>Airline</span>
+                        <div>
+                          <Plane size={20} />
+                          <select
+                            value={airlineId}
+                            onChange={(e) => setAirlineId(e.target.value)}
+                            required
+                            disabled={airlinesLoading}
+                          >
+                            <option value="">{airlinesLoading ? 'Loading...' : 'Select airline'}</option>
+                            {airlines.map((a) => (
+                              <option key={a.id} value={a.id}>{a.name} ({a.iataCode})</option>
+                            ))}
+                          </select>
+                        </div>
+                      </label>
+                    )}
                   </>
                 ) : null}
                 <AuthField

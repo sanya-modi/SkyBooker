@@ -4,31 +4,69 @@ import { Icon } from '@/components/ui/icon'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { GoogleLogin } from '@react-oauth/google'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { airlineApi, type Airline } from '@/services/api'
+import { useAuth } from '@/context/auth-context'
 
 export default function SignUpPage() {
   const navigate = useNavigate()
+  const { register } = useAuth()
+  const [airlines, setAirlines] = useState<Airline[]>([])
+  const [airlinesLoading, setAirlinesLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
   const [formData, setFormData] = useState({
-    name: '',
+    firstName: '',
+    lastName: '',
     email: '',
     password: '',
+    phoneNumber: '',
+    role: 'PASSENGER',
+    airlineId: '',
   })
+
+  useEffect(() => {
+    airlineApi.getAll()
+      .then(setAirlines)
+      .catch(() => setAirlines([]))
+      .finally(() => setAirlinesLoading(false))
+  }, [])
 
   const handleGoogleSuccess = (credentialResponse: any) => {
     console.log('Google Sign Up Success:', credentialResponse)
-    // TODO: Send credential to your backend
     navigate('/')
   }
 
   const handleGoogleError = () => {
-    console.error('Google Sign Up Failed')
+    setError('Google sign up failed. Please try again.')
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log('Email Sign Up:', formData)
-    // TODO: Implement email/password registration
-    navigate('/')
+    setError('')
+    setLoading(true)
+
+    try {
+      const payload: any = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        password: formData.password,
+        phoneNumber: formData.phoneNumber,
+        role: formData.role,
+      }
+
+      if (formData.role === 'AIRLINE_STAFF' && formData.airlineId) {
+        payload.airlineId = parseInt(formData.airlineId)
+      }
+
+      await register(payload)
+      navigate('/')
+    } catch (err: any) {
+      setError(err.message || 'Registration failed. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -105,19 +143,37 @@ export default function SignUpPage() {
               </div>
             </div>
 
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl">
+                {error}
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-5">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Full Name
-                </label>
-                <div className="relative">
-                  <Icon name="person" className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    First Name
+                  </label>
                   <Input
                     type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="John Doe"
-                    className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                    value={formData.firstName}
+                    onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                    placeholder="John"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Last Name
+                  </label>
+                  <Input
+                    type="text"
+                    value={formData.lastName}
+                    onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                    placeholder="Doe"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-transparent"
                     required
                   />
                 </div>
@@ -142,6 +198,23 @@ export default function SignUpPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Phone Number
+                </label>
+                <div className="relative">
+                  <Icon name="phone" className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <Input
+                    type="tel"
+                    value={formData.phoneNumber}
+                    onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                    placeholder="1234567890"
+                    className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Password
                 </label>
                 <div className="relative">
@@ -157,11 +230,71 @@ export default function SignUpPage() {
                 </div>
               </div>
 
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Account Type
+                </label>
+                <div className="relative">
+                  <Icon name="badge" className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none" />
+                  <select
+                    value={formData.role}
+                    onChange={(e) => setFormData({ ...formData, role: e.target.value, airlineId: '' })}
+                    className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-transparent appearance-none bg-white cursor-pointer"
+                    required
+                  >
+                    <option value="PASSENGER">Passenger</option>
+                    <option value="AIRLINE_STAFF">Airline Staff</option>
+                  </select>
+                  <Icon name="expand_more" className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                </div>
+              </div>
+
+              {formData.role === 'AIRLINE_STAFF' && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="overflow-hidden"
+                >
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Select Airline <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <Icon name="flight" className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none" />
+                    <select
+                      value={formData.airlineId}
+                      onChange={(e) => setFormData({ ...formData, airlineId: e.target.value })}
+                      className="w-full pl-12 pr-4 py-3 border-2 border-sky-300 rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-sky-500 appearance-none bg-white cursor-pointer"
+                      required
+                      disabled={airlinesLoading}
+                    >
+                      <option value="">
+                        {airlinesLoading ? 'Loading airlines...' : 'Choose an airline...'}
+                      </option>
+                      {airlines.map((airline) => (
+                        <option key={airline.id} value={airline.id}>
+                          {airline.name} ({airline.iataCode})
+                        </option>
+                      ))}
+                    </select>
+                    <Icon name="expand_more" className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                  </div>
+                  {!airlinesLoading && airlines.length === 0 && (
+                    <p className="text-sm text-red-500 mt-2">Could not load airlines. Please refresh the page.</p>
+                  )}
+                  {!airlinesLoading && airlines.length > 0 && (
+                    <p className="text-sm text-green-600 mt-2">{airlines.length} airlines available</p>
+                  )}
+                </motion.div>
+              )}
+
               <Button
                 type="submit"
-                className="w-full py-3 bg-gradient-to-r from-sky-500 to-blue-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all"
+                disabled={loading}
+                className="w-full py-3 bg-gradient-to-r from-sky-500 to-blue-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
               >
-                Create Account
+                {loading ? 'Creating Account...' : 'Create Account'}
               </Button>
             </form>
 

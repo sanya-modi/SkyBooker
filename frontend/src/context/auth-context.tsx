@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
-import { authApi, type AuthResponseData, type UserResponse } from '../services/api'
+import { authApi, clearCache, type AuthResponseData, type UserResponse } from '../services/api'
 
 export interface AuthUser {
   userId: number
@@ -7,6 +7,18 @@ export interface AuthUser {
   role: string
   firstName?: string
   lastName?: string
+}
+
+interface RegisterData {
+  firstName: string
+  lastName: string
+  email: string
+  password: string
+  phoneNumber: string
+  role: string
+  passportNumber?: string
+  nationality?: string
+  airlineId?: number
 }
 
 interface AuthContextType {
@@ -17,16 +29,7 @@ interface AuthContextType {
   isAuthReady: boolean
   login: (email: string, password: string) => Promise<AuthResponseData>
   loginWithGoogle: (idToken: string) => Promise<AuthResponseData>
-  register: (data: {
-    firstName: string
-    lastName: string
-    email: string
-    password: string
-    phoneNumber: string
-    role: string
-    passportNumber?: string
-    nationality?: string
-  }) => Promise<AuthResponseData>
+  register: (data: RegisterData) => Promise<AuthResponseData>
   updateProfile: (data: Partial<UserResponse>) => Promise<UserResponse>
   deleteAccount: () => Promise<void>
   logout: () => void
@@ -129,16 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return response
   }, [setAuthFromResponse])
 
-  const register = useCallback(async (data: {
-    firstName: string
-    lastName: string
-    email: string
-    password: string
-    phoneNumber: string
-    role: string
-    passportNumber?: string
-    nationality?: string
-  }) => {
+  const register = useCallback(async (data: RegisterData) => {
     const response = await authApi.register(data)
     await setAuthFromResponse(response)
     return response
@@ -164,6 +158,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
     setProfile(null)
     setToken(null)
+    clearCache()
     localStorage.removeItem('skybooker_token')
     localStorage.removeItem('skybooker_user')
     localStorage.removeItem(PROFILE_STORAGE_KEY)
