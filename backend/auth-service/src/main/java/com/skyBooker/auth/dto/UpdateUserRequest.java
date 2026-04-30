@@ -25,5 +25,8 @@ public class UpdateUserRequest {
 
     @Pattern(regexp = ValidationPatterns.NATIONALITY, message = "Nationality format is invalid")
     private String nationality;
+
+    @jakarta.validation.constraints.Size(max = 1000, message = "Profile photo URL must not exceed 1000 characters")
+    private String profilePhotoUrl;
 }
 

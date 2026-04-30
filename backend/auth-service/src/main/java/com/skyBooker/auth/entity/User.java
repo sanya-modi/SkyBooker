@@ -20,9 +20,13 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @jakarta.validation.constraints.NotBlank(message = "First name is required")
+    @jakarta.validation.constraints.Size(min = 2, max = 50, message = "First name must be between 2 and 50 characters")
     @Column(nullable = false, length = 100)
     private String firstName;
 
+    @jakarta.validation.constraints.NotBlank(message = "Last name is required")
+    @jakarta.validation.constraints.Size(min = 2, max = 50, message = "Last name must be between 2 and 50 characters")
     @Column(nullable = false, length = 100)
     private String lastName;
 
@@ -32,6 +36,7 @@ public class User {
     @Column(nullable = true)
     private String password;
 
+    @jakarta.validation.constraints.Pattern(regexp = "^[0-9]{10}$", message = "Phone number must be exactly 10 digits")
     @Column(nullable = true, length = 20)
     private String phoneNumber;
 
@@ -40,6 +45,10 @@ public class User {
 
     @Column(nullable = true, length = 50)
     private String nationality;
+
+    @jakarta.validation.constraints.Size(max = 1000, message = "Profile photo URL must not exceed 1000 characters")
+    @Column(nullable = true, length = 1000)
+    private String profilePhotoUrl;
 
     @Column(nullable = true)
     private Long airlineId;

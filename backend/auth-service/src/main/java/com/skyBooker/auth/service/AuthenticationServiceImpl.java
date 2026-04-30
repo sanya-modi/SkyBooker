@@ -142,6 +142,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         if (user.getNationality() != null) {
             existingUser.setNationality(user.getNationality());
         }
+        if (user.getProfilePhotoUrl() != null) {
+            existingUser.setProfilePhotoUrl(user.getProfilePhotoUrl());
+        }
 
         return userRepository.save(existingUser);
     }

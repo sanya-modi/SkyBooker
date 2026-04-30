@@ -6,7 +6,7 @@ import { flightApi, getAllAirportsCached, getAllAirlinesCached, type FlightResul
 
 export default function ViewFlightsPage() {
   const navigate = useNavigate()
-  const { isLoggedIn, profile } = useAuth()
+  const { isLoggedIn, isAuthReady, profile } = useAuth()
   const [flights, setFlights] = useState<FlightResult[]>([])
   const [airports, setAirports] = useState<Airport[]>([])
   const [airlines, setAirlines] = useState<Airline[]>([])
@@ -15,6 +15,7 @@ export default function ViewFlightsPage() {
   const [statusFilter, setStatusFilter] = useState('ALL')
 
   useEffect(() => {
+    if (!isAuthReady) return
     if (!isLoggedIn) { navigate('/login'); return }
     Promise.all([flightApi.getAll(), getAllAirportsCached(), getAllAirlinesCached()])
       .then(([f, a, al]) => {

@@ -6,12 +6,13 @@ import { flightApi, getAllAirportsCached, type FlightResult, type Airport } from
 
 export default function AnalyticsPage() {
   const navigate = useNavigate()
-  const { isLoggedIn, profile } = useAuth()
+  const { isLoggedIn, isAuthReady, profile } = useAuth()
   const [flights, setFlights] = useState<FlightResult[]>([])
   const [airports, setAirports] = useState<Airport[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (!isAuthReady) return
     if (!isLoggedIn) { navigate('/login'); return }
     Promise.all([flightApi.getAll(), getAllAirportsCached()])
       .then(([f, a]) => {

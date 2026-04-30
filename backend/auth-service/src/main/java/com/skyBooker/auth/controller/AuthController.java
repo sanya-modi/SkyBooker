@@ -84,6 +84,7 @@ public class AuthController {
                 user.getPhoneNumber(),
                 user.getPassportNumber(),
                 user.getNationality(),
+                user.getProfilePhotoUrl(),
                 user.getAirlineId(),
                 user.getAuthProvider(),
                 user.getRole(),

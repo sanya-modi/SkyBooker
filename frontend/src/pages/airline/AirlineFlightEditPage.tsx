@@ -10,7 +10,7 @@ import { flightApi, airportApi, airlineApi, type Airport, type Airline, type Fli
 export default function EditFlightPage() {
   const navigate = useNavigate()
   const params = useParams()
-  const { isLoggedIn } = useAuth()
+  const { isLoggedIn, isAuthReady, profile } = useAuth()
   const [airports, setAirports] = useState<Airport[]>([])
   const [airlines, setAirlines] = useState<Airline[]>([])
   const [loading, setLoading] = useState(true)
@@ -30,12 +30,13 @@ export default function EditFlightPage() {
   })
 
   useEffect(() => {
+    if (!isAuthReady) return
     if (!isLoggedIn) {
       navigate('/login')
       return
     }
     loadData()
-  }, [isLoggedIn, navigate, params.id])
+  }, [isAuthReady, isLoggedIn, navigate, params.id])
 
   const loadData = async () => {
     try {
@@ -177,7 +178,8 @@ export default function EditFlightPage() {
                   required
                   value={formData.airlineId}
                   onChange={(e) => setFormData({ ...formData, airlineId: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00236f] focus:border-transparent"
+                  disabled={!!profile?.airlineId}
+                  className={`w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00236f] focus:border-transparent ${profile?.airlineId ? 'bg-slate-100 cursor-not-allowed text-slate-500' : ''}`}
                 >
                   <option value="">Select Airline</option>
                   {airlines.map((airline) => (

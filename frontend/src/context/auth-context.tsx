@@ -140,8 +140,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const updateProfile = useCallback(async (data: Partial<UserResponse>) => {
     if (!user) throw new Error('Not authenticated')
-    return authApi.updateUser(user.userId, data)
-  }, [user])
+    const updatedUser = await authApi.updateUser(user.userId, data)
+    syncProfile(user, updatedUser)
+    return updatedUser
+  }, [user, syncProfile])
 
   const deleteAccount = useCallback(async () => {
     if (!user) throw new Error('Not authenticated')

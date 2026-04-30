@@ -14,7 +14,7 @@ import { flightApi, seatApi, getAllAirportsCached, type FlightResult, type SeatR
 
 export default function SeatsPage() {
   const navigate = useNavigate()
-  const { isLoggedIn } = useAuth()
+  const { isLoggedIn, isAuthReady } = useAuth()
   const [flights, setFlights] = useState<FlightResult[]>([])
   const [airports, setAirports] = useState<Airport[]>([])
   const [selectedFlight, setSelectedFlight] = useState<FlightResult | null>(null)
@@ -24,12 +24,13 @@ export default function SeatsPage() {
   const [searchTerm, setSearchTerm] = useState('')
 
   useEffect(() => {
+    if (!isAuthReady) return
     if (!isLoggedIn) {
       navigate('/login')
       return
     }
     loadData()
-  }, [isLoggedIn, navigate])
+  }, [isAuthReady, isLoggedIn, navigate])
 
   const loadData = async () => {
     try {

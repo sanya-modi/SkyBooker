@@ -173,6 +173,7 @@ export interface UserResponse {
   phoneNumber: string
   passportNumber: string
   nationality: string
+  profilePhotoUrl?: string
   airlineId: number | null
   authProvider: string
   role: string

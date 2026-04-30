@@ -16,6 +16,7 @@ public class UserResponse {
     private String phoneNumber;
     private String passportNumber;
     private String nationality;
+    private String profilePhotoUrl;
     private Long airlineId;
     private User.AuthProvider authProvider;
     private User.UserRole role;

@@ -6,7 +6,7 @@ import { flightApi, bookingApi, passengerApi, seatApi, getAllAirportsCached, get
 
 export default function OperationsPage() {
   const navigate = useNavigate()
-  const { isLoggedIn, profile } = useAuth()
+  const { isLoggedIn, isAuthReady, profile } = useAuth()
   const [flights, setFlights] = useState<FlightResult[]>([])
   const [airports, setAirports] = useState<Airport[]>([])
   const [airlines, setAirlines] = useState<Airline[]>([])
@@ -20,6 +20,7 @@ export default function OperationsPage() {
   const [expandedBooking, setExpandedBooking] = useState<number | null>(null)
 
   useEffect(() => {
+    if (!isAuthReady) return
     if (!isLoggedIn) { navigate('/login'); return }
     Promise.all([flightApi.getAll(), getAllAirportsCached(), getAllAirlinesCached()])
       .then(([f, a, al]) => {
