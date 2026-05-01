@@ -1,17 +1,36 @@
 package com.skyBooker.flight.service;
 
 import com.skyBooker.flight.dto.FlightRequest;
+import com.skyBooker.flight.dto.FlightPassengerManifestResponse;
 import com.skyBooker.flight.dto.FlightResponse;
 import com.skyBooker.flight.dto.FlightSearchFilterDTO;
+import com.skyBooker.flight.dto.SeatClassConfigResponse;
+import com.skyBooker.flight.dto.SeatConfigRequest;
+import com.skyBooker.flight.dto.remote.FlightStatusNotificationRequest;
+import com.skyBooker.flight.dto.remote.RemoteBookingResponse;
+import com.skyBooker.flight.dto.remote.RemotePassengerResponse;
+import com.skyBooker.flight.dto.remote.RemoteUserResponse;
 import com.skyBooker.flight.entity.Flight;
 import com.skyBooker.flight.exception.FlightException;
 import com.skyBooker.flight.repository.FlightRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -20,6 +39,22 @@ import java.util.stream.Collectors;
 public class FlightServiceImpl implements FlightService {
 
     private final FlightRepository flightRepository;
+    private final RestTemplate restTemplate;
+
+    @Value("${services.booking.base-url}")
+    private String bookingServiceBaseUrl;
+
+    @Value("${services.passenger.base-url}")
+    private String passengerServiceBaseUrl;
+
+    @Value("${services.auth.base-url}")
+    private String authServiceBaseUrl;
+
+    @Value("${services.notification.base-url}")
+    private String notificationServiceBaseUrl;
+
+    @Value("${services.seat.base-url:http://localhost:8083}")
+    private String seatServiceBaseUrl;
 
     @Override
     public FlightResponse createFlight(FlightRequest request) {
@@ -44,6 +79,22 @@ public class FlightServiceImpl implements FlightService {
         flight.setBaseFare(request.getBaseFare());
 
         Flight savedFlight = flightRepository.save(flight);
+        
+        // Initialize seats for the flight
+        try {
+            restTemplate.postForEntity(
+                seatServiceBaseUrl + "/seats/initialize",
+                new java.util.HashMap<String, Object>() {{
+                    put("flightId", savedFlight.getId());
+                    put("totalSeats", savedFlight.getTotalSeats());
+                }},
+                Void.class
+            );
+        } catch (Exception e) {
+            // Log but don't fail flight creation if seat initialization fails
+            System.err.println("Failed to initialize seats for flight " + savedFlight.getId() + ": " + e.getMessage());
+        }
+        
         return mapToResponse(savedFlight);
     }
 
@@ -93,6 +144,37 @@ public class FlightServiceImpl implements FlightService {
 
     @Override
     @Transactional(readOnly = true)
+    public List<FlightResponse> getFlightsByDate(LocalDate date) {
+        LocalDateTime startOfDay = date.atStartOfDay();
+        LocalDateTime endOfDay = date.plusDays(1).atStartOfDay().minusNanos(1);
+
+        return flightRepository.findByDepartureTimeBetweenOrderByDepartureTimeAsc(startOfDay, endOfDay).stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<FlightResponse> getFlightsForUser(String userEmail, String userRole, Long airlineId) {
+        if ("AIRLINE_STAFF".equalsIgnoreCase(userRole)) {
+            Long resolvedAirlineId = airlineId;
+            if (resolvedAirlineId == null && userEmail != null && !userEmail.isBlank()) {
+                RemoteUserResponse user = fetchUserByEmail(userEmail);
+                resolvedAirlineId = user != null ? user.getAirlineId() : null;
+            }
+            if (resolvedAirlineId == null) {
+                throw new FlightException("Airline staff user is not mapped to an airline", "AIRLINE_NOT_FOUND");
+            }
+            return getFlightsByAirlineId(resolvedAirlineId);
+        }
+        if (airlineId != null) {
+            return getFlightsByAirlineId(airlineId);
+        }
+        return getAllFlights();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<FlightResponse> searchFlights(Long departureAirportId, Long arrivalAirportId, LocalDateTime departureDate) {
         return flightRepository.findAvailableFlights(departureAirportId, arrivalAirportId, departureDate).stream()
                 .map(this::mapToResponse)
@@ -108,11 +190,48 @@ public class FlightServiceImpl implements FlightService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<FlightPassengerManifestResponse> getFlightPassengers(Long flightId) {
+        getFlightEntity(flightId);
+
+        List<RemoteBookingResponse> bookings = fetchConfirmedBookings(flightId);
+        List<FlightPassengerManifestResponse> manifest = new ArrayList<>();
+
+        for (RemoteBookingResponse booking : bookings) {
+            List<RemotePassengerResponse> passengers = fetchPassengersByBooking(booking.getId());
+            RemoteUserResponse user = fetchUser(booking.getUserId());
+            List<String> selectedSeats = booking.getSelectedSeats() != null ? booking.getSelectedSeats() : Collections.emptyList();
+
+            for (int index = 0; index < passengers.size(); index++) {
+                RemotePassengerResponse passenger = passengers.get(index);
+                String seat = index < selectedSeats.size() ? selectedSeats.get(index) : null;
+                manifest.add(new FlightPassengerManifestResponse(
+                        passenger.getId(),
+                        booking.getId(),
+                        booking.getUserId(),
+                        (passenger.getFirstName() + " " + passenger.getLastName()).trim(),
+                        passenger.getEmail() != null && !passenger.getEmail().isBlank() ? passenger.getEmail() : user != null ? user.getEmail() : null,
+                        passenger.getPhoneNumber() != null && !passenger.getPhoneNumber().isBlank() ? passenger.getPhoneNumber() : user != null ? user.getPhoneNumber() : null,
+                        seat,
+                        passenger.getPassportNumber(),
+                        user == null || !Boolean.TRUE.equals(user.getIsActive()),
+                        buildUserName(user),
+                        user != null ? user.getEmail() : null,
+                        user != null ? user.getPhoneNumber() : null
+                ));
+            }
+        }
+
+        return manifest;
+    }
+
+    @Override
     public FlightResponse updateFlightStatus(Long id, Flight.FlightStatus status) {
-        Flight flight = flightRepository.findById(id)
-                .orElseThrow(() -> new FlightException("Flight not found", "FLIGHT_NOT_FOUND"));
+        Flight flight = getFlightEntity(id);
         flight.setStatus(status);
-        return mapToResponse(flightRepository.save(flight));
+        Flight updatedFlight = flightRepository.save(flight);
+        notifyPassengersAboutStatusChange(updatedFlight);
+        return mapToResponse(updatedFlight);
     }
 
     @Override
@@ -145,6 +264,170 @@ public class FlightServiceImpl implements FlightService {
         return flights.stream()
                 .map(this::mapToResponse)
                 .toList();
+    }
+
+    @Override
+    public List<SeatClassConfigResponse> saveSeatConfig(Long flightId, SeatConfigRequest request, String userEmail, String userRole) {
+        validateFlightAccess(flightId, userEmail, userRole);
+
+        HttpHeaders headers = new HttpHeaders();
+        HttpEntity<SeatConfigRequest> entity = new HttpEntity<>(request, headers);
+        ResponseEntity<List<SeatClassConfigResponse>> response = restTemplate.exchange(
+                seatServiceBaseUrl + "/seats/flight/" + flightId + "/config",
+                HttpMethod.POST,
+                entity,
+                new ParameterizedTypeReference<>() {}
+        );
+        return response.getBody() != null ? response.getBody() : List.of();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<SeatClassConfigResponse> getSeatConfig(Long flightId, String userEmail, String userRole) {
+        validateFlightAccess(flightId, userEmail, userRole);
+
+        ResponseEntity<List<SeatClassConfigResponse>> response = restTemplate.exchange(
+                seatServiceBaseUrl + "/seats/flight/" + flightId + "/config",
+                HttpMethod.GET,
+                null,
+                new ParameterizedTypeReference<>() {}
+        );
+        return response.getBody() != null ? response.getBody() : List.of();
+    }
+
+    private Flight getFlightEntity(Long id) {
+        return flightRepository.findById(id)
+                .orElseThrow(() -> new FlightException("Flight not found", "FLIGHT_NOT_FOUND"));
+    }
+
+    private List<RemoteBookingResponse> fetchConfirmedBookings(Long flightId) {
+        ResponseEntity<List<RemoteBookingResponse>> response = restTemplate.exchange(
+                bookingServiceBaseUrl + "/bookings/flight/" + flightId + "/confirmed",
+                HttpMethod.GET,
+                null,
+                new ParameterizedTypeReference<>() {
+                }
+        );
+
+        return response.getBody() != null ? response.getBody() : Collections.emptyList();
+    }
+
+    private List<RemotePassengerResponse> fetchPassengersByBooking(Long bookingId) {
+        ResponseEntity<List<RemotePassengerResponse>> response = restTemplate.exchange(
+                passengerServiceBaseUrl + "/passengers/booking/" + bookingId,
+                HttpMethod.GET,
+                null,
+                new ParameterizedTypeReference<>() {
+                }
+        );
+
+        return response.getBody() != null ? response.getBody() : Collections.emptyList();
+    }
+
+    private RemoteUserResponse fetchUser(Long userId) {
+        try {
+            return restTemplate.getForObject(authServiceBaseUrl + "/auth/users/" + userId, RemoteUserResponse.class);
+        } catch (RestClientException exception) {
+            return null;
+        }
+    }
+
+    private RemoteUserResponse fetchUserByEmail(String email) {
+        try {
+            return restTemplate.getForObject(authServiceBaseUrl + "/auth/users/email/" + email, RemoteUserResponse.class);
+        } catch (RestClientException exception) {
+            return null;
+        }
+    }
+
+    private void notifyPassengersAboutStatusChange(Flight flight) {
+        List<RemoteBookingResponse> bookings = fetchConfirmedBookings(flight.getId());
+        if (bookings.isEmpty()) {
+            return;
+        }
+
+        List<FlightStatusNotificationRequest.Recipient> recipients = bookings.stream()
+                .flatMap(booking -> {
+                    RemoteUserResponse user = fetchUser(booking.getUserId());
+                    List<RemotePassengerResponse> passengers = fetchPassengersByBooking(booking.getId());
+                    List<FlightStatusNotificationRequest.Recipient> bookingRecipients = new ArrayList<>();
+
+                    for (RemotePassengerResponse passenger : passengers) {
+                        if (passenger.getEmail() != null && !passenger.getEmail().isBlank()) {
+                            bookingRecipients.add(new FlightStatusNotificationRequest.Recipient(
+                                    booking.getUserId(),
+                                    booking.getId(),
+                                    passenger.getEmail()
+                            ));
+                        }
+                    }
+
+                    if (bookingRecipients.isEmpty() && user != null && user.getEmail() != null && !user.getEmail().isBlank()) {
+                        bookingRecipients.add(new FlightStatusNotificationRequest.Recipient(
+                                booking.getUserId(),
+                                booking.getId(),
+                                user.getEmail()
+                        ));
+                    }
+
+                    return bookingRecipients.stream();
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.collectingAndThen(
+                        Collectors.toMap(
+                                FlightStatusNotificationRequest.Recipient::getEmail,
+                                recipient -> recipient,
+                                (existing, ignored) -> existing
+                        ),
+                        map -> new ArrayList<>(map.values())
+                ));
+
+        if (recipients.isEmpty()) {
+            return;
+        }
+
+        FlightStatusNotificationRequest request = new FlightStatusNotificationRequest(
+                flight.getFlightNumber(),
+                flight.getDepartureAirportId() + " -> " + flight.getArrivalAirportId(),
+                flight.getStatus().name(),
+                buildStatusMessage(flight.getStatus()),
+                recipients
+        );
+
+        restTemplate.postForEntity(notificationServiceBaseUrl + "/notifications/flight-status", request, Void.class);
+    }
+
+    private String buildStatusMessage(Flight.FlightStatus status) {
+        return switch (status) {
+            case DELAYED -> "Your flight has been delayed. Please check the latest departure updates.";
+            case CANCELLED -> "Your flight has been cancelled. Please contact support or rebook your trip.";
+            case DEPARTED -> "Your flight has departed.";
+            case ARRIVED -> "Your flight has arrived.";
+            case ON_TIME -> "Your flight is currently on time.";
+        };
+    }
+
+    private String buildUserName(RemoteUserResponse user) {
+        if (user == null) {
+            return null;
+        }
+
+        String firstName = user.getFirstName() != null ? user.getFirstName().trim() : "";
+        String lastName = user.getLastName() != null ? user.getLastName().trim() : "";
+        String fullName = (firstName + " " + lastName).trim();
+        return fullName.isBlank() ? user.getEmail() : fullName;
+    }
+
+    private void validateFlightAccess(Long flightId, String userEmail, String userRole) {
+        if (!"AIRLINE_STAFF".equalsIgnoreCase(userRole)) {
+            return;
+        }
+
+        Flight flight = getFlightEntity(flightId);
+        RemoteUserResponse user = fetchUserByEmail(userEmail);
+        if (user == null || user.getAirlineId() == null || !user.getAirlineId().equals(flight.getAirlineId())) {
+            throw new FlightException("You do not have access to manage this flight", "FLIGHT_ACCESS_DENIED");
+        }
     }
 
     private FlightResponse mapToResponse(Flight flight) {

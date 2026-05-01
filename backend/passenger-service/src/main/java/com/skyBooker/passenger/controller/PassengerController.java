@@ -65,11 +65,19 @@ public class PassengerController {
         return ResponseEntity.noContent().build();
     }
 
+    @PutMapping("/{id}/block")
+    public ResponseEntity<Void> blockPassenger(@PathVariable @Positive(message = "id must be positive") Long id) {
+        passengerService.blockPassenger(id);
+        return ResponseEntity.ok().build();
+    }
+
     private Passenger mapToEntity(PassengerRequest request) {
         Passenger passenger = new Passenger();
         passenger.setBookingId(request.getBookingId());
         passenger.setFirstName(request.getFirstName());
         passenger.setLastName(request.getLastName());
+        passenger.setEmail(request.getEmail());
+        passenger.setPhoneNumber(request.getPhoneNumber());
         passenger.setPassportNumber(request.getPassportNumber());
         passenger.setDateOfBirth(request.getDateOfBirth());
         passenger.setCategory(request.getCategory());
@@ -85,6 +93,8 @@ public class PassengerController {
                 passenger.getBookingId(),
                 passenger.getFirstName(),
                 passenger.getLastName(),
+                passenger.getEmail(),
+                passenger.getPhoneNumber(),
                 passenger.getPassportNumber(),
                 passenger.getDateOfBirth(),
                 passenger.getCategory(),

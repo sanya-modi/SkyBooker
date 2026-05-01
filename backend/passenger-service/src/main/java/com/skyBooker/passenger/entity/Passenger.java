@@ -28,6 +28,12 @@ public class Passenger {
     @Column(nullable = false, length = 100)
     private String lastName;
 
+    @Column(length = 255)
+    private String email;
+
+    @Column(length = 20)
+    private String phoneNumber;
+
     @Column(nullable = false, length = 20)
     private String passportNumber;
 

@@ -151,6 +151,7 @@ public class BookingServiceImpl implements BookingService {
         Booking updated = bookingRepository.save(booking);
         
         if (status == Booking.BookingStatus.CONFIRMED) {
+            bookSeats(updated);
             try {
                 sendBookingConfirmationNotifications(updated);
             } catch (Exception e) {
@@ -471,6 +472,33 @@ public class BookingServiceImpl implements BookingService {
             }
         } catch (Exception e) {
             log.error("Error releasing seats for booking {}", booking.getId(), e);
+        }
+    }
+
+    private void bookSeats(Booking booking) {
+        try {
+            if (booking.getSelectedSeats() == null || booking.getSelectedSeats().isEmpty()) {
+                return;
+            }
+
+            for (String seatNumber : booking.getSelectedSeats()) {
+                Map<String, Object> request = new HashMap<>();
+                request.put("flightId", booking.getFlightId());
+                request.put("seatNumber", seatNumber);
+                request.put("bookingId", booking.getId());
+                request.put("passengerId", booking.getUserId());
+
+                webClientBuilder.build()
+                        .post()
+                        .uri(seatServiceUrl + "/seats/book")
+                        .bodyValue(request)
+                        .retrieve()
+                        .toBodilessEntity()
+                        .block();
+            }
+            log.info("Booked {} seats for booking {}", booking.getSelectedSeats().size(), booking.getId());
+        } catch (Exception exception) {
+            throw new RuntimeException("Failed to confirm seat booking", exception);
         }
     }
 

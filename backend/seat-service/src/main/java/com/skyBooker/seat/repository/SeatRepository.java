@@ -2,20 +2,28 @@ package com.skyBooker.seat.repository;
 
 import com.skyBooker.seat.entity.Seat;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import jakarta.persistence.LockModeType;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface SeatRepository extends JpaRepository<Seat, Long> {
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT s FROM Seat s WHERE s.flightId = :flightId AND s.seatNumber = :seatNumber")
+    Optional<Seat> findByFlightIdAndSeatNumberForUpdate(@Param("flightId") Long flightId, @Param("seatNumber") String seatNumber);
+
     Optional<Seat> findByFlightIdAndSeatNumber(Long flightId, String seatNumber);
 
     @Query("SELECT s FROM Seat s WHERE s.flightId = :flightId ORDER BY s.seatNumber")
     List<Seat> findByFlightId(@Param("flightId") Long flightId);
+
+    void deleteByFlightIdAndSeatNumber(Long flightId, String seatNumber);
 
     @Query("SELECT s FROM Seat s WHERE s.flightId = :flightId AND s.status = 'AVAILABLE'")
     List<Seat> findAvailableSeats(@Param("flightId") Long flightId);

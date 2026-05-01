@@ -215,4 +215,29 @@ public class EmailService {
             log.error("Failed to send support thank you email to: {}", toEmail, e);
         }
     }
+
+    public void sendFlightStatusUpdate(String toEmail, String flightNumber, String route, String status, String updateMessage) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(fromEmail);
+            helper.setTo(toEmail);
+            helper.setSubject("Flight " + flightNumber + " status update: " + status.replace('_', ' '));
+
+            String htmlContent = "<h2>Flight Status Update</h2>"
+                    + "<p><strong>Flight Number:</strong> " + flightNumber + "</p>"
+                    + "<p><strong>Route:</strong> " + route + "</p>"
+                    + "<p><strong>New Status:</strong> " + status.replace('_', ' ') + "</p>"
+                    + "<p>" + updateMessage + "</p>";
+
+            helper.setText(htmlContent, true);
+
+            mailSender.send(message);
+            log.info("Flight status update email sent to: {}", toEmail);
+        } catch (Exception e) {
+            log.error("Failed to send flight status update email to: {}", toEmail, e);
+            throw new RuntimeException("Failed to send flight status update email", e);
+        }
+    }
 }

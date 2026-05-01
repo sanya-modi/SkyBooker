@@ -1,10 +1,13 @@
 package com.skyBooker.passenger.service;
 
+import com.skyBooker.passenger.dto.remote.RemoteBookingResponse;
 import com.skyBooker.passenger.entity.Passenger;
 import com.skyBooker.passenger.repository.PassengerRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDate;
 import java.time.Period;
@@ -16,6 +19,13 @@ import java.util.List;
 public class PassengerServiceImpl implements PassengerService {
 
     private final PassengerRepository passengerRepository;
+    private final RestTemplate restTemplate;
+
+    @Value("${services.booking.base-url}")
+    private String bookingServiceBaseUrl;
+
+    @Value("${services.auth.base-url}")
+    private String authServiceBaseUrl;
 
     @Override
     public Passenger createPassenger(Passenger passenger) {
@@ -55,6 +65,12 @@ public class PassengerServiceImpl implements PassengerService {
         if (passengerData.getLastName() != null) {
             passenger.setLastName(passengerData.getLastName());
         }
+        if (passengerData.getEmail() != null) {
+            passenger.setEmail(passengerData.getEmail());
+        }
+        if (passengerData.getPhoneNumber() != null) {
+            passenger.setPhoneNumber(passengerData.getPhoneNumber());
+        }
         if (passengerData.getSpecialRequests() != null) {
             passenger.setSpecialRequests(passengerData.getSpecialRequests());
         }
@@ -80,6 +96,21 @@ public class PassengerServiceImpl implements PassengerService {
     @Override
     public void deletePassenger(Long id) {
         passengerRepository.deleteById(id);
+    }
+
+    @Override
+    public void blockPassenger(Long id) {
+        Passenger passenger = getPassengerById(id);
+        RemoteBookingResponse booking = restTemplate.getForObject(
+                bookingServiceBaseUrl + "/bookings/" + passenger.getBookingId(),
+                RemoteBookingResponse.class
+        );
+
+        if (booking == null || booking.getUserId() == null) {
+            throw new RuntimeException("Booking user not found");
+        }
+
+        restTemplate.delete(authServiceBaseUrl + "/auth/users/" + booking.getUserId());
     }
 
     private void validatePassengerCategoryAge(LocalDate dateOfBirth, Passenger.Category category) {

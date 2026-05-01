@@ -1,6 +1,8 @@
 package com.skyBooker.seat.service;
 
 import com.skyBooker.seat.entity.Seat;
+import com.skyBooker.seat.entity.SeatClassConfig;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
 
@@ -12,7 +14,11 @@ public interface SeatService {
     Seat holdSeat(Long flightId, String seatNumber, Long passengerId);
     Seat bookSeat(Long flightId, String seatNumber, Long bookingId, Long passengerId);
     void releaseSeat(Long seatId);
+    void releaseSeat(Long flightId, String seatNumber);
     Seat getSeatById(Long seatId);
     List<Seat> getSeatsbyBookingId(Long bookingId);
     void releaseExpiredHolds();
+    List<SeatClassConfig> saveSeatConfig(Long flightId, List<com.skyBooker.seat.dto.SeatClassRangeRequest> ranges);
+    List<SeatClassConfig> getSeatConfig(Long flightId);
+    SseEmitter subscribeToFlightSeatMap(Long flightId);
 }

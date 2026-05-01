@@ -16,6 +16,8 @@ public class PassengerResponse {
     private Long bookingId;
     private String firstName;
     private String lastName;
+    private String email;
+    private String phoneNumber;
     private String passportNumber;
     private LocalDate dateOfBirth;
     private Passenger.Category category;

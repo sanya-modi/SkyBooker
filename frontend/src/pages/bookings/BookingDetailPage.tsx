@@ -53,9 +53,19 @@ export default function BookingDetailPage() {
     loadBookingDetails()
   }, [isLoggedIn, params.id])
 
-  const loadBookingDetails = async () => {
+  useEffect(() => {
+    if (!isLoggedIn || !params.id) return
+
+    const interval = window.setInterval(() => {
+      void loadBookingDetails(false)
+    }, 15000)
+
+    return () => window.clearInterval(interval)
+  }, [isLoggedIn, params.id])
+
+  const loadBookingDetails = async (showLoader = true) => {
     try {
-      setLoading(true)
+      if (showLoader) setLoading(true)
       setError(null)
 
       const bookingId = Number(params.id)
@@ -91,7 +101,7 @@ export default function BookingDetailPage() {
       console.error('Error loading booking details:', err)
       setError(err instanceof Error ? err.message : 'Failed to load booking details')
     } finally {
-      setLoading(false)
+      if (showLoader) setLoading(false)
     }
   }
 
@@ -140,6 +150,19 @@ export default function BookingDetailPage() {
         return { icon: CheckCircle2, color: 'text-slate-600', bg: 'bg-slate-50', label: 'Completed' }
       default:
         return { icon: AlertCircle, color: 'text-slate-600', bg: 'bg-slate-50', label: status }
+    }
+  }
+
+  const getFlightStatusBadge = (status?: string) => {
+    switch (status?.toUpperCase()) {
+      case 'ON_TIME':
+        return 'bg-green-50 text-green-700'
+      case 'DELAYED':
+        return 'bg-yellow-50 text-yellow-700'
+      case 'CANCELLED':
+        return 'bg-red-50 text-red-700'
+      default:
+        return 'bg-slate-50 text-slate-700'
     }
   }
 
@@ -273,6 +296,9 @@ export default function BookingDetailPage() {
                         {booking.flight && formatTime(booking.flight.departureTime)}
                       </span>
                     </div>
+                    <span className={`inline-flex mt-3 px-3 py-1 rounded-lg text-xs font-bold ${getFlightStatusBadge(booking.flight?.status)}`}>
+                      Flight {booking.flight?.status?.replace('_', ' ') || 'Unknown'}
+                    </span>
                   </div>
 
                   <div className="flex flex-col items-center px-6">

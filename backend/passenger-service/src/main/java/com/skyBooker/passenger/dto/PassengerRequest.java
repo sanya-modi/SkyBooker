@@ -2,6 +2,7 @@ package com.skyBooker.passenger.dto;
 
 import com.skyBooker.passenger.entity.Passenger;
 import com.skyBooker.passenger.validation.PassengerValidationPatterns;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -28,6 +29,12 @@ public class PassengerRequest {
     @NotBlank(message = "Last name is required")
     @Pattern(regexp = PassengerValidationPatterns.NAME, message = "Last name format is invalid")
     private String lastName;
+
+    @Email(message = "Email format is invalid")
+    private String email;
+
+    @Pattern(regexp = "^\\d{10}$", message = "Phone number must be exactly 10 digits")
+    private String phoneNumber;
 
     @NotBlank(message = "Passport number is required")
     @Pattern(regexp = PassengerValidationPatterns.PASSPORT, message = "Passport number format is invalid")

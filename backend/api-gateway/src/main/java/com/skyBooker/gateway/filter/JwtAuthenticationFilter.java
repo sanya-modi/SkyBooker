@@ -39,6 +39,12 @@ public class JwtAuthenticationFilter extends AbstractGatewayFilterFactory<JwtAut
                     .getHeaders()
                     .getFirst(HttpHeaders.AUTHORIZATION);
 
+            String tokenFromQuery = exchange.getRequest().getQueryParams().getFirst("token");
+            boolean seatStreamRequest = path.contains("/seats/flight/") && path.endsWith("/stream");
+            if ((authHeader == null || !authHeader.startsWith("Bearer ")) && seatStreamRequest && tokenFromQuery != null && !tokenFromQuery.isBlank()) {
+                authHeader = "Bearer " + tokenFromQuery;
+            }
+
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
                 log.error("Missing or invalid Authorization header");
                 exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);

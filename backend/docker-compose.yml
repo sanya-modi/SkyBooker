@@ -88,10 +88,21 @@ services:
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/flight_db
       SPRING_APPLICATION_NAME: flight-service
+      SEAT_SERVICE_URL: http://seat-service:8083
+      BOOKING_SERVICE_URL: http://booking-service:8084
+      PASSENGER_SERVICE_URL: http://passenger-service:8085
+      AUTH_SERVICE_URL: http://auth-service:8081
+      NOTIFICATION_SERVICE_URL: http://notification-service:8087
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: guest
+      RABBITMQ_PASSWORD: guest
     depends_on:
       postgres:
         condition: service_healthy
       eureka-server:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     networks:
       - skyBooker-network

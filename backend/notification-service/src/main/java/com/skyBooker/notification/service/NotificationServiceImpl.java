@@ -1,5 +1,6 @@
 package com.skyBooker.notification.service;
 
+import com.skyBooker.notification.dto.FlightStatusNotificationRequest;
 import com.skyBooker.notification.entity.Notification;
 import com.skyBooker.notification.repository.NotificationRepository;
 import lombok.RequiredArgsConstructor;
@@ -158,5 +159,34 @@ public class NotificationServiceImpl implements NotificationService {
         emailService.sendSupportToHost(request.getTitle(), request.getDescription(), request.getUserEmail(), request.getFullName());
         // Send thank you email to user
         emailService.sendSupportThankYouToUser(request.getUserEmail(), request.getFullName());
+    }
+
+    public void sendFlightStatusNotifications(FlightStatusNotificationRequest request) {
+        for (FlightStatusNotificationRequest.Recipient recipient : request.getRecipients()) {
+            Notification notification = createNotification(
+                    recipient.getUserId(),
+                    recipient.getBookingId(),
+                    Notification.NotificationType.FLIGHT_UPDATE,
+                    Notification.Channel.EMAIL,
+                    "Flight " + request.getFlightNumber() + " status update",
+                    request.getMessage(),
+                    recipient.getEmail()
+            );
+
+            try {
+                emailService.sendFlightStatusUpdate(
+                        recipient.getEmail(),
+                        request.getFlightNumber(),
+                        request.getRoute(),
+                        request.getStatus(),
+                        request.getMessage()
+                );
+                notification.setStatus(Notification.NotificationStatus.DELIVERED);
+            } catch (Exception exception) {
+                notification.setStatus(Notification.NotificationStatus.FAILED);
+            }
+
+            notificationRepository.save(notification);
+        }
     }
 }

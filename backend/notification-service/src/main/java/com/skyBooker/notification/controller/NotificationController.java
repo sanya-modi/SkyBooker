@@ -1,6 +1,7 @@
 package com.skyBooker.notification.controller;
 
 import com.skyBooker.notification.dto.BookingConfirmationRequest;
+import com.skyBooker.notification.dto.FlightStatusNotificationRequest;
 import com.skyBooker.notification.dto.NotificationRequest;
 import com.skyBooker.notification.dto.NotificationResponse;
 import com.skyBooker.notification.dto.BulkNotificationRequest;
@@ -136,6 +137,12 @@ public class NotificationController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("Failed to process support request: " + e.getMessage());
         }
+    }
+
+    @PostMapping("/flight-status")
+    public ResponseEntity<Void> sendFlightStatusNotifications(@Valid @RequestBody FlightStatusNotificationRequest request) {
+        notificationServiceImpl.sendFlightStatusNotifications(request);
+        return ResponseEntity.ok().build();
     }
 
     private NotificationResponse mapToResponse(Notification notification) {

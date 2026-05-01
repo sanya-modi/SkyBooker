@@ -82,6 +82,21 @@ export interface FlightResult {
   status: string
 }
 
+export interface FlightPassengerManifestItem {
+  id: number
+  bookingId: number
+  userId: number
+  name: string
+  email: string | null
+  phone: string | null
+  seat: string | null
+  passport: string | null
+  blocked: boolean
+  bookedByName: string | null
+  bookedByEmail: string | null
+  bookedByPhone: string | null
+}
+
 export interface EnrichedFlightResult extends FlightResult {
   airline?: Airline
   departureAirport?: Airport
@@ -101,6 +116,22 @@ export interface SeatResult {
   holdExpiresAt: string | null
   createdAt: string
   updatedAt: string
+}
+
+export interface SeatClassConfigRange {
+  id?: number
+  flightId?: number
+  startRow: number
+  endRow: number
+  seatClass: 'ECONOMY' | 'BUSINESS' | 'FIRST'
+}
+
+export interface SeatMapUpdateEvent {
+  flightId: number
+  eventType: string
+  timestamp: string
+  seats: SeatResult[]
+  configs: SeatClassConfigRange[]
 }
 
 export interface AuthResponseData {
@@ -224,6 +255,9 @@ export const flightApi = {
     ),
   getById: (id: number) => request<FlightResult>(`/flights/${id}`),
   getAll: () => request<FlightResult[]>('/flights'),
+  getByDate: (date: string) => request<FlightResult[]>(`/flights?date=${encodeURIComponent(date)}`),
+  getSeatConfig: (id: number) => request<SeatClassConfigRange[]>(`/flights/${id}/seat-config`),
+  getPassengers: (id: number) => request<FlightPassengerManifestItem[]>(`/flights/${id}/passengers`),
   create: (body: {
     flightNumber: string
     aircraftType: string
@@ -248,6 +282,11 @@ export const flightApi = {
   }) => request<FlightResult>(`/flights/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
   updateStatus: (id: number, status: string) =>
     request<FlightResult>(`/flights/${id}/status?status=${status}`, { method: 'PUT' }),
+  saveSeatConfig: (id: number, ranges: SeatClassConfigRange[]) =>
+    request<SeatClassConfigRange[]>(`/flights/${id}/seat-config`, {
+      method: 'POST',
+      body: JSON.stringify({ ranges }),
+    }),
   delete: (id: number) => request<void>(`/flights/${id}`, { method: 'DELETE' }),
 }
 
@@ -261,8 +300,26 @@ export const seatApi = {
     request<void>('/seats/initialize', { method: 'POST', body: JSON.stringify({ flightId, totalSeats }) }),
   hold: (flightId: number, seatNumber: string, passengerId: number) =>
     request<SeatResult>('/seats/hold', { method: 'POST', body: JSON.stringify({ flightId, seatNumber, passengerId }) }),
+  book: (flightId: number, seatNumber: string, bookingId: number, passengerId: number) =>
+    request<SeatResult>('/seats/book', { method: 'POST', body: JSON.stringify({ flightId, seatNumber, bookingId, passengerId }) }),
   release: (seatId: number) =>
     request<void>(`/seats/${seatId}/release`, { method: 'DELETE' }),
+  releaseByFlightSeat: (flightId: number, seatNumber: string) =>
+    request<void>(`/seats/release/${flightId}/${encodeURIComponent(seatNumber)}`, { method: 'DELETE' }),
+  getConfig: (flightId: number) => request<SeatClassConfigRange[]>(`/seats/flight/${flightId}/config`),
+  saveConfig: (flightId: number, ranges: SeatClassConfigRange[]) =>
+    request<SeatClassConfigRange[]>(`/seats/flight/${flightId}/config`, {
+      method: 'POST',
+      body: JSON.stringify({ ranges }),
+    }),
+  createSeatStream: (flightId: number) => {
+    const token = localStorage.getItem('skybooker_token')
+    const url = new URL(`${API_BASE_URL}/seats/flight/${flightId}/stream`)
+    if (token) {
+      url.searchParams.set('token', token)
+    }
+    return new EventSource(url.toString())
+  },
 }
 
 export const bookingApi = {
@@ -402,4 +459,7 @@ export const passengerApi = {
   create: (body: PassengerCreateRequest) =>
     request<PassengerResult>('/passengers', { method: 'POST', body: JSON.stringify(body) }),
   getByBooking: (bookingId: number) => request<PassengerResult[]>(`/passengers/booking/${bookingId}`),
+  delete: (id: number) => request<void>(`/passengers/${id}`, { method: 'DELETE' }),
+  block: (id: number) => request<void>(`/passengers/${id}/block`, { method: 'PUT' }),
 }
+

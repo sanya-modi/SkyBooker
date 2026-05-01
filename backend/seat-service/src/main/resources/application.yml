@@ -2,17 +2,28 @@ spring:
   application:
     name: seat-service
   datasource:
-    url: jdbc:postgresql://localhost:5432/seat_db
+    url: jdbc:postgresql://postgres:5432/seat_db
     username: postgres
     password: postgres
     driver-class-name: org.postgresql.Driver
     hikari:
-      maximum-pool-size: 5
+      maximum-pool-size: 30
+      minimum-idle: 10
+      connection-timeout: 30000
+      idle-timeout: 300000
+      max-lifetime: 1200000
+      leak-detection-threshold: 60000
   jpa:
     hibernate:
       ddl-auto: update
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     show-sql: false
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
 
 eureka:
   client:

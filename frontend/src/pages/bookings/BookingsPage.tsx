@@ -64,11 +64,21 @@ export default function MyBookingsPage() {
     void loadBookings()
   }, [isAuthReady, isLoggedIn, location.hash, location.pathname, location.search, navigate, user])
 
-  const loadBookings = async () => {
+  useEffect(() => {
+    if (!isLoggedIn || !user) return
+
+    const interval = window.setInterval(() => {
+      void loadBookings(false)
+    }, 15000)
+
+    return () => window.clearInterval(interval)
+  }, [isLoggedIn, user?.userId])
+
+  const loadBookings = async (showLoader = true) => {
     if (!user) return
     
     try {
-      setLoading(true)
+      if (showLoader) setLoading(true)
       setError(null)
       
       const bookingsData = await bookingApi.getByUser(user.userId)
@@ -112,7 +122,7 @@ export default function MyBookingsPage() {
       console.error('Error loading bookings:', err)
       setError('Unable to load trips')
     } finally {
-      setLoading(false)
+      if (showLoader) setLoading(false)
     }
   }
 
@@ -225,6 +235,21 @@ export default function MyBookingsPage() {
           border: 'border-slate-200',
           label: status
         }
+    }
+  }
+
+  const getFlightStatusBadge = (status?: string) => {
+    switch (status?.toUpperCase()) {
+      case 'ON_TIME':
+        return 'bg-green-50 text-green-700'
+      case 'DELAYED':
+        return 'bg-yellow-50 text-yellow-700'
+      case 'CANCELLED':
+        return 'bg-red-50 text-red-700'
+      case 'ARRIVED':
+        return 'bg-blue-50 text-blue-700'
+      default:
+        return 'bg-slate-100 text-slate-600'
     }
   }
 
@@ -461,6 +486,9 @@ export default function MyBookingsPage() {
                           <p className="text-xs font-bold text-slate-500 mt-2">
                             {booking.flight?.flightNumber || 'N/A'}
                           </p>
+                          <span className={`mt-2 px-2 py-1 rounded-lg text-[10px] font-bold ${getFlightStatusBadge(booking.flight?.status)}`}>
+                            {booking.flight?.status === 'ARRIVED' ? 'COMPLETED' : booking.flight?.status?.replace('_', ' ') || 'Unknown'}
+                          </span>
                         </div>
 
                         <div className="flex-1 text-right">

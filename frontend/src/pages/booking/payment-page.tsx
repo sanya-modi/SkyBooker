@@ -196,8 +196,7 @@ export function PaymentPage() {
     async function loadSeats() {
       if (!flightId) return
       try {
-        const availableSeats = await seatApi.getAvailable(flightId)
-        setSeats(availableSeats)
+        setSeats(await seatApi.getAllByFlight(flightId))
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load seat details.')
       }
@@ -263,12 +262,12 @@ export function PaymentPage() {
     
     try {
 
-      const latestSeats = await seatApi.getAvailable(flight.id)
+      const latestSeats = await seatApi.getAllByFlight(flight.id)
       setSeats(latestSeats)
 
       const unavailableSeat = selectedSeatIds.find((seatNumber) => {
         const seat = latestSeats.find((entry) => entry.seatNumber === seatNumber)
-        return !seat || seat.status !== 'AVAILABLE'
+        return !seat || (seat.status !== 'AVAILABLE' && !(seat.status === 'HELD' && seat.passengerId === user.userId))
       })
 
       if (unavailableSeat) {

@@ -167,17 +167,17 @@ export function BookingPage() {
 
   /* load seats — initialize if empty, use available endpoint */
   useEffect(() => {
-    if (!flightId) return
+    if (!flightId || !flight) return
     async function loadSeats() {
       setSeatsLoading(true)
       try {
         let available = await seatApi.getAllByFlight(flightId)
+        console.log('Loaded seats:', available)
 
-        if (available.length < (flight?.totalSeats ?? 180)) {
-          // initialize seats for this flight
-          const totalSeats = flight?.totalSeats ?? 180
-          await seatApi.initialize(flightId, totalSeats)
+        if (available.length === 0 && flight.totalSeats) {
+          await seatApi.initialize(flightId, flight.totalSeats)
           available = await seatApi.getAllByFlight(flightId)
+          console.log('Initialized seats:', available)
         }
 
         setSeats(available)
@@ -188,7 +188,62 @@ export function BookingPage() {
       }
     }
     void loadSeats()
-  }, [flightId, flight?.totalSeats]) // eslint-disable-line
+  }, [flightId, flight])
+
+  useEffect(() => {
+    if (!flightId) return
+
+    let cancelled = false
+    let pollingId: number | undefined
+
+    const applySeats = (nextSeats: SeatResult[]) => {
+      if (!cancelled) {
+        console.log('Applying seats update:', nextSeats)
+        setSeats(nextSeats)
+        setSeatsLoading(false)
+      }
+    }
+
+    const startPolling = () => {
+      pollingId = window.setInterval(async () => {
+        try {
+          applySeats(await seatApi.getAllByFlight(flightId))
+        } catch {
+          // keep last known state on polling errors
+        }
+      }, 5000)
+    }
+
+    if (typeof EventSource === 'undefined') {
+      startPolling()
+      return () => {
+        cancelled = true
+        if (pollingId) window.clearInterval(pollingId)
+      }
+    }
+
+    const stream = seatApi.createSeatStream(flightId)
+    stream.addEventListener('seat-map', (event) => {
+      try {
+        const payload = JSON.parse((event as MessageEvent).data)
+        if (payload && payload.seats && Array.isArray(payload.seats)) {
+          applySeats(payload.seats)
+        }
+      } catch {
+        // ignore malformed events
+      }
+    })
+    stream.onerror = () => {
+      stream.close()
+      startPolling()
+    }
+
+    return () => {
+      cancelled = true
+      stream.close()
+      if (pollingId) window.clearInterval(pollingId)
+    }
+  }, [flightId])
 
   const selectedSeat = selectedSeatIds.length === 1 ? seats.find((s) => s.seatNumber === selectedSeatIds[0]) : undefined
   const selectedSeatClass = selectedSeat ? getEffectiveSeatClass(selectedSeat) : undefined
@@ -259,6 +314,35 @@ export function BookingPage() {
     setShowPassengerErrors(false)
     setError('')
     navigate(`/payment?flightId=${flightId}`)
+  }
+
+  async function handleSeatSelection(nextSeatIds: string[]) {
+    if (!flightId || !user) {
+      setError('Please log in to select seats.')
+      return
+    }
+
+    const seatsToHold = nextSeatIds.filter((seatNumber) => !selectedSeatIds.includes(seatNumber))
+    const seatsToRelease = selectedSeatIds.filter((seatNumber) => !nextSeatIds.includes(seatNumber))
+
+    try {
+      setError('')
+
+      for (const seatNumber of seatsToRelease) {
+        await seatApi.releaseByFlightSeat(flightId, seatNumber)
+      }
+
+      for (const seatNumber of seatsToHold) {
+        await seatApi.hold(flightId, seatNumber, user.userId)
+      }
+
+      setShowPassengerErrors(false)
+      setSelectedSeatIds(nextSeatIds)
+      setSeats(await seatApi.getAllByFlight(flightId))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to update seat selection.')
+      setSeats(await seatApi.getAllByFlight(flightId))
+    }
   }
 
   return (
@@ -336,15 +420,12 @@ export function BookingPage() {
               : (
                 <SeatPicker
                   loading={false}
+                  currentPassengerId={user?.userId}
                   maxSelectableSeats={maxSelectableSeats}
                   onSelectionLimitReached={setError}
                   seats={seats}
                   selectedSeatNumbers={selectedSeatIds}
-                  onSelect={(nextSeatIds) => {
-                    setError('')
-                    setShowPassengerErrors(false)
-                    setSelectedSeatIds(nextSeatIds)
-                  }}
+                  onSelect={handleSeatSelection}
                 />
               )
             }

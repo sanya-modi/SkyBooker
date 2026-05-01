@@ -2,7 +2,7 @@ spring:
   application:
     name: flight-service
   datasource:
-    url: jdbc:postgresql://localhost:5432/flight_db
+    url: jdbc:postgresql://postgres:5432/flight_db
     username: postgres
     password: postgres
     driver-class-name: org.postgresql.Driver
@@ -17,7 +17,7 @@ spring:
       hibernate:
         format_sql: true
   rabbitmq:
-    host: ${RABBITMQ_HOST:localhost}
+    host: ${RABBITMQ_HOST:rabbitmq}
     port: ${RABBITMQ_PORT:5672}
     username: ${RABBITMQ_USERNAME:guest}
     password: ${RABBITMQ_PASSWORD:guest}
@@ -25,7 +25,7 @@ spring:
 eureka:
   client:
     serviceUrl:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: http://eureka-server:8761/eureka/
   instance:
     preferIpAddress: true
 
@@ -36,6 +36,18 @@ logging:
   level:
     ROOT: INFO
     com.skyBooker: INFO
+
+services:
+  seat:
+    base-url: ${SEAT_SERVICE_URL:http://seat-service:8083}
+  booking:
+    base-url: ${BOOKING_SERVICE_URL:http://booking-service:8084}
+  passenger:
+    base-url: ${PASSENGER_SERVICE_URL:http://passenger-service:8085}
+  auth:
+    base-url: ${AUTH_SERVICE_URL:http://auth-service:8081}
+  notification:
+    base-url: ${NOTIFICATION_SERVICE_URL:http://notification-service:8087}
 
 management:
   endpoints:

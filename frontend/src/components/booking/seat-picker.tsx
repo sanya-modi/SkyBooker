@@ -11,8 +11,6 @@ export const SEAT_PRICES: Record<string, number> = {
 }
 
 export function getEffectiveSeatClass(seat: Pick<SeatResult, 'seatNumber' | 'seatClass'>): 'ECONOMY' | 'BUSINESS' | 'FIRST' {
-  const rowNumber = Number.parseInt(seat.seatNumber, 10)
-  if (rowNumber >= 10 && rowNumber <= 16) return 'FIRST'
   return seat.seatClass
 }
 
@@ -42,7 +40,7 @@ const CLS = {
     seat: 'bg-slate-100 border-slate-200 text-slate-500 hover:bg-blue-50 hover:border-blue-400 hover:text-blue-700',
     selected: 'bg-[#1e3a8a] border-[#1e3a8a] text-white shadow-lg shadow-blue-900/30',
     held: 'bg-amber-50 border-amber-300 text-amber-500 cursor-not-allowed',
-    booked: 'bg-red-50 border-red-200 text-red-300 cursor-not-allowed opacity-50',
+    booked: 'bg-red-100 border-red-400 text-red-500 cursor-not-allowed opacity-70',
     price: 'Included',
   },
   BUSINESS: {
@@ -51,7 +49,7 @@ const CLS = {
     seat: 'bg-amber-50 border-amber-200 text-amber-600 hover:bg-amber-100 hover:border-amber-500 hover:text-amber-800',
     selected: 'bg-amber-500 border-amber-500 text-white shadow-lg shadow-amber-500/30',
     held: 'bg-amber-50 border-amber-300 text-amber-400 cursor-not-allowed',
-    booked: 'bg-red-50 border-red-200 text-red-300 cursor-not-allowed opacity-50',
+    booked: 'bg-red-100 border-red-400 text-red-500 cursor-not-allowed opacity-70',
     price: '+₹2,500',
   },
   FIRST: {
@@ -60,7 +58,7 @@ const CLS = {
     seat: 'bg-violet-50 border-violet-200 text-violet-600 hover:bg-violet-100 hover:border-violet-500 hover:text-violet-800',
     selected: 'bg-violet-600 border-violet-600 text-white shadow-lg shadow-violet-500/30',
     held: 'bg-violet-50 border-violet-200 text-violet-300 cursor-not-allowed',
-    booked: 'bg-red-50 border-red-200 text-red-300 cursor-not-allowed opacity-50',
+    booked: 'bg-red-100 border-red-400 text-red-500 cursor-not-allowed opacity-70',
     price: '+₹5,000',
   },
 } as const
@@ -86,20 +84,20 @@ function SkeletonRow() {
 
 /* ─── main component ───────────────────────────────────── */
 interface SeatPickerProps {
-  seats: SeatResult[]          // all seats for this flight
+  seats: SeatResult[]
   loading: boolean
   selectedSeatNumbers: string[]
   maxSelectableSeats: number
+  currentPassengerId?: number
   onSelectionLimitReached?: (message: string) => void
   onSelect: (seatNumbers: string[]) => void
 }
 
-export function SeatPicker({ seats, loading, selectedSeatNumbers, maxSelectableSeats, onSelectionLimitReached, onSelect }: SeatPickerProps) {
+export function SeatPicker({ seats, loading, selectedSeatNumbers, maxSelectableSeats, currentPassengerId, onSelectionLimitReached, onSelect }: SeatPickerProps) {
   const [activeClass, setActiveClass] = useState<'ALL' | 'ECONOMY' | 'BUSINESS' | 'FIRST'>('ALL')
   const [showAll, setShowAll] = useState(false)
   const mapRef = useRef<HTMLDivElement>(null)
 
-  /* animate seats in when loaded */
   useEffect(() => {
     if (loading || !mapRef.current) return
     const btns = mapRef.current.querySelectorAll('.seat-btn')
@@ -110,7 +108,6 @@ export function SeatPicker({ seats, loading, selectedSeatNumbers, maxSelectableS
     )
   }, [loading, activeClass])
 
-  /* animate class tab switch */
   function switchClass(cls: typeof activeClass) {
     setActiveClass(cls)
     setShowAll(false)
@@ -119,9 +116,10 @@ export function SeatPicker({ seats, loading, selectedSeatNumbers, maxSelectableS
     }
   }
 
-  /* seat click */
   function handleClick(seat: SeatResult) {
-    if (seat.status !== 'AVAILABLE') return
+    if (seat.status === 'BOOKED') return
+    const heldByCurrentPassenger = seat.status === 'HELD' && seat.passengerId === currentPassengerId
+    if (seat.status !== 'AVAILABLE' && !heldByCurrentPassenger) return
     const isSelected = selectedSeatNumbers.includes(seat.seatNumber)
 
     if (isSelected) {
@@ -134,19 +132,16 @@ export function SeatPicker({ seats, loading, selectedSeatNumbers, maxSelectableS
       onSelect([...selectedSeatNumbers, seat.seatNumber])
     }
 
-    // bounce animation
     if (mapRef.current) {
       const btn = mapRef.current.querySelector(`[data-seat="${seat.seatNumber}"]`)
       if (btn) gsap.fromTo(btn, { scale: 0.75 }, { scale: 1, duration: 0.3, ease: 'back.out(2.5)' })
     }
   }
 
-  /* build rows */
   const visibleSeats = activeClass === 'ALL' ? seats : seats.filter((s) => getEffectiveSeatClass(s) === activeClass)
   const visibleRows = Array.from(new Set(visibleSeats.map((s) => parseInt(s.seatNumber, 10)))).sort((a, b) => a - b)
   const displayRows = showAll ? visibleRows : visibleRows.slice(0, 15)
 
-  /* stats */
   const stats = {
     available: seats.filter((s) => s.status === 'AVAILABLE').length,
     held: seats.filter((s) => s.status === 'HELD').length,
@@ -160,7 +155,6 @@ export function SeatPicker({ seats, loading, selectedSeatNumbers, maxSelectableS
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
 
-      {/* ── header ── */}
       <div className="bg-gradient-to-r from-[#00236f] to-[#1e3a8a] px-6 py-5">
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -174,7 +168,6 @@ export function SeatPicker({ seats, loading, selectedSeatNumbers, maxSelectableS
           </div>
         </div>
 
-        {/* legend */}
         <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-4">
           {[
             { dot: 'bg-slate-300', label: `${stats.available} Available` },
@@ -190,7 +183,6 @@ export function SeatPicker({ seats, loading, selectedSeatNumbers, maxSelectableS
         </div>
       </div>
 
-      {/* ── class tabs ── */}
       <div className="flex gap-2 px-5 py-3 bg-slate-50 border-b border-slate-100 overflow-x-auto no-scrollbar">
         {(['ALL', 'ECONOMY', 'BUSINESS', 'FIRST'] as const).map((cls) => {
           const cnt = cls === 'ALL'
@@ -217,10 +209,8 @@ export function SeatPicker({ seats, loading, selectedSeatNumbers, maxSelectableS
         })}
       </div>
 
-      {/* ── seat map ── */}
       <div className="px-5 py-5 overflow-x-auto">
 
-        {/* nose */}
         <div className="flex justify-center mb-5">
           <div className="flex flex-col items-center gap-0">
             <div className="w-16 h-8 bg-slate-100 rounded-t-full" />
@@ -230,10 +220,9 @@ export function SeatPicker({ seats, loading, selectedSeatNumbers, maxSelectableS
           </div>
         </div>
 
-        {/* col headers */}
         <div className="flex justify-center mb-2">
           <div className="flex items-center gap-1.5">
-            <div className="w-5" /> {/* row label spacer */}
+            <div className="w-5" />
             <div className="grid gap-1.5" style={{ gridTemplateColumns: 'repeat(7, 34px)' }}>
               {['A', 'B', 'C', '', 'D', 'E', 'F'].map((col, i) => (
                 <div key={i} className="w-[34px] h-6 flex items-center justify-center text-[10px] font-black text-slate-400 uppercase tracking-wider">
@@ -244,7 +233,6 @@ export function SeatPicker({ seats, loading, selectedSeatNumbers, maxSelectableS
           </div>
         </div>
 
-        {/* rows */}
         <div ref={mapRef} className="flex flex-col gap-1.5 items-center">
           {loading
             ? Array.from({ length: 10 }).map((_, i) => <SkeletonRow key={i} />)
@@ -263,10 +251,8 @@ export function SeatPicker({ seats, loading, selectedSeatNumbers, maxSelectableS
                     )}
 
                     <div className="flex items-center gap-1.5">
-                      {/* row number */}
                       <span className="w-5 text-right text-[10px] font-bold text-slate-300 flex-shrink-0">{rowNum}</span>
 
-                      {/* seats */}
                       <div className="grid gap-1.5" style={{ gridTemplateColumns: 'repeat(7, 34px)' }}>
                         {(['A', 'B', 'C', null, 'D', 'E', 'F'] as (string | null)[]).map((col, ci) => {
                           if (col === null) {
@@ -285,8 +271,10 @@ export function SeatPicker({ seats, loading, selectedSeatNumbers, maxSelectableS
                           if (!seat) return <div key={ci} className="w-[34px] h-[34px]" />
 
                           const isSelected = selectedSeatNumbers.includes(seat.seatNumber)
-                          const isAvail = seat.status === 'AVAILABLE'
-                          const isHeld = seat.status === 'HELD'
+                          const isHeldByCurrentPassenger = seat.status === 'HELD' && seat.passengerId === currentPassengerId
+                          const isAvail = seat.status === 'AVAILABLE' || isHeldByCurrentPassenger
+                          const isHeld = seat.status === 'HELD' && !isHeldByCurrentPassenger
+                          const isBooked = seat.status === 'BOOKED'
                           const cfg = CLS[getEffectiveSeatClass(seat)] ?? CLS.ECONOMY
 
                           let cls = `seat-btn w-[34px] h-[34px] rounded-lg border-2 text-[10px] font-bold flex items-center justify-center transition-all duration-150 relative `
@@ -309,8 +297,8 @@ export function SeatPicker({ seats, loading, selectedSeatNumbers, maxSelectableS
                                 ? <Check size={13} strokeWidth={3} />
                                 : isHeld
                                 ? <Clock size={10} />
-                                : !isAvail
-                                ? <span className="text-[11px]">×</span>
+                                : isBooked
+                                ? <span className="text-[14px] font-black">×</span>
                                 : <span className="text-[9px] opacity-60">{col}</span>
                               }
                             </button>
@@ -324,7 +312,6 @@ export function SeatPicker({ seats, loading, selectedSeatNumbers, maxSelectableS
           }
         </div>
 
-        {/* show more / less */}
         {!loading && visibleRows.length > 15 && (
           <div className="flex justify-center mt-4">
             <button
@@ -337,7 +324,6 @@ export function SeatPicker({ seats, loading, selectedSeatNumbers, maxSelectableS
           </div>
         )}
 
-        {/* tail */}
         <div className="flex justify-center mt-5">
           <div className="flex flex-col items-center gap-0">
             <div className="bg-slate-100 text-slate-400 text-[10px] font-bold uppercase tracking-widest px-6 py-1.5 rounded-t-full">
@@ -348,7 +334,6 @@ export function SeatPicker({ seats, loading, selectedSeatNumbers, maxSelectableS
         </div>
       </div>
 
-      {/* ── class price guide ── */}
       <div className="px-5 pb-4 grid grid-cols-3 gap-2">
         {(['ECONOMY', 'BUSINESS', 'FIRST'] as const).map((cls) => {
           const cnt = seats.filter((s) => getEffectiveSeatClass(s) === cls && s.status === 'AVAILABLE').length
@@ -363,7 +348,6 @@ export function SeatPicker({ seats, loading, selectedSeatNumbers, maxSelectableS
         })}
       </div>
 
-      {/* ── selected seat banner ── */}
       {selectedSeat && (
         <div className="mx-5 mb-5 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -379,7 +363,7 @@ export function SeatPicker({ seats, loading, selectedSeatNumbers, maxSelectableS
           </div>
           <button
             className="text-xs text-slate-400 hover:text-red-500 font-semibold transition-colors flex-shrink-0"
-            onClick={() => onSelect('')}
+            onClick={() => onSelect([])}
             type="button"
           >
             Change
@@ -387,7 +371,6 @@ export function SeatPicker({ seats, loading, selectedSeatNumbers, maxSelectableS
         </div>
       )}
 
-      {/* ── no seat warning ── */}
       {!loading && selectedSeatNumbers.length === 0 && (
         <div className="mx-5 mb-5 flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
           <Info size={14} className="text-amber-500 flex-shrink-0" />

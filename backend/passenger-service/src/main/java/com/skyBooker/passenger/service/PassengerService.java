@@ -11,4 +11,5 @@ public interface PassengerService {
     Passenger getPassengerByPassportNumber(String passportNumber);
     Passenger updatePassenger(Long id, Passenger passengerData);
     void deletePassenger(Long id);
+    void blockPassenger(Long id);
 }

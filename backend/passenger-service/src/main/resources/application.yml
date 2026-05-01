@@ -29,6 +29,12 @@ logging:
     ROOT: INFO
     com.skyBooker: INFO
 
+services:
+  booking:
+    base-url: ${BOOKING_SERVICE_URL:http://localhost:8084}
+  auth:
+    base-url: ${AUTH_SERVICE_URL:http://localhost:8081}
+
 management:
   endpoints:
     web:
