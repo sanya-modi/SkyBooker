@@ -14,15 +14,17 @@ import {
   Phone
 } from "lucide-react"
 import { useAuth } from "@/context/auth-context"
-import { authApi, type UserResponse } from "@/services/api"
+import { adminApi, authApi, type AdminUserResponse } from "@/services/api"
 
 export default function UsersPage() {
   const navigate = useNavigate()
   const { isLoggedIn, isAuthReady } = useAuth()
-  const [users, setUsers] = useState<UserResponse[]>([])
+  const [users, setUsers] = useState<AdminUserResponse[]>([])
   const [loading, setLoading] = useState(true)
+  const [errorMessage, setErrorMessage] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
   const [roleFilter, setRoleFilter] = useState<string>('ALL')
+  const [statusFilter, setStatusFilter] = useState<string>('ALL')
 
   useEffect(() => {
     if (!isAuthReady) return
@@ -36,10 +38,13 @@ export default function UsersPage() {
   const loadUsers = async () => {
     try {
       setLoading(true)
-      const data = await authApi.getAllUsers()
+      setErrorMessage('')
+      const data = await adminApi.getAllUsers()
       setUsers(data)
     } catch (err) {
       console.error('Error loading users:', err)
+      setUsers([])
+      setErrorMessage(err instanceof Error ? err.message : 'Failed to load users')
     } finally {
       setLoading(false)
     }
@@ -80,10 +85,17 @@ export default function UsersPage() {
   }
 
   const filteredUsers = users.filter(user => {
-    const matchesSearch = user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (user.firstName + ' ' + user.lastName).toLowerCase().includes(searchTerm.toLowerCase())
+    const normalizedSearchTerm = searchTerm.trim().toLowerCase()
+    const fullName = user.name || `${user.firstName} ${user.lastName}`.trim()
+    const matchesSearch = !normalizedSearchTerm ||
+      user.email.toLowerCase().includes(normalizedSearchTerm) ||
+      fullName.toLowerCase().includes(normalizedSearchTerm)
     const matchesRole = roleFilter === 'ALL' || user.role === roleFilter
-    return matchesSearch && matchesRole
+    const matchesStatus =
+      statusFilter === 'ALL' ||
+      (statusFilter === 'ACTIVE' && user.isActive) ||
+      (statusFilter === 'INACTIVE' && !user.isActive)
+    return matchesSearch && matchesRole && matchesStatus
   })
 
   return (
@@ -97,7 +109,7 @@ export default function UsersPage() {
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm p-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
               <input
@@ -121,6 +133,18 @@ export default function UsersPage() {
                 <option value="ADMIN">Administrators</option>
               </select>
             </div>
+            <div className="relative">
+              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent appearance-none"
+              >
+                <option value="ALL">All Status</option>
+                <option value="ACTIVE">Active</option>
+                <option value="INACTIVE">Inactive</option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -129,6 +153,12 @@ export default function UsersPage() {
             <div className="text-center py-12">
               <div className="inline-block w-8 h-8 border-4 border-sky-500 border-t-transparent rounded-full animate-spin" />
               <p className="text-slate-600 mt-4">Loading users...</p>
+            </div>
+          ) : errorMessage ? (
+            <div className="text-center py-12 px-6">
+              <Users className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+              <p className="text-slate-600 font-bold mb-2">Failed to load users</p>
+              <p className="text-sm text-slate-500">{errorMessage}</p>
             </div>
           ) : filteredUsers.length === 0 ? (
             <div className="text-center py-12">
@@ -154,7 +184,7 @@ export default function UsersPage() {
                     <tr key={user.id} className="border-t border-slate-100 hover:bg-slate-50">
                       <td className="py-4 px-6">
                         <div>
-                          <p className="font-bold text-slate-800">{user.firstName} {user.lastName}</p>
+                          <p className="font-bold text-slate-800">{user.name || `${user.firstName} ${user.lastName}`.trim()}</p>
                           <p className="text-sm text-slate-500">ID: {user.id}</p>
                         </div>
                       </td>
@@ -182,7 +212,7 @@ export default function UsersPage() {
                         </span>
                       </td>
                       <td className="py-4 px-6">
-                        <span className="text-sm text-slate-600">{user.authProvider}</span>
+                        <span className="text-sm text-slate-600">{user.airline || user.authProvider}</span>
                       </td>
                       <td className="py-4 px-6">
                         {user.isActive ? (

@@ -213,6 +213,23 @@ export interface UserResponse {
   isActive: boolean
 }
 
+export interface AdminUserResponse {
+  id: number
+  name: string
+  firstName: string
+  lastName: string
+  email: string
+  phoneNumber: string
+  authProvider: string
+  role: string
+  isActive: boolean
+  airline?: string | null
+}
+
+export const adminApi = {
+  getAllUsers: () => request<AdminUserResponse[]>('/admin/users/all'),
+}
+
 export const airportApi = {
   getAll: (includeInactive = false) => 
     request<Airport[]>(`/airports${includeInactive ? '?includeInactive=true' : ''}`),

@@ -275,6 +275,7 @@ services:
        EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
        SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/admin_db
        SPRING_APPLICATION_NAME: admin-user-service
+       AUTH_SERVICE_URL: http://auth-service:8081
        SERVER_PORT: 8090
      depends_on:
        postgres:
