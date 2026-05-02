@@ -37,7 +37,13 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             throw new AuthException("Registration request is required", "INVALID_REQUEST");
         }
 
-        if (userRepository.existsByEmail(request.getEmail())) {
+        User existingUser = userRepository.findByEmail(request.getEmail()).orElse(null);
+        if (existingUser != null) {
+            if (!Boolean.TRUE.equals(existingUser.getIsActive())
+                    && (User.UserRole.PASSENGER.equals(existingUser.getRole())
+                    || User.UserRole.AIRLINE_STAFF.equals(existingUser.getRole()))) {
+                throw new AuthException("This account has been deactivated by admin. Please contact support.", "USER_INACTIVE");
+            }
             throw new AuthException("Email already exists", "EMAIL_EXISTS");
         }
 
@@ -147,7 +153,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     // ================= UPDATE =================
     @Override
     public User updateUser(Long userId, UpdateUserRequest user) {
-        User existingUser = getUserById(userId);
+        User existingUser = userRepository.findById(userId)
+                .orElseThrow(() -> new AuthException("User not found", "USER_NOT_FOUND"));
 
         if (user.getFirstName() != null) {
             existingUser.setFirstName(user.getFirstName());
@@ -166,6 +173,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         }
         if (user.getProfilePhotoUrl() != null) {
             existingUser.setProfilePhotoUrl(user.getProfilePhotoUrl());
+        }
+        if (user.getIsActive() != null) {
+            existingUser.setIsActive(user.getIsActive());
         }
 
         return userRepository.save(existingUser);

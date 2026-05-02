@@ -28,5 +28,7 @@ public class UpdateUserRequest {
 
     @jakarta.validation.constraints.Size(max = 1000, message = "Profile photo URL must not exceed 1000 characters")
     private String profilePhotoUrl;
+
+    private Boolean isActive;
 }
 
