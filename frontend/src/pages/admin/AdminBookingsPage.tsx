@@ -13,11 +13,11 @@ import {
   Plane
 } from "lucide-react"
 import { useAuth } from "@/context/auth-context"
-import { flightApi, getAllAirportsCached, getAllAirlinesCached, type FlightResult, type Airport, type Airline } from "@/services/api"
+import { flightApi, airportApi, airlineApi, type FlightResult, type Airport, type Airline } from "@/services/api"
 
 export default function BookingsPage() {
   const navigate = useNavigate()
-  const { isLoggedIn } = useAuth()
+  const { isLoggedIn, isAuthReady } = useAuth()
   const [flights, setFlights] = useState<FlightResult[]>([])
   const [airports, setAirports] = useState<Airport[]>([])
   const [airlines, setAirlines] = useState<Airline[]>([])
@@ -26,20 +26,21 @@ export default function BookingsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('ALL')
 
   useEffect(() => {
+    if (!isAuthReady) return
     if (!isLoggedIn) {
       navigate('/login')
       return
     }
     loadData()
-  }, [isLoggedIn, navigate])
+  }, [isLoggedIn, isAuthReady, navigate])
 
   const loadData = async () => {
     try {
       setLoading(true)
       const [flightsData, airportsData, airlinesData] = await Promise.all([
         flightApi.getAll(),
-        getAllAirportsCached(),
-        getAllAirlinesCached()
+        airportApi.getAll(true),
+        airlineApi.getAll(true)
       ])
       setFlights(flightsData)
       setAirports(airportsData)

@@ -48,6 +48,8 @@ services:
     base-url: ${AUTH_SERVICE_URL:http://auth-service:8081}
   notification:
     base-url: ${NOTIFICATION_SERVICE_URL:http://notification-service:8087}
+  airline-airport:
+    base-url: ${AIRLINE_AIRPORT_SERVICE_URL:http://localhost:8088}
 
 management:
   endpoints:

@@ -19,19 +19,20 @@ import { authApi, type UserResponse } from "@/services/api"
 
 export default function UsersPage() {
   const navigate = useNavigate()
-  const { isLoggedIn } = useAuth()
+  const { isLoggedIn, isAuthReady } = useAuth()
   const [users, setUsers] = useState<UserResponse[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [roleFilter, setRoleFilter] = useState<string>('ALL')
 
   useEffect(() => {
+    if (!isAuthReady) return
     if (!isLoggedIn) {
       navigate('/login')
       return
     }
     loadUsers()
-  }, [isLoggedIn, navigate])
+  }, [isLoggedIn, isAuthReady, navigate])
 
   const loadUsers = async () => {
     try {

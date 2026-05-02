@@ -1,5 +1,6 @@
 package com.skyBooker.airlineairport.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -18,6 +19,7 @@ public class AirportResponse {
     private String description;
     private String phoneNumber;
     private String email;
+    @JsonProperty("isActive")
     private Boolean isActive;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

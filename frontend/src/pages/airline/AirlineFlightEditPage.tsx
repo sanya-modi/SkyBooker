@@ -5,7 +5,7 @@ import { useState, useEffect } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
 import { ArrowLeft, Plane, Loader2, CheckCircle2 } from "lucide-react"
 import { useAuth } from "@/context/auth-context"
-import { flightApi, airportApi, airlineApi, type Airport, type Airline, type FlightResult } from "@/services/api"
+import { flightApi, airportApi, airlineApi, getAllAirportsCached, getAllAirlinesCached, type Airport, type Airline, type FlightResult } from "@/services/api"
 
 export default function EditFlightPage() {
   const navigate = useNavigate()
@@ -43,12 +43,12 @@ export default function EditFlightPage() {
       setLoading(true)
       const [flightData, airportsData, airlinesData] = await Promise.all([
         flightApi.getById(Number(params.id)),
-        airportApi.getAll(),
-        airlineApi.getAll()
+        getAllAirportsCached(),
+        getAllAirlinesCached()
       ])
       
-      setAirports(airportsData)
-      setAirlines(airlinesData)
+      setAirports(airportsData.filter(a => a.isActive))
+      setAirlines(airlinesData.filter(a => a.isActive))
       
       setFormData({
         flightNumber: flightData.flightNumber,

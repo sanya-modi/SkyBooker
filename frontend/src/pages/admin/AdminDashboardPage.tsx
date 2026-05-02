@@ -39,8 +39,8 @@ export default function AdminDashboard() {
       setLoading(true)
       const [flights, airports, airlines] = await Promise.all([
         flightApi.getAll(),
-        airportApi.getAll(),
-        airlineApi.getAll()
+        airportApi.getAll(true),
+        airlineApi.getAll(true)
       ])
 
       setStats({
@@ -126,10 +126,10 @@ export default function AdminDashboard() {
   ]
 
   return (
-    <div>
+    <div className="min-h-screen">
       <main className="max-w-7xl mx-auto px-4 md:px-6 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-black text-red-600 mb-2">Admin Dashboard</h1>
+          <h1 className="text-3xl md:text-4xl font-black text-sky-600 mb-2">Admin Dashboard</h1>
           <p className="text-slate-600">Manage the entire SkyBooker ecosystem</p>
         </div>
 

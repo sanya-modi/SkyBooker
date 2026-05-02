@@ -13,12 +13,15 @@ import java.util.Optional;
 public interface AirportRepository extends JpaRepository<Airport, Long> {
     Optional<Airport> findByIataCode(String iataCode);
 
-    @Query("SELECT a FROM Airport a WHERE a.city = :city")
+    @Query("SELECT a FROM Airport a WHERE a.city = :city AND a.isActive = true")
     List<Airport> findByCity(@Param("city") String city);
 
-    @Query("SELECT a FROM Airport a WHERE a.country = :country")
+    @Query("SELECT a FROM Airport a WHERE a.country = :country AND a.isActive = true")
     List<Airport> findByCountry(@Param("country") String country);
 
-    @Query("SELECT a FROM Airport a WHERE LOWER(a.city) LIKE LOWER(CONCAT('%', :citySearchTerm, '%')) OR LOWER(a.name) LIKE LOWER(CONCAT('%', :citySearchTerm, '%')) OR LOWER(a.iataCode) LIKE LOWER(CONCAT('%', :citySearchTerm, '%'))")
+    @Query("SELECT a FROM Airport a WHERE (LOWER(a.city) LIKE LOWER(CONCAT('%', :citySearchTerm, '%')) OR LOWER(a.name) LIKE LOWER(CONCAT('%', :citySearchTerm, '%')) OR LOWER(a.iataCode) LIKE LOWER(CONCAT('%', :citySearchTerm, '%'))) AND a.isActive = true")
     List<Airport> searchByCity(@Param("citySearchTerm") String citySearchTerm);
+
+    @Query("SELECT a FROM Airport a WHERE a.isActive = true")
+    List<Airport> findAllActive();
 }

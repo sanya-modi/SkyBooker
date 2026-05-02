@@ -3,7 +3,7 @@ import { useState, useEffect } from "react"
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Plane, Loader2, CheckCircle2 } from "lucide-react"
 import { useAuth } from "@/context/auth-context"
-import { flightApi, airportApi, airlineApi, seatApi, type Airport, type Airline } from "@/services/api"
+import { flightApi, airportApi, airlineApi, getAllAirportsCached, getAllAirlinesCached, seatApi, type Airport, type Airline } from "@/services/api"
 
 export default function AddFlightPage() {
   const navigate = useNavigate()
@@ -37,11 +37,11 @@ export default function AddFlightPage() {
   const loadData = async () => {
     try {
       const [airportsData, airlinesData] = await Promise.all([
-        airportApi.getAll(),
-        airlineApi.getAll()
+        getAllAirportsCached(),
+        getAllAirlinesCached()
       ])
-      setAirports(airportsData)
-      setAirlines(airlinesData)
+      setAirports(airportsData.filter(a => a.isActive))
+      setAirlines(airlinesData.filter(a => a.isActive))
     } catch (err) {
       console.error('Error loading data:', err)
     }

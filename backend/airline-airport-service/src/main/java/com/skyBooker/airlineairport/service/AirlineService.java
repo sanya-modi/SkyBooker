@@ -9,6 +9,7 @@ public interface AirlineService {
     Airline getAirlineById(Long id);
     Airline getAirlineByIataCode(String iataCode);
     List<Airline> getAllAirlines();
+    List<Airline> getAllAirlines(boolean includeInactive);
     Airline updateAirline(Long id, Airline airlineData);
     void deleteAirline(Long id);
 }

@@ -59,7 +59,7 @@ function resolveSeatClassFromDrafts(seatNumber: string, ranges: RangeDraft[]): "
 
 export default function AirlineSeatsPage() {
   const navigate = useNavigate()
-  const { isLoggedIn, isAuthReady } = useAuth()
+  const { isLoggedIn, isAuthReady, profile } = useAuth()
   const [flights, setFlights] = useState<FlightResult[]>([])
   const [airports, setAirports] = useState<Airport[]>([])
   const [selectedFlight, setSelectedFlight] = useState<FlightResult | null>(null)
@@ -78,8 +78,10 @@ export default function AirlineSeatsPage() {
       navigate("/login")
       return
     }
+    if (!profile?.airlineId) return
+
     void loadData()
-  }, [isAuthReady, isLoggedIn, navigate])
+  }, [isAuthReady, isLoggedIn, navigate, profile?.airlineId])
 
   useEffect(() => {
     if (!selectedFlight) return
@@ -137,10 +139,12 @@ export default function AirlineSeatsPage() {
   }, [selectedFlight])
 
   async function loadData() {
+    if (!profile?.airlineId) return
+
     try {
       setLoading(true)
       const [flightsData, airportsData] = await Promise.all([
-        flightApi.getAll(),
+        flightApi.getByAirline(profile.airlineId),
         getAllAirportsCached(),
       ])
       setFlights(flightsData)

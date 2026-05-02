@@ -56,8 +56,13 @@ public class FlightServiceImpl implements FlightService {
     @Value("${services.seat.base-url:http://localhost:8083}")
     private String seatServiceBaseUrl;
 
+    @Value("${services.airline-airport.base-url:http://localhost:8082}")
+    private String airlineAirportServiceBaseUrl;
+
     @Override
     public FlightResponse createFlight(FlightRequest request) {
+        validateAirlineAndAirportsActive(request.getAirlineId(), request.getDepartureAirportId(), request.getArrivalAirportId());
+
         if (flightRepository.findByFlightNumber(request.getFlightNumber()).isPresent()) {
             throw new FlightException("Flight number already exists", "FLIGHT_EXISTS");
         }
@@ -138,6 +143,7 @@ public class FlightServiceImpl implements FlightService {
     @Transactional(readOnly = true)
     public List<FlightResponse> getAllFlights() {
         return flightRepository.findAll().stream()
+                .filter(flight -> isFlightActive(flight.getAirlineId(), flight.getDepartureAirportId(), flight.getArrivalAirportId()))
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
@@ -149,6 +155,7 @@ public class FlightServiceImpl implements FlightService {
         LocalDateTime endOfDay = date.plusDays(1).atStartOfDay().minusNanos(1);
 
         return flightRepository.findByDepartureTimeBetweenOrderByDepartureTimeAsc(startOfDay, endOfDay).stream()
+                .filter(flight -> isFlightActive(flight.getAirlineId(), flight.getDepartureAirportId(), flight.getArrivalAirportId()))
                 .map(this::mapToResponse)
                 .toList();
     }
@@ -157,8 +164,8 @@ public class FlightServiceImpl implements FlightService {
     @Transactional(readOnly = true)
     public List<FlightResponse> getFlightsForUser(String userEmail, String userRole, Long airlineId) {
         if ("AIRLINE_STAFF".equalsIgnoreCase(userRole)) {
-            Long resolvedAirlineId = airlineId;
-            if (resolvedAirlineId == null && userEmail != null && !userEmail.isBlank()) {
+            Long resolvedAirlineId = null;
+            if (userEmail != null && !userEmail.isBlank()) {
                 RemoteUserResponse user = fetchUserByEmail(userEmail);
                 resolvedAirlineId = user != null ? user.getAirlineId() : null;
             }
@@ -177,6 +184,7 @@ public class FlightServiceImpl implements FlightService {
     @Transactional(readOnly = true)
     public List<FlightResponse> searchFlights(Long departureAirportId, Long arrivalAirportId, LocalDateTime departureDate) {
         return flightRepository.findAvailableFlights(departureAirportId, arrivalAirportId, departureDate).stream()
+                .filter(flight -> isFlightActive(flight.getAirlineId(), flight.getDepartureAirportId(), flight.getArrivalAirportId()))
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
@@ -185,6 +193,7 @@ public class FlightServiceImpl implements FlightService {
     @Transactional(readOnly = true)
     public List<FlightResponse> getFlightsByAirlineId(Long airlineId) {
         return flightRepository.findByAirlineId(airlineId).stream()
+                .filter(flight -> isFlightActive(flight.getAirlineId(), flight.getDepartureAirportId(), flight.getArrivalAirportId()))
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
@@ -262,6 +271,7 @@ public class FlightServiceImpl implements FlightService {
         );
 
         return flights.stream()
+                .filter(flight -> isFlightActive(flight.getAirlineId(), flight.getDepartureAirportId(), flight.getArrivalAirportId()))
                 .map(this::mapToResponse)
                 .toList();
     }
@@ -445,5 +455,40 @@ public class FlightServiceImpl implements FlightService {
                 flight.getBaseFare(),
                 flight.getStatus().toString()
         );
+    }
+
+    private void validateAirlineAndAirportsActive(Long airlineId, Long departureAirportId, Long arrivalAirportId) {
+        try {
+            restTemplate.getForEntity(airlineAirportServiceBaseUrl + "/airlines/" + airlineId + "/active", Object.class);
+            restTemplate.getForEntity(airlineAirportServiceBaseUrl + "/airports/" + departureAirportId + "/active", Object.class);
+            restTemplate.getForEntity(airlineAirportServiceBaseUrl + "/airports/" + arrivalAirportId + "/active", Object.class);
+        } catch (Exception e) {
+            throw new FlightException("Airline or airport is inactive or not found", "INACTIVE_ENTITY");
+        }
+    }
+
+    private boolean isFlightActive(Long airlineId, Long departureAirportId, Long arrivalAirportId) {
+        try {
+            restTemplate.getForEntity(airlineAirportServiceBaseUrl + "/airlines/" + airlineId + "/active", Object.class);
+            System.out.println("[FLIGHT-DEBUG] Airline " + airlineId + " is active: true");
+        } catch (Exception e) {
+            System.out.println("[FLIGHT-DEBUG] Airline " + airlineId + " is active: false (Error: " + e.getMessage() + ")");
+            return false;
+        }
+        try {
+            restTemplate.getForEntity(airlineAirportServiceBaseUrl + "/airports/" + departureAirportId + "/active", Object.class);
+            System.out.println("[FLIGHT-DEBUG] Departure Airport " + departureAirportId + " is active: true");
+        } catch (Exception e) {
+            System.out.println("[FLIGHT-DEBUG] Departure Airport " + departureAirportId + " is active: false (Error: " + e.getMessage() + ")");
+            return false;
+        }
+        try {
+            restTemplate.getForEntity(airlineAirportServiceBaseUrl + "/airports/" + arrivalAirportId + "/active", Object.class);
+            System.out.println("[FLIGHT-DEBUG] Arrival Airport " + arrivalAirportId + " is active: true");
+        } catch (Exception e) {
+            System.out.println("[FLIGHT-DEBUG] Arrival Airport " + arrivalAirportId + " is active: false (Error: " + e.getMessage() + ")");
+            return false;
+        }
+        return true;
     }
 }

@@ -12,10 +12,11 @@ export default function AirlineDashboard() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    Promise.all([flightApi.getAll(), getAllAirportsCached(), getAllAirlinesCached()])
+    if (!profile?.airlineId) return
+
+    Promise.all([flightApi.getByAirline(profile.airlineId), getAllAirportsCached(), getAllAirlinesCached()])
       .then(([f, a, al]) => {
-        const myAirlineId = profile?.airlineId
-        setFlights(myAirlineId ? f.filter(fl => fl.airlineId === myAirlineId) : f)
+        setFlights(f)
         setAirports(a)
         setAirlines(al)
       })

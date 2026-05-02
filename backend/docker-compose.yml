@@ -62,6 +62,7 @@ services:
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/auth_db
       SPRING_APPLICATION_NAME: auth-service
+      AIRLINE_AIRPORT_SERVICE_URL: http://airline-airport-service:8088
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       RABBITMQ_HOST: rabbitmq
       RABBITMQ_PORT: 5672
@@ -93,6 +94,7 @@ services:
       PASSENGER_SERVICE_URL: http://passenger-service:8085
       AUTH_SERVICE_URL: http://auth-service:8081
       NOTIFICATION_SERVICE_URL: http://notification-service:8087
+      AIRLINE_AIRPORT_SERVICE_URL: http://airline-airport-service:8088
       RABBITMQ_HOST: rabbitmq
       RABBITMQ_PORT: 5672
       RABBITMQ_USERNAME: guest

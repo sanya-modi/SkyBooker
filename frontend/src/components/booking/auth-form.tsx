@@ -17,7 +17,7 @@ const signupRoleOptions: Array<{ value: SignupRole; label: string }> = [
 ]
 
 const validationPatterns = {
-  email: '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}',
+  email: '[A-Za-z0-9._%+\\-]+@[A-Za-z0-9.\\-]+\\.[A-Za-z]{2,}',
   password: '(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[@$!%*?&])[A-Za-z0-9@$!%*?&]{8,15}',
   phoneNumber: '^[0-9]{10}$',
 } as const

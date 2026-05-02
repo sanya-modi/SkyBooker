@@ -1,5 +1,6 @@
 package com.skyBooker.airlineairport.entity;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -40,6 +41,7 @@ public class Airport {
     private String email;
 
     @Column(nullable = false)
+    @JsonProperty("isActive")
     private Boolean isActive = true;
 
     @Column(nullable = false, updatable = false)

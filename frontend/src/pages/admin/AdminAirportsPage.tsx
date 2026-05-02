@@ -1,7 +1,5 @@
-// export { default } from '../../app/admin/airports/page'
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { AdminHeader } from "@/components/admin/admin-header"
 import {
   MapPin,
   Plus,
@@ -13,17 +11,18 @@ import {
   Loader2
 } from "lucide-react"
 import { useAuth } from "@/context/auth-context"
-import { airportApi, type Airport } from "@/services/api"
+import { airportApi, clearCache, type Airport } from "@/services/api"
 
 export default function AirportsPage() {
   const navigate = useNavigate()
-  const { isLoggedIn } = useAuth()
+  const { isLoggedIn, isAuthReady } = useAuth()
   const [airports, setAirports] = useState<Airport[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [editingAirport, setEditingAirport] = useState<Airport | null>(null)
   const [saving, setSaving] = useState(false)
+  const [errors, setErrors] = useState<Record<string, string>>({})
 
   const [formData, setFormData] = useState({
     name: '',
@@ -36,23 +35,71 @@ export default function AirportsPage() {
   })
 
   useEffect(() => {
+    if (!isAuthReady) return
     if (!isLoggedIn) {
       navigate('/login')
       return
     }
     loadAirports()
-  }, [isLoggedIn, navigate])
+  }, [isLoggedIn, isAuthReady, navigate])
 
   const loadAirports = async () => {
     try {
       setLoading(true)
-      const data = await airportApi.getAll()
+      const data = await airportApi.getAll(true)
       setAirports(data)
     } catch (err) {
       console.error('Error loading airports:', err)
     } finally {
       setLoading(false)
     }
+  }
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {}
+
+    if (!formData.name.trim()) {
+      newErrors.name = 'Airport name is required'
+    } else if (!/^[A-Za-z0-9][A-Za-z0-9\s&()'.,-]{1,99}$/.test(formData.name)) {
+      newErrors.name = 'Airport name format is invalid (2-100 characters)'
+    }
+
+    if (!formData.iataCode.trim()) {
+      newErrors.iataCode = 'IATA code is required'
+    } else if (!/^[A-Z]{3}$/.test(formData.iataCode)) {
+      newErrors.iataCode = 'IATA code must be exactly 3 uppercase letters'
+    }
+
+    if (!formData.city.trim()) {
+      newErrors.city = 'City is required'
+    } else if (!/^[A-Za-z][A-Za-z\s-]{1,49}$/.test(formData.city)) {
+      newErrors.city = 'City format is invalid (2-50 characters)'
+    }
+
+    if (!formData.country.trim()) {
+      newErrors.country = 'Country is required'
+    } else if (!/^[A-Za-z][A-Za-z\s-]{1,49}$/.test(formData.country)) {
+      newErrors.country = 'Country format is invalid (2-50 characters)'
+    }
+
+    if (formData.description && !/^[A-Za-z0-9\s&()_.,:;!?@#%/+-]{0,500}$/.test(formData.description)) {
+      newErrors.description = 'Description format is invalid (max 500 characters)'
+    }
+
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required'
+    } else if (!/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(formData.email)) {
+      newErrors.email = 'Email format is invalid'
+    }
+
+    if (!formData.phoneNumber.trim()) {
+      newErrors.phoneNumber = 'Phone number is required'
+    } else if (!/^(?:[0-9]{10}|\+?[1-9]\d{1,14})$/.test(formData.phoneNumber.replace(/[\s-]/g, ''))) {
+      newErrors.phoneNumber = 'Phone format is invalid (10 digits or international format)'
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
   }
 
   const handleEdit = (airport: Airport) => {
@@ -66,12 +113,17 @@ export default function AirportsPage() {
       phoneNumber: airport.phoneNumber,
       email: airport.email
     })
+    setErrors({})
     setShowModal(true)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
+    if (!validateForm()) {
+      return
+    }
+
     try {
       setSaving(true)
       if (editingAirport) {
@@ -79,6 +131,7 @@ export default function AirportsPage() {
       } else {
         await airportApi.create(formData)
       }
+      clearCache()
       await loadAirports()
       setShowModal(false)
       setEditingAirport(null)
@@ -91,33 +144,45 @@ export default function AirportsPage() {
         phoneNumber: '',
         email: ''
       })
-    } catch (err) {
+      setErrors({})
+    } catch (err: any) {
       console.error('Error saving airport:', err)
-      alert('Failed to save airport')
+      alert(err.message || 'Failed to save airport')
     } finally {
       setSaving(false)
     }
   }
 
-  const handleToggleStatus = async (id: number, currentStatus: boolean) => {
+  const handleToggleStatus = async (airport: Airport) => {
     try {
-      await airportApi.update(id, { isActive: !currentStatus })
-      setAirports(airports.map(a => a.id === id ? { ...a, isActive: !currentStatus } : a))
-    } catch (err) {
+      await airportApi.update(airport.id, {
+        name: airport.name,
+        iataCode: airport.iataCode,
+        city: airport.city,
+        country: airport.country,
+        description: airport.description,
+        phoneNumber: airport.phoneNumber,
+        email: airport.email,
+        isActive: !airport.isActive
+      })
+      clearCache()
+      await loadAirports()
+    } catch (err: any) {
       console.error('Error updating airport:', err)
-      alert('Failed to update airport status')
+      alert(err.message || 'Failed to update airport status')
     }
   }
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this airport?')) return
+    if (!confirm('Are you sure you want to permanently delete this airport? This action cannot be undone.')) return
     
     try {
       await airportApi.delete(id)
-      setAirports(airports.filter(a => a.id !== id))
-    } catch (err) {
+      clearCache()
+      await loadAirports()
+    } catch (err: any) {
       console.error('Error deleting airport:', err)
-      alert('Failed to delete airport')
+      alert(err.message || 'Failed to delete airport')
     }
   }
 
@@ -128,13 +193,11 @@ export default function AirportsPage() {
   )
 
   return (
-    <div className="min-h-screen bg-[#f7f9fb]">
-      <AdminHeader />
-
-      <main className="max-w-7xl mx-auto px-4 md:px-6 py-8 pt-24">
+    <div className="min-h-screen">
+      <main className="max-w-7xl mx-auto px-4 md:px-6 py-8">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl md:text-4xl font-black text-red-600 mb-2">Airport Management</h1>
+            <h1 className="text-3xl md:text-4xl font-black text-sky-600 mb-2">Airport Management</h1>
             <p className="text-slate-600">Manage airports and their information</p>
           </div>
           <button
@@ -149,9 +212,10 @@ export default function AirportsPage() {
                 phoneNumber: '',
                 email: ''
               })
+              setErrors({})
               setShowModal(true)
             }}
-            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl font-bold hover:shadow-lg transition-all"
+            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-sky-500 to-blue-600 text-white rounded-xl font-bold hover:shadow-lg transition-all"
           >
             <Plus className="w-5 h-5" />
             Add Airport
@@ -166,7 +230,7 @@ export default function AirportsPage() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search airports..."
-              className="w-full pl-10 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
             />
           </div>
         </div>
@@ -174,7 +238,7 @@ export default function AirportsPage() {
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
           {loading ? (
             <div className="text-center py-12">
-              <div className="inline-block w-8 h-8 border-4 border-red-600 border-t-transparent rounded-full animate-spin" />
+              <div className="inline-block w-8 h-8 border-4 border-sky-500 border-t-transparent rounded-full animate-spin" />
               <p className="text-slate-600 mt-4">Loading airports...</p>
             </div>
           ) : filteredAirports.length === 0 ? (
@@ -243,7 +307,7 @@ export default function AirportsPage() {
                             <Edit className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => handleToggleStatus(airport.id, airport.isActive)}
+                            onClick={() => handleToggleStatus(airport)}
                             className={`p-2 rounded-lg transition-all ${
                               airport.isActive
                                 ? 'text-yellow-600 hover:bg-yellow-50'
@@ -256,7 +320,7 @@ export default function AirportsPage() {
                           <button
                             onClick={() => handleDelete(airport.id)}
                             className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                            title="Delete"
+                            title="Delete Permanently"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -288,10 +352,16 @@ export default function AirportsPage() {
                     type="text"
                     required
                     value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, name: e.target.value })
+                      if (errors.name) setErrors({ ...errors, name: '' })
+                    }}
                     placeholder="e.g., Indira Gandhi International Airport"
-                    className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent"
+                    className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 ${
+                      errors.name ? 'border-red-500' : 'border-slate-200'
+                    }`}
                   />
+                  {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
                 </div>
 
                 <div>
@@ -301,10 +371,16 @@ export default function AirportsPage() {
                     required
                     maxLength={3}
                     value={formData.iataCode}
-                    onChange={(e) => setFormData({ ...formData, iataCode: e.target.value.toUpperCase() })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, iataCode: e.target.value.toUpperCase() })
+                      if (errors.iataCode) setErrors({ ...errors, iataCode: '' })
+                    }}
                     placeholder="e.g., DEL"
-                    className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent font-mono"
+                    className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 font-mono ${
+                      errors.iataCode ? 'border-red-500' : 'border-slate-200'
+                    }`}
                   />
+                  {errors.iataCode && <p className="text-red-500 text-xs mt-1">{errors.iataCode}</p>}
                 </div>
 
                 <div>
@@ -313,10 +389,16 @@ export default function AirportsPage() {
                     type="text"
                     required
                     value={formData.city}
-                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, city: e.target.value })
+                      if (errors.city) setErrors({ ...errors, city: '' })
+                    }}
                     placeholder="e.g., New Delhi"
-                    className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent"
+                    className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 ${
+                      errors.city ? 'border-red-500' : 'border-slate-200'
+                    }`}
                   />
+                  {errors.city && <p className="text-red-500 text-xs mt-1">{errors.city}</p>}
                 </div>
 
                 <div className="md:col-span-2">
@@ -325,21 +407,34 @@ export default function AirportsPage() {
                     type="text"
                     required
                     value={formData.country}
-                    onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, country: e.target.value })
+                      if (errors.country) setErrors({ ...errors, country: '' })
+                    }}
                     placeholder="e.g., India"
-                    className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent"
+                    className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 ${
+                      errors.country ? 'border-red-500' : 'border-slate-200'
+                    }`}
                   />
+                  {errors.country && <p className="text-red-500 text-xs mt-1">{errors.country}</p>}
                 </div>
 
                 <div className="md:col-span-2">
                   <label className="block text-sm font-bold text-slate-700 mb-2">Description</label>
                   <textarea
                     value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, description: e.target.value })
+                      if (errors.description) setErrors({ ...errors, description: '' })
+                    }}
                     placeholder="Brief description..."
                     rows={2}
-                    className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent"
+                    maxLength={500}
+                    className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 ${
+                      errors.description ? 'border-red-500' : 'border-slate-200'
+                    }`}
                   />
+                  {errors.description && <p className="text-red-500 text-xs mt-1">{errors.description}</p>}
                 </div>
 
                 <div>
@@ -348,10 +443,16 @@ export default function AirportsPage() {
                     type="email"
                     required
                     value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, email: e.target.value })
+                      if (errors.email) setErrors({ ...errors, email: '' })
+                    }}
                     placeholder="contact@airport.com"
-                    className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent"
+                    className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 ${
+                      errors.email ? 'border-red-500' : 'border-slate-200'
+                    }`}
                   />
+                  {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
                 </div>
 
                 <div>
@@ -360,10 +461,16 @@ export default function AirportsPage() {
                     type="tel"
                     required
                     value={formData.phoneNumber}
-                    onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, phoneNumber: e.target.value })
+                      if (errors.phoneNumber) setErrors({ ...errors, phoneNumber: '' })
+                    }}
                     placeholder="+91 1234567890"
-                    className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent"
+                    className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 ${
+                      errors.phoneNumber ? 'border-red-500' : 'border-slate-200'
+                    }`}
                   />
+                  {errors.phoneNumber && <p className="text-red-500 text-xs mt-1">{errors.phoneNumber}</p>}
                 </div>
               </div>
 
@@ -381,7 +488,7 @@ export default function AirportsPage() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex-1 px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl font-bold hover:shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-sky-500 to-blue-600 text-white rounded-xl font-bold hover:shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {saving ? (
                     <>
@@ -403,5 +510,3 @@ export default function AirportsPage() {
     </div>
   )
 }
-
-

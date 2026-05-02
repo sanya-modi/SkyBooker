@@ -9,6 +9,7 @@ public interface AirportService {
     Airport getAirportById(Long id);
     Airport getAirportByIataCode(String iataCode);
     List<Airport> getAllAirports();
+    List<Airport> getAllAirports(boolean includeInactive);
     List<Airport> getAirportsByCity(String city);
     List<Airport> getAirportsByCountry(String country);
     Airport updateAirport(Long id, Airport airportData);

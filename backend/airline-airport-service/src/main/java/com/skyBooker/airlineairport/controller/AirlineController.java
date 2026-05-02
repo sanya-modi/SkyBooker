@@ -45,8 +45,12 @@ public class AirlineController {
     }
 
     @GetMapping
-    public ResponseEntity<List<AirlineResponse>> getAllAirlines() {
-        return ResponseEntity.ok(airlineService.getAllAirlines().stream().map(this::mapToResponse).collect(Collectors.toList()));
+    public ResponseEntity<List<AirlineResponse>> getAllAirlines(
+            @RequestParam(required = false, defaultValue = "false") Boolean includeInactive
+    ) {
+        return ResponseEntity.ok(airlineService.getAllAirlines(includeInactive).stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList()));
     }
 
     @PutMapping("/{id}")
@@ -55,6 +59,15 @@ public class AirlineController {
             @Valid @RequestBody AirlineRequest request
     ) {
         return ResponseEntity.ok(mapToResponse(airlineService.updateAirline(id, mapToEntity(request))));
+    }
+
+    @GetMapping("/{id}/active")
+    public ResponseEntity<Void> checkAirlineActive(@PathVariable @Positive(message = "id must be positive") Long id) {
+        Airline airline = airlineService.getAirlineById(id);
+        if (!Boolean.TRUE.equals(airline.getIsActive())) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok().build();
     }
 
     @DeleteMapping("/{id}")
@@ -70,6 +83,9 @@ public class AirlineController {
         airline.setDescription(request.getDescription());
         airline.setPhoneNumber(request.getPhoneNumber());
         airline.setEmail(request.getEmail());
+        if (request.getIsActive() != null) {
+            airline.setIsActive(request.getIsActive());
+        }
         return airline;
     }
 

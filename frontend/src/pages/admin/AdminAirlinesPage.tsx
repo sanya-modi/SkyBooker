@@ -1,7 +1,5 @@
-// export { default } from '../../app/admin/airlines/page'
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { AdminHeader } from "@/components/admin/admin-header"
 import {
   Plane,
   Plus,
@@ -13,7 +11,7 @@ import {
   Loader2
 } from "lucide-react"
 import { useAuth } from "@/context/auth-context"
-import { airlineApi, type Airline } from "@/services/api"
+import { airlineApi, clearCache, type Airline } from "@/services/api"
 
 export default function AirlinesPage() {
   const navigate = useNavigate()
@@ -21,8 +19,10 @@ export default function AirlinesPage() {
   const [airlines, setAirlines] = useState<Airline[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
-  const [showAddModal, setShowAddModal] = useState(false)
+  const [showModal, setShowModal] = useState(false)
+  const [editingAirline, setEditingAirline] = useState<Airline | null>(null)
   const [saving, setSaving] = useState(false)
+  const [errors, setErrors] = useState<Record<string, string>>({})
 
   const [formData, setFormData] = useState({
     name: '',
@@ -43,7 +43,7 @@ export default function AirlinesPage() {
   const loadAirlines = async () => {
     try {
       setLoading(true)
-      const data = await airlineApi.getAll()
+      const data = await airlineApi.getAll(true)
       setAirlines(data)
     } catch (err) {
       console.error('Error loading airlines:', err)
@@ -52,14 +52,72 @@ export default function AirlinesPage() {
     }
   }
 
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {}
+
+    if (!formData.name.trim()) {
+      newErrors.name = 'Airline name is required'
+    } else if (!/^[A-Za-z0-9][A-Za-z0-9\s&()'.,-]{1,99}$/.test(formData.name)) {
+      newErrors.name = 'Airline name format is invalid (2-100 characters)'
+    }
+
+    if (!formData.iataCode.trim()) {
+      newErrors.iataCode = 'IATA code is required'
+    } else if (!/^[A-Z0-9]{2,3}$/.test(formData.iataCode)) {
+      newErrors.iataCode = 'IATA code must be 2-3 uppercase letters or digits'
+    }
+
+    if (formData.description && !/^[A-Za-z0-9\s&()_.,:;!?@#%/+-]{0,500}$/.test(formData.description)) {
+      newErrors.description = 'Description format is invalid (max 500 characters)'
+    }
+
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required'
+    } else if (!/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(formData.email)) {
+      newErrors.email = 'Email format is invalid'
+    }
+
+    if (!formData.phoneNumber.trim()) {
+      newErrors.phoneNumber = 'Phone number is required'
+    } else if (!/^(?:[0-9]{10}|\+?[1-9]\d{1,14})$/.test(formData.phoneNumber.replace(/[\s-]/g, ''))) {
+      newErrors.phoneNumber = 'Phone format is invalid (10 digits or international format)'
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
+  const handleEdit = (airline: Airline) => {
+    setEditingAirline(airline)
+    setFormData({
+      name: airline.name,
+      iataCode: airline.iataCode,
+      description: airline.description,
+      phoneNumber: airline.phoneNumber,
+      email: airline.email
+    })
+    setErrors({})
+    setShowModal(true)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
+    if (!validateForm()) {
+      return
+    }
+
     try {
       setSaving(true)
-      await airlineApi.create(formData)
+      if (editingAirline) {
+        await airlineApi.update(editingAirline.id, formData)
+      } else {
+        await airlineApi.create(formData)
+      }
+      clearCache()
       await loadAirlines()
-      setShowAddModal(false)
+      setShowModal(false)
+      setEditingAirline(null)
       setFormData({
         name: '',
         iataCode: '',
@@ -67,33 +125,43 @@ export default function AirlinesPage() {
         phoneNumber: '',
         email: ''
       })
-    } catch (err) {
-      console.error('Error creating airline:', err)
-      alert('Failed to create airline')
+      setErrors({})
+    } catch (err: any) {
+      console.error('Error saving airline:', err)
+      alert(err.message || 'Failed to save airline')
     } finally {
       setSaving(false)
     }
   }
 
-  const handleToggleStatus = async (id: number, currentStatus: boolean) => {
+  const handleToggleStatus = async (airline: Airline) => {
     try {
-      await airlineApi.update(id, { isActive: !currentStatus })
-      setAirlines(airlines.map(a => a.id === id ? { ...a, isActive: !currentStatus } : a))
-    } catch (err) {
+      await airlineApi.update(airline.id, {
+        name: airline.name,
+        iataCode: airline.iataCode,
+        description: airline.description,
+        phoneNumber: airline.phoneNumber,
+        email: airline.email,
+        isActive: !airline.isActive
+      })
+      clearCache()
+      await loadAirlines()
+    } catch (err: any) {
       console.error('Error updating airline:', err)
-      alert('Failed to update airline status')
+      alert(err.message || 'Failed to update airline status')
     }
   }
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this airline?')) return
+    if (!confirm('Are you sure you want to permanently delete this airline? This action cannot be undone.')) return
     
     try {
       await airlineApi.delete(id)
-      setAirlines(airlines.filter(a => a.id !== id))
-    } catch (err) {
+      clearCache()
+      await loadAirlines()
+    } catch (err: any) {
       console.error('Error deleting airline:', err)
-      alert('Failed to delete airline')
+      alert(err.message || 'Failed to delete airline')
     }
   }
 
@@ -103,18 +171,27 @@ export default function AirlinesPage() {
   )
 
   return (
-    <div className="min-h-screen bg-[#f7f9fb]">
-      <AdminHeader />
-
-      <main className="max-w-7xl mx-auto px-4 md:px-6 py-8 pt-24">
+    <div className="min-h-screen">
+      <main className="max-w-7xl mx-auto px-4 md:px-6 py-8">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl md:text-4xl font-black text-red-600 mb-2">Airline Management</h1>
-            <p className="text-slate-600">Manage airlines and their status</p>
+            <h1 className="text-3xl md:text-4xl font-black text-sky-600 mb-2">Airline Management</h1>
+            <p className="text-slate-600">Manage airlines and their information</p>
           </div>
           <button
-            onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl font-bold hover:shadow-lg transition-all"
+            onClick={() => {
+              setEditingAirline(null)
+              setFormData({
+                name: '',
+                iataCode: '',
+                description: '',
+                phoneNumber: '',
+                email: ''
+              })
+              setErrors({})
+              setShowModal(true)
+            }}
+            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-sky-500 to-blue-600 text-white rounded-xl font-bold hover:shadow-lg transition-all"
           >
             <Plus className="w-5 h-5" />
             Add Airline
@@ -129,7 +206,7 @@ export default function AirlinesPage() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search airlines..."
-              className="w-full pl-10 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
             />
           </div>
         </div>
@@ -137,7 +214,7 @@ export default function AirlinesPage() {
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
           {loading ? (
             <div className="text-center py-12">
-              <div className="inline-block w-8 h-8 border-4 border-red-600 border-t-transparent rounded-full animate-spin" />
+              <div className="inline-block w-8 h-8 border-4 border-sky-500 border-t-transparent rounded-full animate-spin" />
               <p className="text-slate-600 mt-4">Loading airlines...</p>
             </div>
           ) : filteredAirlines.length === 0 ? (
@@ -192,7 +269,14 @@ export default function AirlinesPage() {
                       <td className="py-4 px-6">
                         <div className="flex items-center gap-2">
                           <button
-                            onClick={() => handleToggleStatus(airline.id, airline.isActive)}
+                            onClick={() => handleEdit(airline)}
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                            title="Edit"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleToggleStatus(airline)}
                             className={`p-2 rounded-lg transition-all ${
                               airline.isActive
                                 ? 'text-yellow-600 hover:bg-yellow-50'
@@ -205,7 +289,7 @@ export default function AirlinesPage() {
                           <button
                             onClick={() => handleDelete(airline.id)}
                             className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                            title="Delete"
+                            title="Delete Permanently"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -220,78 +304,116 @@ export default function AirlinesPage() {
         </div>
       </main>
 
-      {showAddModal && (
+      {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-slate-200">
-              <h2 className="text-2xl font-black text-slate-800">Add New Airline</h2>
+              <h2 className="text-2xl font-black text-slate-800">
+                {editingAirline ? 'Edit Airline' : 'Add New Airline'}
+              </h2>
             </div>
             
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">Airline Name *</label>
-                <input
-                  type="text"
-                  required
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="e.g., Air India"
-                  className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent"
-                />
-              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-bold text-slate-700 mb-2">Airline Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.name}
+                    onChange={(e) => {
+                      setFormData({ ...formData, name: e.target.value })
+                      if (errors.name) setErrors({ ...errors, name: '' })
+                    }}
+                    placeholder="e.g., Air India"
+                    className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 ${
+                      errors.name ? 'border-red-500' : 'border-slate-200'
+                    }`}
+                  />
+                  {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
+                </div>
 
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">IATA Code *</label>
-                <input
-                  type="text"
-                  required
-                  maxLength={2}
-                  value={formData.iataCode}
-                  onChange={(e) => setFormData({ ...formData, iataCode: e.target.value.toUpperCase() })}
-                  placeholder="e.g., AI"
-                  className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent font-mono"
-                />
-              </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-bold text-slate-700 mb-2">IATA Code *</label>
+                  <input
+                    type="text"
+                    required
+                    maxLength={3}
+                    value={formData.iataCode}
+                    onChange={(e) => {
+                      setFormData({ ...formData, iataCode: e.target.value.toUpperCase() })
+                      if (errors.iataCode) setErrors({ ...errors, iataCode: '' })
+                    }}
+                    placeholder="e.g., AI"
+                    className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 font-mono ${
+                      errors.iataCode ? 'border-red-500' : 'border-slate-200'
+                    }`}
+                  />
+                  {errors.iataCode && <p className="text-red-500 text-xs mt-1">{errors.iataCode}</p>}
+                </div>
 
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">Description</label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Brief description..."
-                  rows={3}
-                  className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent"
-                />
-              </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-bold text-slate-700 mb-2">Description</label>
+                  <textarea
+                    value={formData.description}
+                    onChange={(e) => {
+                      setFormData({ ...formData, description: e.target.value })
+                      if (errors.description) setErrors({ ...errors, description: '' })
+                    }}
+                    placeholder="Brief description..."
+                    rows={2}
+                    maxLength={500}
+                    className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 ${
+                      errors.description ? 'border-red-500' : 'border-slate-200'
+                    }`}
+                  />
+                  {errors.description && <p className="text-red-500 text-xs mt-1">{errors.description}</p>}
+                </div>
 
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">Email *</label>
-                <input
-                  type="email"
-                  required
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="contact@airline.com"
-                  className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent"
-                />
-              </div>
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">Email *</label>
+                  <input
+                    type="email"
+                    required
+                    value={formData.email}
+                    onChange={(e) => {
+                      setFormData({ ...formData, email: e.target.value })
+                      if (errors.email) setErrors({ ...errors, email: '' })
+                    }}
+                    placeholder="contact@airline.com"
+                    className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 ${
+                      errors.email ? 'border-red-500' : 'border-slate-200'
+                    }`}
+                  />
+                  {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
+                </div>
 
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">Phone Number *</label>
-                <input
-                  type="tel"
-                  required
-                  value={formData.phoneNumber}
-                  onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
-                  placeholder="+91 1234567890"
-                  className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent"
-                />
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">Phone Number *</label>
+                  <input
+                    type="tel"
+                    required
+                    value={formData.phoneNumber}
+                    onChange={(e) => {
+                      setFormData({ ...formData, phoneNumber: e.target.value })
+                      if (errors.phoneNumber) setErrors({ ...errors, phoneNumber: '' })
+                    }}
+                    placeholder="+91 1234567890"
+                    className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 ${
+                      errors.phoneNumber ? 'border-red-500' : 'border-slate-200'
+                    }`}
+                  />
+                  {errors.phoneNumber && <p className="text-red-500 text-xs mt-1">{errors.phoneNumber}</p>}
+                </div>
               </div>
 
               <div className="flex gap-3 pt-4">
                 <button
                   type="button"
-                  onClick={() => setShowAddModal(false)}
+                  onClick={() => {
+                    setShowModal(false)
+                    setEditingAirline(null)
+                  }}
                   className="flex-1 px-6 py-3 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition-all"
                 >
                   Cancel
@@ -299,17 +421,17 @@ export default function AirlinesPage() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex-1 px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl font-bold hover:shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-sky-500 to-blue-600 text-white rounded-xl font-bold hover:shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {saving ? (
                     <>
                       <Loader2 className="w-5 h-5 animate-spin" />
-                      Creating...
+                      Saving...
                     </>
                   ) : (
                     <>
-                      <Plus className="w-5 h-5" />
-                      Create Airline
+                      <CheckCircle2 className="w-5 h-5" />
+                      {editingAirline ? 'Update Airline' : 'Create Airline'}
                     </>
                   )}
                 </button>
@@ -321,4 +443,3 @@ export default function AirlinesPage() {
     </div>
   )
 }
-

@@ -45,8 +45,12 @@ public class AirportController {
     }
 
     @GetMapping
-    public ResponseEntity<List<AirportResponse>> getAllAirports() {
-        return ResponseEntity.ok(airportService.getAllAirports().stream().map(this::mapToResponse).collect(Collectors.toList()));
+    public ResponseEntity<List<AirportResponse>> getAllAirports(
+            @RequestParam(required = false, defaultValue = "false") Boolean includeInactive
+    ) {
+        return ResponseEntity.ok(airportService.getAllAirports(includeInactive).stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList()));
     }
 
     @GetMapping("/city/{city}")
@@ -75,6 +79,15 @@ public class AirportController {
         return ResponseEntity.ok(mapToResponse(airportService.updateAirport(id, mapToEntity(request))));
     }
 
+    @GetMapping("/{id}/active")
+    public ResponseEntity<Void> checkAirportActive(@PathVariable @Positive(message = "id must be positive") Long id) {
+        Airport airport = airportService.getAirportById(id);
+        if (!Boolean.TRUE.equals(airport.getIsActive())) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok().build();
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteAirport(@PathVariable @Positive(message = "id must be positive") Long id) {
         airportService.deleteAirport(id);
@@ -100,6 +113,9 @@ public class AirportController {
         airport.setDescription(request.getDescription());
         airport.setPhoneNumber(request.getPhoneNumber());
         airport.setEmail(request.getEmail());
+        if (request.getIsActive() != null) {
+            airport.setIsActive(request.getIsActive());
+        }
         return airport;
     }
 

@@ -183,7 +183,8 @@ export const authApi = {
     request<void>('/auth/forgot-password', { method: 'POST', body: JSON.stringify(body) }),
   resetPassword: (body: { token: string; newPassword: string }) =>
     request<void>('/auth/reset-password', { method: 'POST', body: JSON.stringify(body) }),
-  getUserById: (userId: number) => request<UserResponse>(`/auth/users/${userId}`),
+  getUserById: (userId: number, fresh = false) =>
+    request<UserResponse>(`/auth/users/${userId}`, fresh ? { cache: 'no-store' } : undefined),
   getUserByEmail: (email: string) => request<UserResponse>(`/auth/users/email/${email}`),
   updateUser: (userId: number, body: Partial<UserResponse>) =>
     request<UserResponse>(`/auth/users/${userId}`, { method: 'PUT', body: JSON.stringify(body) }),
@@ -212,7 +213,8 @@ export interface UserResponse {
 }
 
 export const airportApi = {
-  getAll: () => request<Airport[]>('/airports'),
+  getAll: (includeInactive = false) => 
+    request<Airport[]>(`/airports${includeInactive ? '?includeInactive=true' : ''}`),
   getById: (id: number) => request<Airport>(`/airports/${id}`),
   getByIata: (code: string) => request<Airport>(`/airports/iata/${code}`),
   searchByCity: (searchTerm: string) =>
@@ -234,8 +236,10 @@ export const airportApi = {
 }
 
 export const airlineApi = {
-  getAll: () => request<Airline[]>('/airlines'),
-  getById: (id: number) => request<Airline>(`/airlines/${id}`),
+  getAll: (includeInactive = false) => 
+    request<Airline[]>(`/airlines${includeInactive ? '?includeInactive=true' : ''}`),
+  getById: (id: number, fresh = false) =>
+    request<Airline>(`/airlines/${id}`, fresh ? { cache: 'no-store' } : undefined),
   create: (body: {
     name: string
     iataCode: string
@@ -255,6 +259,8 @@ export const flightApi = {
     ),
   getById: (id: number) => request<FlightResult>(`/flights/${id}`),
   getAll: () => request<FlightResult[]>('/flights'),
+  getByAirline: (airlineId: number) =>
+    request<FlightResult[]>(`/flights?airline=${encodeURIComponent(String(airlineId))}`, { cache: 'no-store' }),
   getByDate: (date: string) => request<FlightResult[]>(`/flights?date=${encodeURIComponent(date)}`),
   getSeatConfig: (id: number) => request<SeatClassConfigRange[]>(`/flights/${id}/seat-config`),
   getPassengers: (id: number) => request<FlightPassengerManifestItem[]>(`/flights/${id}/passengers`),
@@ -354,22 +360,31 @@ export const bookingApi = {
 
 let cachedAirports: Airport[] | null = null
 let cachedAirlines: Airline[] | null = null
+let cacheTimestamp = 0
+const CACHE_TTL_MS = 5 * 60 * 1000 // 5 minutes
+
+function isCacheValid() {
+  return Date.now() - cacheTimestamp < CACHE_TTL_MS
+}
 
 export async function getAllAirportsCached() {
-  if (cachedAirports) return cachedAirports
+  if (cachedAirports && isCacheValid()) return cachedAirports
   cachedAirports = await airportApi.getAll()
+  cacheTimestamp = Date.now()
   return cachedAirports
 }
 
 export async function getAllAirlinesCached() {
-  if (cachedAirlines) return cachedAirlines
+  if (cachedAirlines && isCacheValid()) return cachedAirlines
   cachedAirlines = await airlineApi.getAll()
+  cacheTimestamp = Date.now()
   return cachedAirlines
 }
 
 export function clearCache() {
   cachedAirports = null
   cachedAirlines = null
+  cacheTimestamp = 0
 }
 
 export async function searchFlights(

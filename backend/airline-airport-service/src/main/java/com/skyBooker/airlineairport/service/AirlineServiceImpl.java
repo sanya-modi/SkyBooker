@@ -37,7 +37,13 @@ public class AirlineServiceImpl implements AirlineService {
     @Override
     @Transactional(readOnly = true)
     public List<Airline> getAllAirlines() {
-        return airlineRepository.findAll();
+        return airlineRepository.findAllActive();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Airline> getAllAirlines(boolean includeInactive) {
+        return includeInactive ? airlineRepository.findAll() : airlineRepository.findAllActive();
     }
 
     @Override
@@ -55,13 +61,15 @@ public class AirlineServiceImpl implements AirlineService {
         if (airlineData.getEmail() != null) {
             airline.setEmail(airlineData.getEmail());
         }
+        if (airlineData.getIsActive() != null) {
+            airline.setIsActive(airlineData.getIsActive());
+        }
         return airlineRepository.save(airline);
     }
 
     @Override
     public void deleteAirline(Long id) {
         Airline airline = getAirlineById(id);
-        airline.setIsActive(false);
-        airlineRepository.save(airline);
+        airlineRepository.delete(airline);
     }
 }

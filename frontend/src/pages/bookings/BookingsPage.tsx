@@ -22,7 +22,7 @@ import {
   Ban
 } from "lucide-react"
 import { useAuth } from "@/context/auth-context"
-import { bookingApi, flightApi, airportApi, airlineApi, passengerApi, type BookingResult, type FlightResult, type Airport, type Airline, type PassengerResult } from "@/services/api"
+import { bookingApi, flightApi, airportApi, airlineApi, getAllAirportsCached, getAllAirlinesCached, passengerApi, type BookingResult, type FlightResult, type Airport, type Airline, type PassengerResult } from "@/services/api"
 
 import { CancellationModal } from "@/components/bookings/cancellation-modal"
 
@@ -89,8 +89,8 @@ export default function MyBookingsPage() {
           try {
             const [flight, airports, airlines, passengers] = await Promise.all([
               flightApi.getById(booking.flightId),
-              airportApi.getAll(),
-              airlineApi.getAll(),
+              getAllAirportsCached(),
+              getAllAirlinesCached(),
               passengerApi.getByBooking(booking.id).catch(() => [])
             ])
             

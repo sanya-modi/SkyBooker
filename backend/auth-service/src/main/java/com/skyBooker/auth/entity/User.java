@@ -50,6 +50,10 @@ public class User {
     @Column(nullable = true, length = 1000)
     private String profilePhotoUrl;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "airlineId", referencedColumnName = "id", insertable = false, updatable = false)
+    private Airline airline;
+
     @Column(nullable = true)
     private Long airlineId;
 

@@ -16,7 +16,7 @@ import { useAuth } from "@/context/auth-context"
 
 export default function NotificationsPage() {
   const navigate = useNavigate()
-  const { isLoggedIn } = useAuth()
+  const { isLoggedIn, isAuthReady } = useAuth()
   const [sending, setSending] = useState(false)
   const [success, setSuccess] = useState(false)
 
@@ -29,11 +29,12 @@ export default function NotificationsPage() {
   })
 
   useEffect(() => {
+    if (!isAuthReady) return
     if (!isLoggedIn) {
       navigate('/login')
       return
     }
-  }, [isLoggedIn, navigate])
+  }, [isLoggedIn, isAuthReady, navigate])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

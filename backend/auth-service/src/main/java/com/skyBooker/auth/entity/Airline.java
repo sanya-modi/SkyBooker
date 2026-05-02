@@ -1,6 +1,5 @@
-package com.skyBooker.airlineairport.entity;
+package com.skyBooker.auth.entity;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -16,7 +15,6 @@ import java.time.LocalDateTime;
 public class Airline {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false, unique = true, length = 100)
@@ -25,17 +23,7 @@ public class Airline {
     @Column(nullable = false, unique = true, length = 10)
     private String iataCode;
 
-    @Column(length = 2000)
-    private String description;
-
-    @Column(length = 20)
-    private String phoneNumber;
-
-    @Column(length = 100)
-    private String email;
-
     @Column(nullable = false)
-    @JsonProperty("isActive")
     private Boolean isActive = true;
 
     @Column(nullable = false, updatable = false)
@@ -43,15 +31,4 @@ public class Airline {
 
     @Column(nullable = false)
     private LocalDateTime updatedAt;
-
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
 }

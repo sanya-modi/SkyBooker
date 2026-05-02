@@ -23,7 +23,7 @@ import {
   Ban
 } from "lucide-react"
 import { useAuth } from "@/context/auth-context"
-import { bookingApi, flightApi, airportApi, airlineApi, passengerApi, paymentApi, type BookingResult, type FlightResult, type Airport, type Airline, type PassengerResult, type PaymentResult } from "@/services/api"
+import { bookingApi, flightApi, airportApi, airlineApi, getAllAirportsCached, getAllAirlinesCached, passengerApi, paymentApi, type BookingResult, type FlightResult, type Airport, type Airline, type PassengerResult, type PaymentResult } from "@/services/api"
 import { downloadBoardingPassSection } from "@/lib/boarding-pass-download"
 
 interface EnrichedBooking extends BookingResult {
@@ -74,8 +74,8 @@ export default function BookingDetailPage() {
       // Enrich with additional data
       const [flight, airports, airlines, passengers, payments] = await Promise.all([
         flightApi.getById(bookingData.flightId),
-        airportApi.getAll(),
-        airlineApi.getAll(),
+        getAllAirportsCached(),
+        getAllAirlinesCached(),
         passengerApi.getByBooking(bookingId).catch(() => []),
         paymentApi.getByBooking(bookingId).catch(() => [])
       ])

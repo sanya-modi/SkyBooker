@@ -53,20 +53,19 @@ export default function OperationsPage() {
   }, [selectedFlight?.id])
 
   const loadFlights = async (date: string) => {
+    if (!profile?.airlineId) return
+
     try {
       setLoading(true)
       const [flightResults, airportResults, airlineResults] = await Promise.all([
-        flightApi.getByDate(date),
+        flightApi.getByAirline(profile.airlineId),
         getAllAirportsCached(),
         getAllAirlinesCached(),
       ])
 
-      const myAirlineId = profile?.airlineId
-      const filteredFlights = myAirlineId
-        ? flightResults.filter((flight) => flight.airlineId === myAirlineId)
-        : flightResults
+      const filteredFlights = flightResults.filter((flight) => flight.departureTime.slice(0, 10) === date)
 
-      setFlights(filteredFlights)
+      setFlights(flightResults)
       setAirports(airportResults)
       setAirlines(airlineResults)
       setSelectedFlight((current) => {
@@ -143,6 +142,10 @@ export default function OperationsPage() {
   const getAirline = (id: number) => airlines.find((airline) => airline.id === id)
 
   const filteredFlights = flights.filter((flight) => {
+    if (flight.departureTime.slice(0, 10) !== selectedDate) {
+      return false
+    }
+
     const dep = getAirport(flight.departureAirportId)
     const arr = getAirport(flight.arrivalAirportId)
     const search = searchTerm.toLowerCase()

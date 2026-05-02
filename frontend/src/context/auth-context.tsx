@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
-import { authApi, clearCache, type AuthResponseData, type UserResponse } from '../services/api'
+import { airlineApi, authApi, clearCache, type AuthResponseData, type UserResponse } from '../services/api'
 
 export interface AuthUser {
   userId: number
@@ -65,7 +65,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loadProfile = useCallback(async (baseUser: AuthUser) => {
     try {
-      const nextProfile = await authApi.getUserById(baseUser.userId)
+      const nextProfile = await authApi.getUserById(baseUser.userId, true)
+      if (nextProfile.airlineId != null) {
+        await airlineApi.getById(nextProfile.airlineId, true)
+      }
       syncProfile(baseUser, nextProfile)
     } catch {
       syncProfile(baseUser, null)
@@ -113,10 +116,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       lastName: undefined,
     }
 
+    clearCache()
+    setProfile(null)
     setUser(nextUser)
     setToken(response.token)
     localStorage.setItem('skybooker_token', response.token)
     localStorage.setItem('skybooker_user', JSON.stringify(nextUser))
+    localStorage.removeItem(PROFILE_STORAGE_KEY)
     await loadProfile(nextUser)
   }, [loadProfile])
 

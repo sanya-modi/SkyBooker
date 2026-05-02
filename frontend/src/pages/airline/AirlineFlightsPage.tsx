@@ -17,10 +17,11 @@ export default function ViewFlightsPage() {
   useEffect(() => {
     if (!isAuthReady) return
     if (!isLoggedIn) { navigate('/login'); return }
-    Promise.all([flightApi.getAll(), getAllAirportsCached(), getAllAirlinesCached()])
+    if (!profile?.airlineId) return
+
+    Promise.all([flightApi.getByAirline(profile.airlineId), getAllAirportsCached(), getAllAirlinesCached()])
       .then(([f, a, al]) => {
-        const myAirlineId = profile?.airlineId
-        setFlights(myAirlineId ? f.filter(fl => fl.airlineId === myAirlineId) : f)
+        setFlights(f)
         setAirports(a)
         setAirlines(al)
       })

@@ -14,10 +14,11 @@ export default function AnalyticsPage() {
   useEffect(() => {
     if (!isAuthReady) return
     if (!isLoggedIn) { navigate('/login'); return }
-    Promise.all([flightApi.getAll(), getAllAirportsCached()])
+    if (!profile?.airlineId) return
+
+    Promise.all([flightApi.getByAirline(profile.airlineId), getAllAirportsCached()])
       .then(([f, a]) => {
-        const myAirlineId = profile?.airlineId
-        setFlights(myAirlineId ? f.filter(fl => fl.airlineId === myAirlineId) : f)
+        setFlights(f)
         setAirports(a)
       })
       .catch(console.error)

@@ -7,9 +7,11 @@ import com.skyBooker.auth.entity.User;
 import com.skyBooker.auth.exception.AuthException;
 import com.skyBooker.auth.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 
@@ -23,6 +25,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final JwtProvider jwtProvider;
     private final GoogleOAuthProvider googleOAuthProvider;
     private final NotificationPublisher notificationPublisher;
+    private final RestTemplate restTemplate;
+
+    @Value("${services.airline-airport.base-url:http://localhost:8082}")
+    private String airlineAirportServiceBaseUrl;
 
     // ================= REGISTER =================
     @Override
@@ -47,6 +53,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         user.setAuthProvider(User.AuthProvider.LOCAL);
         user.setRole(mapRole(request.getRole()));
         user.setIsActive(true);
+
+        if (User.UserRole.AIRLINE_STAFF.equals(user.getRole()) && user.getAirlineId() != null) {
+            validateAirlineActive(user.getAirlineId());
+        }
 
         User savedUser = userRepository.save(user);
         
@@ -80,11 +90,21 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     // ================= LOGIN =================
     @Override
     public AuthResponse login(AuthRequest request) {
-        User user = userRepository.findByEmailAndIsActiveTrue(request.getEmail())
+        User user = userRepository.findByEmailWithAirline(request.getEmail())
                 .orElseThrow(() -> new AuthException("User not found", "USER_NOT_FOUND"));
+
+        if (!user.getIsActive()) {
+            throw new AuthException("User account is inactive", "USER_INACTIVE");
+        }
+
+        System.out.println("[AUTH] Login attempt - Email: " + user.getEmail() + ", Role: " + user.getRole() + ", AirlineId: " + user.getAirlineId());
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new AuthException("Invalid password", "INVALID_PASSWORD");
+        }
+
+        if (User.UserRole.AIRLINE_STAFF.equals(user.getRole()) && user.getAirlineId() != null) {
+            validateAirlineActive(user.getAirlineId());
         }
         
         notificationPublisher.publishLoginEvent(user.getEmail(), user.getFirstName(), "Unknown", "Web Browser");
@@ -93,6 +113,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 user.getEmail(),
                 user.getRole().toString()
         );
+
+        System.out.println("[AUTH] Login successful - Email: " + user.getEmail());
 
         return new AuthResponse(
                 user.getId(),
@@ -166,7 +188,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             throw new AuthException("Invalid Google token", "INVALID_GOOGLE_TOKEN");
         }
 
-        User user = userRepository.findByEmail(payload.getEmail()).orElse(null);
+        User user = userRepository.findByEmailWithAirline(payload.getEmail()).orElse(null);
         boolean isNewUser = false;
 
         if (user == null) {
@@ -190,6 +212,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         if (!user.getIsActive()) {
             throw new AuthException("User account is inactive", "USER_INACTIVE");
+        }
+
+        if (User.UserRole.AIRLINE_STAFF.equals(user.getRole()) && user.getAirlineId() != null) {
+            validateAirlineActive(user.getAirlineId());
         }
 
         if (isNewUser) {
@@ -245,5 +271,61 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         userRepository.save(user);
 
         notificationPublisher.publishPasswordResetSuccessEvent(user.getEmail(), user.getFirstName());
+    }
+
+    private void validateAirlineActive(Long airlineId) {
+        try {
+            String url = airlineAirportServiceBaseUrl + "/airlines/" + airlineId;
+            System.out.println("[AUTH] Validating airline ID: " + airlineId);
+            
+            var response = restTemplate.getForEntity(url, AirlineResponse.class);
+            
+            if (response.getBody() != null) {
+                Boolean isActive = response.getBody().getIsActive();
+                String airlineName = response.getBody().getName();
+                
+                System.out.println("[AUTH] Airline validation - ID: " + airlineId + ", Name: " + airlineName + ", Active: " + isActive);
+                
+                if (isActive == null || !isActive) {
+                    throw new AuthException("Your airline (" + airlineName + ") is currently inactive. Please contact support.", "AIRLINE_INACTIVE");
+                }
+            }
+        } catch (AuthException e) {
+            throw e;
+        } catch (Exception e) {
+            System.err.println("[AUTH] Error validating airline: " + e.getMessage());
+            throw new AuthException("Unable to verify airline status. Please try again.", "AIRLINE_VALIDATION_ERROR");
+        }
+    }
+    
+    private static class AirlineResponse {
+        private Long id;
+        private String name;
+        private String iataCode;
+        private String description;
+        private String phoneNumber;
+        private String email;
+        private Boolean isActive;
+        private String createdAt;
+        private String updatedAt;
+        
+        public Long getId() { return id; }
+        public void setId(Long id) { this.id = id; }
+        public String getName() { return name; }
+        public void setName(String name) { this.name = name; }
+        public String getIataCode() { return iataCode; }
+        public void setIataCode(String iataCode) { this.iataCode = iataCode; }
+        public String getDescription() { return description; }
+        public void setDescription(String description) { this.description = description; }
+        public String getPhoneNumber() { return phoneNumber; }
+        public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
+        public String getEmail() { return email; }
+        public void setEmail(String email) { this.email = email; }
+        public Boolean getIsActive() { return isActive; }
+        public void setIsActive(Boolean isActive) { this.isActive = isActive; }
+        public String getCreatedAt() { return createdAt; }
+        public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
+        public String getUpdatedAt() { return updatedAt; }
+        public void setUpdatedAt(String updatedAt) { this.updatedAt = updatedAt; }
     }
 }

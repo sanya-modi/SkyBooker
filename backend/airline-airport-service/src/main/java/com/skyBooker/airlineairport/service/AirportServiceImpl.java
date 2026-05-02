@@ -37,7 +37,13 @@ public class AirportServiceImpl implements AirportService {
     @Override
     @Transactional(readOnly = true)
     public List<Airport> getAllAirports() {
-        return airportRepository.findAll();
+        return airportRepository.findAllActive();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Airport> getAllAirports(boolean includeInactive) {
+        return includeInactive ? airportRepository.findAll() : airportRepository.findAllActive();
     }
 
     @Override
@@ -67,14 +73,16 @@ public class AirportServiceImpl implements AirportService {
         if (airportData.getEmail() != null) {
             airport.setEmail(airportData.getEmail());
         }
+        if (airportData.getIsActive() != null) {
+            airport.setIsActive(airportData.getIsActive());
+        }
         return airportRepository.save(airport);
     }
 
     @Override
     public void deleteAirport(Long id) {
         Airport airport = getAirportById(id);
-        airport.setIsActive(false);
-        airportRepository.save(airport);
+        airportRepository.delete(airport);
     }
 
     @Override

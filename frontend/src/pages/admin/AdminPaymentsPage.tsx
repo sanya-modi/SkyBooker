@@ -17,18 +17,19 @@ import { useAuth } from "@/context/auth-context"
 
 export default function PaymentsPage() {
   const navigate = useNavigate()
-  const { isLoggedIn } = useAuth()
+  const { isLoggedIn, isAuthReady } = useAuth()
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('ALL')
 
   useEffect(() => {
+    if (!isAuthReady) return
     if (!isLoggedIn) {
       navigate('/login')
       return
     }
     setLoading(false)
-  }, [isLoggedIn, navigate])
+  }, [isLoggedIn, isAuthReady, navigate])
 
   const stats = [
     {

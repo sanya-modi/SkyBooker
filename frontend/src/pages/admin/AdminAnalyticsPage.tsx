@@ -17,27 +17,28 @@ import { flightApi, airportApi, airlineApi, type FlightResult, type Airport, typ
 
 export default function AnalyticsPage() {
   const navigate = useNavigate()
-  const { isLoggedIn } = useAuth()
+  const { isLoggedIn, isAuthReady } = useAuth()
   const [flights, setFlights] = useState<FlightResult[]>([])
   const [airports, setAirports] = useState<Airport[]>([])
   const [airlines, setAirlines] = useState<Airline[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (!isAuthReady) return
     if (!isLoggedIn) {
       navigate('/login')
       return
     }
     loadData()
-  }, [isLoggedIn, navigate])
+  }, [isLoggedIn, isAuthReady, navigate])
 
   const loadData = async () => {
     try {
       setLoading(true)
       const [flightsData, airportsData, airlinesData] = await Promise.all([
         flightApi.getAll(),
-        airportApi.getAll(),
-        airlineApi.getAll()
+        airportApi.getAll(true),
+        airlineApi.getAll(true)
       ])
       setFlights(flightsData)
       setAirports(airportsData)
