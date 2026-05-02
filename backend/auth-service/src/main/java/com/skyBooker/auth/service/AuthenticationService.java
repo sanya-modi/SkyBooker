@@ -7,12 +7,15 @@ import com.skyBooker.auth.dto.RegistrationRequest;
 import com.skyBooker.auth.dto.UpdateUserRequest;
 import com.skyBooker.auth.entity.User;
 
+import java.util.List;
+
 public interface AuthenticationService {
     AuthResponse register(RegistrationRequest request);
     AuthResponse login(AuthRequest request);
     AuthResponse loginWithGoogle(GoogleLoginRequest request);
     User getUserById(Long userId);
     User getUserByEmail(String email);
+    List<User> getAllActiveUsers();
     User updateUser(Long userId, UpdateUserRequest user);
     void deleteUser(Long userId);
     void forgotPassword(String email);

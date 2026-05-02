@@ -11,8 +11,7 @@ import {
   CheckCircle2,
   XCircle,
   Mail,
-  Phone,
-  Calendar
+  Phone
 } from "lucide-react"
 import { useAuth } from "@/context/auth-context"
 import { authApi, type UserResponse } from "@/services/api"
@@ -37,8 +36,8 @@ export default function UsersPage() {
   const loadUsers = async () => {
     try {
       setLoading(true)
-      // Mock data for now - replace with actual API call
-      setUsers([])
+      const data = await authApi.getAllUsers()
+      setUsers(data)
     } catch (err) {
       console.error('Error loading users:', err)
     } finally {
@@ -82,8 +81,7 @@ export default function UsersPage() {
 
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.lastName.toLowerCase().includes(searchTerm.toLowerCase())
+                         (user.firstName + ' ' + user.lastName).toLowerCase().includes(searchTerm.toLowerCase())
     const matchesRole = roleFilter === 'ALL' || user.role === roleFilter
     return matchesSearch && matchesRole
   })
@@ -94,7 +92,7 @@ export default function UsersPage() {
 
       <main className="max-w-7xl mx-auto px-4 md:px-6 py-8 pt-24">
         <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-black text-red-600 mb-2">User Management</h1>
+          <h1 className="text-3xl md:text-4xl font-black text-sky-600 mb-2">User Management</h1>
           <p className="text-slate-600">Manage all users in the system</p>
         </div>
 
@@ -107,7 +105,7 @@ export default function UsersPage() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search by name or email..."
-                className="w-full pl-10 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
               />
             </div>
             <div className="relative">
@@ -115,10 +113,10 @@ export default function UsersPage() {
               <select
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent appearance-none"
+                className="w-full pl-10 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent appearance-none"
               >
                 <option value="ALL">All Roles</option>
-                <option value="CUSTOMER">Customers</option>
+                <option value="PASSENGER">Passengers</option>
                 <option value="AIRLINE_STAFF">Airline Staff</option>
                 <option value="ADMIN">Administrators</option>
               </select>
@@ -129,7 +127,7 @@ export default function UsersPage() {
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
           {loading ? (
             <div className="text-center py-12">
-              <div className="inline-block w-8 h-8 border-4 border-red-600 border-t-transparent rounded-full animate-spin" />
+              <div className="inline-block w-8 h-8 border-4 border-sky-500 border-t-transparent rounded-full animate-spin" />
               <p className="text-slate-600 mt-4">Loading users...</p>
             </div>
           ) : filteredUsers.length === 0 ? (

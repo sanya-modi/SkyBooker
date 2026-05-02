@@ -1,19 +1,19 @@
 import { useState, useRef, useEffect } from "react"
+import { createPortal } from "react-dom"
 import { Camera, X, Loader2, Save } from "lucide-react"
 import { useAuth } from "@/context/auth-context"
-import { type UserResponse, getAllAirlinesCached, type Airline } from "@/services/api"
 
-interface StaffProfileModalProps {
+interface PassengerProfileModalProps {
   isOpen: boolean
   onClose: () => void
 }
 
-export function StaffProfileModal({ isOpen, onClose }: StaffProfileModalProps) {
+export function PassengerProfileModal({ isOpen, onClose }: PassengerProfileModalProps) {
   const { profile, updateProfile } = useAuth()
-  const [airlines, setAirlines] = useState<Airline[]>([])
   const [loading, setLoading] = useState(false)
   const [successMsg, setSuccessMsg] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
+  const [isMounted, setIsMounted] = useState(false)
   
   const [formData, setFormData] = useState({
     firstName: profile?.firstName || '',
@@ -44,12 +44,11 @@ export function StaffProfileModal({ isOpen, onClose }: StaffProfileModalProps) {
   }, [isOpen, profile])
 
   useEffect(() => {
-    getAllAirlinesCached().then(setAirlines).catch(console.error)
+    setIsMounted(true)
   }, [])
 
   if (!isOpen || !profile) return null
-
-  const myAirline = airlines.find(a => a.id === profile.airlineId)
+  if (!isMounted) return null
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -71,21 +70,24 @@ export function StaffProfileModal({ isOpen, onClose }: StaffProfileModalProps) {
     }
   }
 
-  // Handle local file selection to show preview and simulate upload
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      // In a real app, upload file to S3/Cloudinary and get URL.
-      // Here, using an object URL for preview and simulating saving the URL.
       const objectUrl = URL.createObjectURL(file)
       setFormData({ ...formData, profilePhotoUrl: objectUrl })
     }
   }
 
-  return (
-    <div className="fixed inset-0 z-[99999] bg-black/50 backdrop-blur-sm overflow-y-auto" onClick={onClose}>
+  return createPortal(
+    <div 
+      className="fixed inset-0 z-[99999] bg-black/50 backdrop-blur-sm overflow-y-auto"
+      onClick={onClose}
+    >
       <div className="min-h-full flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-xl w-full max-w-md my-8" onClick={(e) => e.stopPropagation()}>
+        <div 
+          className="bg-white rounded-2xl shadow-xl w-full max-w-md my-8"
+          onClick={(e) => e.stopPropagation()}
+        >
         <div className="p-6 border-b border-slate-200 flex items-center justify-between">
           <h2 className="text-2xl font-black text-[#00236f]">Edit Profile</h2>
           <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
@@ -179,16 +181,6 @@ export function StaffProfileModal({ isOpen, onClose }: StaffProfileModalProps) {
                 placeholder="e.g. 9876543210"
               />
             </div>
-
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1">Airline (Read Only)</label>
-              <input
-                type="text"
-                readOnly
-                value={myAirline ? `${myAirline.name} (${myAirline.iataCode})` : 'N/A'}
-                className="w-full px-4 py-2 border-2 border-slate-200 rounded-xl bg-slate-50 text-slate-500 cursor-not-allowed"
-              />
-            </div>
           </form>
         </div>
 
@@ -205,6 +197,7 @@ export function StaffProfileModal({ isOpen, onClose }: StaffProfileModalProps) {
         </div>
       </div>
     </div>
-    </div>
+    </div>,
+    document.body
   )
 }

@@ -107,13 +107,13 @@ export default function AnalyticsPage() {
 
       <main className="max-w-7xl mx-auto px-4 md:px-6 py-8 pt-24">
         <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-black text-red-600 mb-2">Analytics Dashboard</h1>
+          <h1 className="text-3xl md:text-4xl font-black text-sky-600 mb-2">Analytics Dashboard</h1>
           <p className="text-slate-600">Comprehensive platform analytics and insights</p>
         </div>
 
         {loading ? (
           <div className="text-center py-12">
-            <div className="inline-block w-8 h-8 border-4 border-red-600 border-t-transparent rounded-full animate-spin" />
+            <div className="inline-block w-8 h-8 border-4 border-sky-500 border-t-transparent rounded-full animate-spin" />
             <p className="text-slate-600 mt-4">Loading analytics...</p>
           </div>
         ) : (
@@ -139,7 +139,7 @@ export default function AnalyticsPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
               <div className="bg-white rounded-2xl shadow-sm p-6">
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="w-12 h-12 bg-gradient-to-br from-red-600 to-red-700 rounded-xl flex items-center justify-center">
+                  <div className="w-12 h-12 bg-gradient-to-br from-sky-500 to-blue-600 rounded-xl flex items-center justify-center">
                     <Plane className="w-6 h-6 text-white" />
                   </div>
                   <div>

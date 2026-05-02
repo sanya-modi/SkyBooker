@@ -70,7 +70,7 @@ export default function BookingsPage() {
 
       <main className="max-w-7xl mx-auto px-4 md:px-6 py-8 pt-24">
         <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-black text-red-600 mb-2">Booking Monitoring</h1>
+          <h1 className="text-3xl md:text-4xl font-black text-sky-600 mb-2">Booking Monitoring</h1>
           <p className="text-slate-600">Monitor all bookings across the platform</p>
         </div>
 
@@ -115,7 +115,7 @@ export default function BookingsPage() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search by flight number..."
-                className="w-full pl-10 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
               />
             </div>
             <div className="relative">
@@ -123,7 +123,7 @@ export default function BookingsPage() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent appearance-none"
+                className="w-full pl-10 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent appearance-none"
               >
                 <option value="ALL">All Status</option>
                 <option value="SCHEDULED">Scheduled</option>
@@ -138,7 +138,7 @@ export default function BookingsPage() {
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
           {loading ? (
             <div className="text-center py-12">
-              <div className="inline-block w-8 h-8 border-4 border-red-600 border-t-transparent rounded-full animate-spin" />
+              <div className="inline-block w-8 h-8 border-4 border-sky-500 border-t-transparent rounded-full animate-spin" />
               <p className="text-slate-600 mt-4">Loading bookings...</p>
             </div>
           ) : filteredFlights.length === 0 ? (

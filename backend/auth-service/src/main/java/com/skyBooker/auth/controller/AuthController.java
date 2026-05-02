@@ -46,6 +46,15 @@ public class AuthController {
         return ResponseEntity.ok(authenticationService.loginWithGoogle(request));
     }
 
+    @GetMapping("/users")
+    public ResponseEntity<java.util.List<UserResponse>> getAllUsers() {
+        return ResponseEntity.ok(
+            authenticationService.getAllActiveUsers().stream()
+                .map(this::mapToUserResponse)
+                .toList()
+        );
+    }
+
     @GetMapping("/users/{userId}")
     public ResponseEntity<UserResponse> getUserById(@PathVariable @Positive(message = "userId must be positive") Long userId) {
         return ResponseEntity.ok(mapToUserResponse(authenticationService.getUserById(userId)));
@@ -76,7 +85,7 @@ public class AuthController {
     }
 
     private UserResponse mapToUserResponse(User user) {
-        return new UserResponse(
+       return new UserResponse(
                 user.getId(),
                 user.getFirstName(),
                 user.getLastName(),
@@ -91,6 +100,12 @@ public class AuthController {
                 user.getIsActive()
         );
     }
+
+    // private String buildName(User user) {
+    //     String firstName = user.getFirstName() == null ? "" : user.getFirstName().trim();
+    //     String lastName = user.getLastName() == null ? "" : user.getLastName().trim();
+    //     return (firstName + " " + lastName).trim();
+    // }
 
     @PostMapping("/forgot-password")
     public ResponseEntity<Void> forgotPassword(@Valid @RequestBody com.skyBooker.auth.dto.ForgotPasswordRequest request) {

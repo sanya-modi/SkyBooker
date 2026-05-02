@@ -1,6 +1,6 @@
-// export { default } from '../../app/admin/dashboard/page'
 import { useState, useEffect } from "react"
 import { Link, useNavigate } from 'react-router-dom'
+import { AdminHeader } from "@/components/admin/admin-header"
 import {
   Users,
   Plane,
@@ -121,13 +121,15 @@ export default function AdminDashboard() {
     { label: 'Add Airline', href: '/admin/airlines', icon: Plane, color: 'from-green-500 to-green-600' },
     { label: 'Add Airport', href: '/admin/airports', icon: MapPin, color: 'from-orange-500 to-orange-600' },
     { label: 'View Bookings', href: '/admin/bookings', icon: ShoppingBag, color: 'from-purple-500 to-purple-600' },
-    { label: 'View Payments', href: '/admin/payments', icon: DollarSign, color: 'from-emerald-500 to-emerald-600' },
+    { label: 'View Users', href: '/admin/users', icon: Users, color: 'from-emerald-500 to-emerald-600' },
     { label: 'Send Notification', href: '/admin/notifications', icon: AlertCircle, color: 'from-red-600 to-red-700' }
   ]
 
   return (
-    <div className="min-h-screen">
-      <main className="max-w-7xl mx-auto px-4 md:px-6 py-8">
+    <div className="min-h-screen bg-[#f7f9fb]">
+      <AdminHeader />
+
+      <main className="max-w-7xl mx-auto px-4 md:px-6 py-8 pt-24">
         <div className="mb-8">
           <h1 className="text-3xl md:text-4xl font-black text-sky-600 mb-2">Admin Dashboard</h1>
           <p className="text-slate-600">Manage the entire SkyBooker ecosystem</p>

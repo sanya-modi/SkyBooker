@@ -68,7 +68,7 @@ export default function PaymentsPage() {
 
       <main className="max-w-7xl mx-auto px-4 md:px-6 py-8 pt-24">
         <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-black text-red-600 mb-2">Payment Management</h1>
+          <h1 className="text-3xl md:text-4xl font-black text-sky-600 mb-2">Payment Management</h1>
           <p className="text-slate-600">Monitor transactions and process refunds</p>
         </div>
 
@@ -98,7 +98,7 @@ export default function PaymentsPage() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search by transaction ID..."
-                className="w-full pl-10 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
               />
             </div>
             <div className="relative">
@@ -106,7 +106,7 @@ export default function PaymentsPage() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent appearance-none"
+                className="w-full pl-10 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent appearance-none"
               >
                 <option value="ALL">All Status</option>
                 <option value="SUCCESS">Success</option>

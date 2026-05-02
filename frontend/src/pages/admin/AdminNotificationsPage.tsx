@@ -85,13 +85,13 @@ export default function NotificationsPage() {
 
       <main className="max-w-4xl mx-auto px-4 md:px-6 py-8 pt-24">
         <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-black text-red-600 mb-2">Broadcast Notifications</h1>
+          <h1 className="text-3xl md:text-4xl font-black text-sky-600 mb-2">Broadcast Notifications</h1>
           <p className="text-slate-600">Send notifications to users across the platform</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm p-8">
           <div className="flex items-center gap-4 mb-6">
-            <div className="w-16 h-16 bg-gradient-to-br from-red-600 to-red-700 rounded-2xl flex items-center justify-center">
+            <div className="w-16 h-16 bg-gradient-to-br from-sky-500 to-blue-600 rounded-2xl flex items-center justify-center">
               <Bell className="w-8 h-8 text-white" />
             </div>
             <div>
@@ -110,7 +110,7 @@ export default function NotificationsPage() {
                   required
                   value={formData.type}
                   onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent"
+                  className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
                 >
                   <option value="ANNOUNCEMENT">Announcement</option>
                   <option value="PROMOTION">Promotion</option>
@@ -127,7 +127,7 @@ export default function NotificationsPage() {
                   required
                   value={formData.channel}
                   onChange={(e) => setFormData({ ...formData, channel: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent"
+                  className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
                 >
                   <option value="EMAIL">Email</option>
                   <option value="SMS">SMS</option>
@@ -144,7 +144,7 @@ export default function NotificationsPage() {
                   required
                   value={formData.targetAudience}
                   onChange={(e) => setFormData({ ...formData, targetAudience: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent"
+                  className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
                 >
                   <option value="ALL">All Users</option>
                   <option value="CUSTOMERS">Customers Only</option>
@@ -162,7 +162,7 @@ export default function NotificationsPage() {
                   value={formData.subject}
                   onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                   placeholder="Enter notification subject..."
-                  className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent"
+                  className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
                 />
               </div>
 
@@ -176,7 +176,7 @@ export default function NotificationsPage() {
                   onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                   placeholder="Enter your message..."
                   rows={6}
-                  className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent"
+                  className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
                 />
               </div>
             </div>
@@ -200,7 +200,7 @@ export default function NotificationsPage() {
               <button
                 type="submit"
                 disabled={sending}
-                className="flex-1 px-6 py-4 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl font-bold hover:shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex-1 px-6 py-4 bg-gradient-to-r from-sky-500 to-blue-600 text-white rounded-xl font-bold hover:shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {sending ? (
                   <>

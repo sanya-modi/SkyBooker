@@ -183,6 +183,7 @@ export const authApi = {
     request<void>('/auth/forgot-password', { method: 'POST', body: JSON.stringify(body) }),
   resetPassword: (body: { token: string; newPassword: string }) =>
     request<void>('/auth/reset-password', { method: 'POST', body: JSON.stringify(body) }),
+  getAllUsers: () => request<UserResponse[]>('/auth/users'),
   getUserById: (userId: number, fresh = false) =>
     request<UserResponse>(`/auth/users/${userId}`, fresh ? { cache: 'no-store' } : undefined),
   getUserByEmail: (email: string) => request<UserResponse>(`/auth/users/email/${email}`),

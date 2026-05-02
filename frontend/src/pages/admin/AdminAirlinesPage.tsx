@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
+import { AdminHeader } from "@/components/admin/admin-header"
 import {
   Plane,
   Plus,
@@ -171,8 +172,10 @@ export default function AirlinesPage() {
   )
 
   return (
-    <div className="min-h-screen">
-      <main className="max-w-7xl mx-auto px-4 md:px-6 py-8">
+    <div className="min-h-screen bg-[#f7f9fb]">
+      <AdminHeader />
+
+      <main className="max-w-7xl mx-auto px-4 md:px-6 py-8 pt-24">
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl md:text-4xl font-black text-sky-600 mb-2">Airline Management</h1>
