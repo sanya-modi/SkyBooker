@@ -1,5 +1,7 @@
 package com.skyBooker.notification.service;
 
+import com.skyBooker.notification.dto.AdminNotificationDispatchRequest;
+import com.skyBooker.notification.dto.AdminNotificationRecipientRequest;
 import com.skyBooker.notification.dto.FlightStatusNotificationRequest;
 import com.skyBooker.notification.entity.Notification;
 import com.skyBooker.notification.repository.NotificationRepository;
@@ -59,7 +61,7 @@ public class NotificationServiceImpl implements NotificationService {
 
     private void sendEmailNotification(Notification notification) {
         log.info("Sending email notification to: {}", notification.getRecipient());
-        // Email service will handle actual sending
+        emailService.sendGenericEmail(notification.getRecipient(), notification.getSubject(), notification.getMessage());
         notification.setStatus(Notification.NotificationStatus.DELIVERED);
         notificationRepository.save(notification);
     }
@@ -181,6 +183,32 @@ public class NotificationServiceImpl implements NotificationService {
                         request.getStatus(),
                         request.getMessage()
                 );
+                notification.setStatus(Notification.NotificationStatus.DELIVERED);
+            } catch (Exception exception) {
+                notification.setStatus(Notification.NotificationStatus.FAILED);
+            }
+
+            notificationRepository.save(notification);
+        }
+    }
+
+    @Async
+    public void sendAdminNotifications(AdminNotificationDispatchRequest request) {
+        Notification.NotificationType notificationType = Notification.NotificationType.valueOf(request.getType());
+
+        for (AdminNotificationRecipientRequest recipient : request.getRecipients()) {
+            Notification notification = createNotification(
+                    recipient.getUserId(),
+                    0L,
+                    notificationType,
+                    Notification.Channel.EMAIL,
+                    request.getSubject(),
+                    request.getMessage(),
+                    recipient.getEmail()
+            );
+
+            try {
+                emailService.sendGenericEmail(recipient.getEmail(), request.getSubject(), request.getMessage());
                 notification.setStatus(Notification.NotificationStatus.DELIVERED);
             } catch (Exception exception) {
                 notification.setStatus(Notification.NotificationStatus.FAILED);

@@ -32,6 +32,8 @@ logging:
 services:
   auth:
     base-url: ${AUTH_SERVICE_URL:http://localhost:8081}
+  notification:
+    base-url: ${NOTIFICATION_SERVICE_URL:http://localhost:8080}
 
 springdoc:
   api-docs:

@@ -276,6 +276,7 @@ services:
        SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/admin_db
        SPRING_APPLICATION_NAME: admin-user-service
        AUTH_SERVICE_URL: http://auth-service:8081
+       NOTIFICATION_SERVICE_URL: http://api-gateway:8080
        SERVER_PORT: 8090
      depends_on:
        postgres:

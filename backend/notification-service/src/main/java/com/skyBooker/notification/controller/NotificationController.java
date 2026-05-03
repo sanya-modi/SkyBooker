@@ -1,5 +1,6 @@
 package com.skyBooker.notification.controller;
 
+import com.skyBooker.notification.dto.AdminNotificationDispatchRequest;
 import com.skyBooker.notification.dto.BookingConfirmationRequest;
 import com.skyBooker.notification.dto.FlightStatusNotificationRequest;
 import com.skyBooker.notification.dto.NotificationRequest;
@@ -142,6 +143,12 @@ public class NotificationController {
     @PostMapping("/flight-status")
     public ResponseEntity<Void> sendFlightStatusNotifications(@Valid @RequestBody FlightStatusNotificationRequest request) {
         notificationServiceImpl.sendFlightStatusNotifications(request);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/admin/broadcast/send")
+    public ResponseEntity<Void> sendAdminNotifications(@Valid @RequestBody AdminNotificationDispatchRequest request) {
+        notificationServiceImpl.sendAdminNotifications(request);
         return ResponseEntity.ok().build();
     }
 

@@ -228,6 +228,12 @@ export interface AdminUserResponse {
 
 export const adminApi = {
   getAllUsers: () => request<AdminUserResponse[]>('/admin/users/all'),
+  sendNotification: (body: {
+    subject: string
+    message: string
+    targetAudience: 'ALL' | 'PASSENGER' | 'AIRLINE_STAFF' | 'ADMIN'
+    type: 'BOOKING_CONFIRMATION' | 'PAYMENT_SUCCESS' | 'CHECK_IN_REMINDER' | 'FLIGHT_UPDATE' | 'CANCELLATION' | 'REFUND'
+  }) => request<void>('/admin/notifications/send', { method: 'POST', body: JSON.stringify(body) }),
 }
 
 export const airportApi = {

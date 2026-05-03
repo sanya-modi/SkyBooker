@@ -5,24 +5,22 @@ import { AdminHeader } from "@/components/admin/admin-header"
 import {
   Bell,
   Send,
-  Users,
   Mail,
-  MessageSquare,
-  Smartphone,
   CheckCircle2,
   Loader2
 } from "lucide-react"
 import { useAuth } from "@/context/auth-context"
+import { adminApi } from "@/services/api"
 
 export default function NotificationsPage() {
   const navigate = useNavigate()
   const { isLoggedIn, isAuthReady } = useAuth()
   const [sending, setSending] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
 
   const [formData, setFormData] = useState({
-    type: 'ANNOUNCEMENT',
-    channel: 'EMAIL',
+    type: 'FLIGHT_UPDATE',
     subject: '',
     message: '',
     targetAudience: 'ALL'
@@ -41,14 +39,13 @@ export default function NotificationsPage() {
     
     try {
       setSending(true)
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      setErrorMessage('')
+      await adminApi.sendNotification(formData)
       setSuccess(true)
       setTimeout(() => {
         setSuccess(false)
         setFormData({
-          type: 'ANNOUNCEMENT',
-          channel: 'EMAIL',
+          type: 'FLIGHT_UPDATE',
           subject: '',
           message: '',
           targetAudience: 'ALL'
@@ -56,7 +53,7 @@ export default function NotificationsPage() {
       }, 3000)
     } catch (err) {
       console.error('Error sending notification:', err)
-      alert('Failed to send notification')
+      setErrorMessage(err instanceof Error ? err.message : 'Failed to send notification')
     } finally {
       setSending(false)
     }
@@ -72,7 +69,7 @@ export default function NotificationsPage() {
               <CheckCircle2 className="w-10 h-10 text-green-600" />
             </div>
             <h2 className="text-3xl font-black text-slate-800 mb-2">Notification Sent Successfully!</h2>
-            <p className="text-slate-600">Your broadcast notification has been sent to all users</p>
+            <p className="text-slate-600">Your email notification has been sent to the selected users</p>
           </div>
         </main>
       </div>
@@ -112,28 +109,23 @@ export default function NotificationsPage() {
                   onChange={(e) => setFormData({ ...formData, type: e.target.value })}
                   className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
                 >
-                  <option value="ANNOUNCEMENT">Announcement</option>
-                  <option value="PROMOTION">Promotion</option>
-                  <option value="SYSTEM_UPDATE">System Update</option>
-                  <option value="MAINTENANCE">Maintenance</option>
+                  <option value="FLIGHT_UPDATE">Flight Update</option>
+                  <option value="BOOKING_CONFIRMATION">Booking Confirmation</option>
+                  <option value="CHECK_IN_REMINDER">Check-in Reminder</option>
+                  <option value="PAYMENT_SUCCESS">Payment Success</option>
+                  <option value="CANCELLATION">Cancellation</option>
+                  <option value="REFUND">Refund</option>
                 </select>
               </div>
 
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-2">
-                  Channel *
+                  Channel
                 </label>
-                <select
-                  required
-                  value={formData.channel}
-                  onChange={(e) => setFormData({ ...formData, channel: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
-                >
-                  <option value="EMAIL">Email</option>
-                  <option value="SMS">SMS</option>
-                  <option value="PUSH">Push Notification</option>
-                  <option value="IN_APP">In-App</option>
-                </select>
+                <div className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl bg-slate-50 text-slate-700 font-semibold flex items-center gap-2">
+                  <Mail className="w-5 h-5 text-blue-600" />
+                  Email
+                </div>
               </div>
 
               <div className="md:col-span-2">
@@ -147,8 +139,9 @@ export default function NotificationsPage() {
                   className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
                 >
                   <option value="ALL">All Users</option>
-                  <option value="CUSTOMERS">Customers Only</option>
+                  <option value="PASSENGER">Passengers Only</option>
                   <option value="AIRLINE_STAFF">Airline Staff Only</option>
+                  <option value="ADMIN">Administrators Only</option>
                 </select>
               </div>
 
@@ -189,6 +182,12 @@ export default function NotificationsPage() {
               </div>
             </div>
 
+            {errorMessage && (
+              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {errorMessage}
+              </div>
+            )}
+
             <div className="flex gap-4 pt-4">
               <button
                 type="button"
@@ -217,26 +216,11 @@ export default function NotificationsPage() {
             </div>
           </form>
 
-          <div className="mt-8 grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="mt-8 grid grid-cols-1 gap-4">
             <div className="bg-blue-50 rounded-xl p-4 text-center">
               <Mail className="w-6 h-6 text-blue-600 mx-auto mb-2" />
               <p className="text-sm font-bold text-blue-700">Email</p>
-              <p className="text-xs text-blue-600">Detailed messages</p>
-            </div>
-            <div className="bg-green-50 rounded-xl p-4 text-center">
-              <MessageSquare className="w-6 h-6 text-green-600 mx-auto mb-2" />
-              <p className="text-sm font-bold text-green-700">SMS</p>
-              <p className="text-xs text-green-600">Quick alerts</p>
-            </div>
-            <div className="bg-purple-50 rounded-xl p-4 text-center">
-              <Smartphone className="w-6 h-6 text-purple-600 mx-auto mb-2" />
-              <p className="text-sm font-bold text-purple-700">Push</p>
-              <p className="text-xs text-purple-600">Mobile alerts</p>
-            </div>
-            <div className="bg-orange-50 rounded-xl p-4 text-center">
-              <Bell className="w-6 h-6 text-orange-600 mx-auto mb-2" />
-              <p className="text-sm font-bold text-orange-700">In-App</p>
-              <p className="text-xs text-orange-600">Real-time</p>
+              <p className="text-xs text-blue-600">Broadcast messages are sent by email only</p>
             </div>
           </div>
         </div>
@@ -244,4 +228,3 @@ export default function NotificationsPage() {
     </div>
   )
 }
-

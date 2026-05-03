@@ -240,4 +240,22 @@ public class EmailService {
             throw new RuntimeException("Failed to send flight status update email", e);
         }
     }
+
+    public void sendGenericEmail(String toEmail, String subject, String body) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
+
+            helper.setFrom(fromEmail);
+            helper.setTo(toEmail);
+            helper.setSubject(subject);
+            helper.setText(body, false);
+
+            mailSender.send(message);
+            log.info("Generic email sent to: {}", toEmail);
+        } catch (Exception e) {
+            log.error("Failed to send generic email to: {}", toEmail, e);
+            throw new RuntimeException("Failed to send generic email", e);
+        }
+    }
 }
