@@ -200,6 +200,15 @@ export function BookingPage() {
       if (!cancelled) {
         console.log('Applying seats update:', nextSeats)
         setSeats(nextSeats)
+        setSelectedSeatIds((currentSeatIds) =>
+          currentSeatIds.filter((seatNumber) => {
+            const seat = nextSeats.find((entry) => entry.seatNumber === seatNumber)
+            return Boolean(
+              seat &&
+              (seat.status === 'AVAILABLE' || (seat.status === 'HELD' && seat.passengerId === user?.userId)),
+            )
+          }),
+        )
         setSeatsLoading(false)
       }
     }
@@ -243,7 +252,7 @@ export function BookingPage() {
       stream.close()
       if (pollingId) window.clearInterval(pollingId)
     }
-  }, [flightId])
+  }, [flightId, setSelectedSeatIds, user?.userId])
 
   const selectedSeat = selectedSeatIds.length === 1 ? seats.find((s) => s.seatNumber === selectedSeatIds[0]) : undefined
   const selectedSeatClass = selectedSeat ? getEffectiveSeatClass(selectedSeat) : undefined

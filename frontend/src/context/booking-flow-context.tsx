@@ -1,5 +1,7 @@
 import {
   createContext,
+  type Dispatch,
+  type SetStateAction,
   useContext,
   useEffect,
   useMemo,
@@ -45,7 +47,7 @@ interface BookingFlowContextValue {
   setSearchCriteria: (value: SearchCriteria | null) => void
   setSelectedFlight: (value: EnrichedFlightResult | null) => void
   setPreferredSeatClass: (value: SeatClassPreference | null) => void
-  setSelectedSeatIds: (value: string[]) => void
+  setSelectedSeatIds: Dispatch<SetStateAction<string[]>>
   setSelectedSeatId: (value: string) => void
   updatePassenger: (value: PassengerFormData) => void
   updatePassengerAt: (index: number, value: PassengerFormData) => void
