@@ -38,10 +38,56 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null)
 const PROFILE_STORAGE_KEY = 'skybooker_profile'
 
+function readStoredAuth() {
+  if (typeof window === 'undefined') {
+    return {
+      user: null as AuthUser | null,
+      token: null as string | null,
+      profile: null as UserResponse | null,
+    }
+  }
+
+  const savedToken = localStorage.getItem('skybooker_token')
+  const savedUser = localStorage.getItem('skybooker_user')
+  const savedProfile = localStorage.getItem(PROFILE_STORAGE_KEY)
+
+  if (!savedToken || !savedUser) {
+    return {
+      user: null as AuthUser | null,
+      token: null as string | null,
+      profile: null as UserResponse | null,
+    }
+  }
+
+  try {
+    const user = JSON.parse(savedUser) as AuthUser
+    let profile: UserResponse | null = null
+
+    if (savedProfile) {
+      try {
+        profile = JSON.parse(savedProfile) as UserResponse
+      } catch {
+        localStorage.removeItem(PROFILE_STORAGE_KEY)
+      }
+    }
+
+    return { user, token: savedToken, profile }
+  } catch {
+    localStorage.removeItem('skybooker_token')
+    localStorage.removeItem('skybooker_user')
+    localStorage.removeItem(PROFILE_STORAGE_KEY)
+    return {
+      user: null as AuthUser | null,
+      token: null as string | null,
+      profile: null as UserResponse | null,
+    }
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(null)
-  const [profile, setProfile] = useState<UserResponse | null>(null)
-  const [token, setToken] = useState<string | null>(null)
+  const [user, setUser] = useState<AuthUser | null>(() => readStoredAuth().user)
+  const [profile, setProfile] = useState<UserResponse | null>(() => readStoredAuth().profile)
+  const [token, setToken] = useState<string | null>(() => readStoredAuth().token)
   const [isAuthReady, setIsAuthReady] = useState(false)
 
   const syncProfile = useCallback((baseUser: AuthUser, nextProfile: UserResponse | null) => {
@@ -76,32 +122,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [syncProfile])
 
   useEffect(() => {
-    const savedToken = localStorage.getItem('skybooker_token')
-    const savedUser = localStorage.getItem('skybooker_user')
-    const savedProfile = localStorage.getItem(PROFILE_STORAGE_KEY)
+    const storedAuth = readStoredAuth()
 
-    if (!savedToken || !savedUser) {
+    if (!storedAuth.token || !storedAuth.user) {
       setIsAuthReady(true)
       return
     }
 
     try {
-      const nextUser = JSON.parse(savedUser) as AuthUser
-      setToken(savedToken)
-      setUser(nextUser)
-      if (savedProfile) {
-        try {
-          const nextProfile = JSON.parse(savedProfile) as UserResponse
-          setProfile(nextProfile)
-        } catch {
-          localStorage.removeItem(PROFILE_STORAGE_KEY)
-        }
-      }
-      void loadProfile(nextUser)
+      setToken(storedAuth.token)
+      setUser(storedAuth.user)
+      setProfile(storedAuth.profile)
+      void loadProfile(storedAuth.user)
     } catch {
-      localStorage.removeItem('skybooker_token')
-      localStorage.removeItem('skybooker_user')
-      localStorage.removeItem(PROFILE_STORAGE_KEY)
+      setToken(null)
+      setUser(null)
+      setProfile(null)
     } finally {
       setIsAuthReady(true)
     }

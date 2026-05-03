@@ -14,11 +14,11 @@ import {
   ArrowRight
 } from "lucide-react"
 import { useAuth } from "@/context/auth-context"
-import { authApi, flightApi, airportApi, airlineApi, bookingApi } from "@/services/api"
+import { adminApi, flightApi, airportApi, airlineApi } from "@/services/api"
 
 export default function AdminDashboard() {
   const navigate = useNavigate()
-  const { user, isLoggedIn } = useAuth()
+  const { isLoggedIn, isAuthReady } = useAuth()
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalFlights: 0,
@@ -31,26 +31,45 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (!isAuthReady) return
+    if (!isLoggedIn) {
+      navigate('/login')
+      return
+    }
+
     loadDashboardData()
-  }, [])
+    const intervalId = window.setInterval(loadDashboardData, 30000)
+
+    return () => window.clearInterval(intervalId)
+  }, [isLoggedIn, isAuthReady, navigate])
 
   const loadDashboardData = async () => {
     try {
       setLoading(true)
-      const [flights, airports, airlines] = await Promise.all([
+      const [users, flights, airports, airlines] = await Promise.all([
+        adminApi.getAllUsers(),
         flightApi.getAll(),
         airportApi.getAll(true),
         airlineApi.getAll(true)
       ])
 
+      const totalBookings = flights.reduce((sum, flight) => sum + (flight.totalSeats - flight.availableSeats), 0)
+      const activeBookings = flights
+        .filter(flight => flight.status === 'SCHEDULED')
+        .reduce((sum, flight) => sum + (flight.totalSeats - flight.availableSeats), 0)
+      const totalRevenue = flights.reduce(
+        (sum, flight) => sum + ((flight.totalSeats - flight.availableSeats) * flight.baseFare),
+        0
+      )
+
       setStats({
-        totalUsers: 0,
+        totalUsers: users.length,
         totalFlights: flights.length,
         totalAirports: airports.length,
         totalAirlines: airlines.length,
-        totalBookings: 0,
-        activeBookings: 0,
-        totalRevenue: 0
+        totalBookings,
+        activeBookings,
+        totalRevenue
       })
     } catch (err) {
       console.error('Error loading dashboard:', err)
@@ -230,5 +249,4 @@ export default function AdminDashboard() {
     </div>
   )
 }
-
 

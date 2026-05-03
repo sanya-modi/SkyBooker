@@ -30,6 +30,9 @@ export default function AnalyticsPage() {
       return
     }
     loadData()
+    const intervalId = window.setInterval(loadData, 30000)
+
+    return () => window.clearInterval(intervalId)
   }, [isLoggedIn, isAuthReady, navigate])
 
   const loadData = async () => {
@@ -58,6 +61,7 @@ export default function AnalyticsPage() {
   const totalBookings = flights.reduce((sum, f) => sum + (f.totalSeats - f.availableSeats), 0)
   const totalSeats = flights.reduce((sum, f) => sum + f.totalSeats, 0)
   const occupancyRate = totalSeats > 0 ? ((totalBookings / totalSeats) * 100).toFixed(1) : '0'
+  const activeFlights = flights.filter(f => f.status === 'ON_TIME' || f.status === 'DELAYED').length
 
   const stats = [
     {
@@ -80,7 +84,7 @@ export default function AnalyticsPage() {
     },
     {
       label: 'Active Flights',
-      value: flights.filter(f => f.status === 'SCHEDULED').length,
+      value: activeFlights,
       icon: Plane,
       color: 'from-blue-500 to-blue-600',
       bgColor: 'bg-blue-50',
@@ -249,4 +253,3 @@ export default function AnalyticsPage() {
     </div>
   )
 }
-
