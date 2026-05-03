@@ -94,6 +94,13 @@ export function BoardingPassTicket({ passenger, flight, seatNumber, pnr, classNa
               <Field label="Seat No."  value={seatNumber ?? '—'}                     valueClass="text-sm" />
             </div>
 
+            {/* PNR Row */}
+            {pnr && (
+              <div className="mt-4">
+                <Field label="PNR" value={pnr} valueClass="text-base tracking-wider" />
+              </div>
+            )}
+
             {/* Info Row 2 (Large Source & Destination) */}
             <div className="flex items-center justify-center gap-6 sm:gap-12 py-12">
               <p className="text-6xl sm:text-7xl font-black text-slate-800 tracking-widest">
@@ -154,6 +161,12 @@ export function BoardingPassTicket({ passenger, flight, seatNumber, pnr, classNa
               <Field label="Seat No." value={seatNumber ?? '—'} valueClass="text-sm" />
               <Field label="Boarding Time" value={fmtTime(flight.departureTime)} valueClass="text-sm" />
             </div>
+
+            {pnr && (
+              <div className="mt-4">
+                <Field label="PNR" value={pnr} valueClass="text-sm tracking-wider" />
+              </div>
+            )}
           </div>
 
           {/* Functional QR Code */}

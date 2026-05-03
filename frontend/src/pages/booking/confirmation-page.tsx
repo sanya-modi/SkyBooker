@@ -19,7 +19,6 @@ export function ConfirmationPage() {
   } = useBookingFlow()
 
   const [emailSent, setEmailSent] = useState(false)
-  const [smsSent, setSmsSent] = useState(false)
 
   const successRef = useRef<HTMLDivElement>(null)
   const ticketGroupRef = useRef<HTMLDivElement>(null)
@@ -31,10 +30,8 @@ export function ConfirmationPage() {
 
   useEffect(() => {
     const t1 = setTimeout(() => setEmailSent(true), 1500)
-    const t2 = setTimeout(() => setSmsSent(true), 2000)
     return () => {
       clearTimeout(t1)
-      clearTimeout(t2)
     }
   }, [])
 
@@ -108,8 +105,6 @@ export function ConfirmationPage() {
           <p className="text-slate-600 text-lg">Your journey is all set. Have a great flight!</p>
           <div className="mt-4 flex flex-wrap items-center justify-center gap-3 text-sm font-medium text-slate-500">
             <span className={emailSent ? 'text-green-600' : ''}>Email confirmation sent</span>
-            <span className="text-slate-300">|</span>
-            <span className={smsSent ? 'text-green-600' : ''}>SMS alert sent</span>
           </div>
         </div>
 
