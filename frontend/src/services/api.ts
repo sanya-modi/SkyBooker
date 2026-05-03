@@ -158,6 +158,12 @@ export interface BookingResult {
   selectedSeats: string[]
 }
 
+export interface TicketLookupResult {
+  booking: BookingResult
+  flight: FlightResult
+  passengers: PassengerResult[]
+}
+
 export interface BookingPassengerValidationPayload {
   dateOfBirth: string
   category: 'ADULT' | 'CHILD' | 'INFANT'
@@ -380,6 +386,10 @@ export const bookingApi = {
     if (!response.ok) throw new Error('Failed to download ticket')
     return response.blob()
   },
+}
+
+export const ticketApi = {
+  getByPnr: (pnr: string) => request<TicketLookupResult>(`/tickets/pnr/${pnr}`),
 }
 
 let cachedAirports: Airport[] | null = null

@@ -19,7 +19,11 @@ export function TopNav() {
   const normalizedRole = user?.role?.replace(/^ROLE_/, '').toUpperCase()
   const canAccessAdmin = normalizedRole === 'ADMIN'
   const canAccessAirline = normalizedRole === 'AIRLINE_STAFF'
-  const isGuestAuthHiddenRoute = location.pathname === '/' || location.pathname === '/results'
+  const canSearchTicketByPnr = !isLoggedIn || normalizedRole === 'PASSENGER'
+  const isGuestAuthHiddenRoute =
+    location.pathname === '/' ||
+    location.pathname === '/results' ||
+    location.pathname === '/tickets'
 
   const handleLogout = () => {
     logout()
@@ -30,6 +34,7 @@ export function TopNav() {
     { href: '/', label: 'Explore' },
     { href: '/results', label: 'Flights' },
     { href: '/bookings', label: 'My Trips' },
+    ...(canSearchTicketByPnr ? [{ href: '/tickets', label: 'Find Ticket / PNR' }] : []),
   ]
 
   return (

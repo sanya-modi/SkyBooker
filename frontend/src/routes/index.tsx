@@ -21,6 +21,7 @@ import ProfilePage from '@/pages/ProfilePage'
 import NotificationsPage from '@/pages/NotificationsPage'
 import NotificationSettingsPage from '@/pages/settings/NotificationSettingsPage'
 import RefundsPage from '@/pages/RefundsPage'
+import { TicketLookupPage } from '@/pages/tickets/TicketLookupPage'
 
 // Admin Pages
 import AdminLayout from '@/pages/admin/AdminLayout'
@@ -77,6 +78,7 @@ export default function AppRoutes() {
             <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/settings/notifications" element={<NotificationSettingsPage />} />
             <Route path="/refunds" element={<RefundsPage />} />
+            <Route path="/tickets" element={<TicketLookupPage />} />
 
             {/* Admin Routes */}
             <Route path="/admin" element={<AdminLayout />}>

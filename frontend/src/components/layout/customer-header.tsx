@@ -26,6 +26,8 @@ export function CustomerHeader({
 }: CustomerHeaderProps) {
   const { isLoggedIn, user, profile, logout } = useAuth()
   const navigate = useNavigate()
+  const normalizedRole = user?.role?.replace(/^ROLE_/, '').toUpperCase()
+  const canSearchTicketByPnr = !isLoggedIn || normalizedRole === 'PASSENGER'
   const [supportModalOpen, setSupportModalOpen] = useState(false)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -74,6 +76,11 @@ export function CustomerHeader({
           <Link to="/bookings" className="text-[#00236f] border-b-2 border-[#00236f]/40 pb-1 font-medium">
             Bookings
           </Link>
+          {canSearchTicketByPnr ? (
+            <Link to="/tickets" className="text-slate-600 font-medium hover:text-[#00236f] transition-colors">
+              Find Ticket / PNR
+            </Link>
+          ) : null}
           <button 
             onClick={() => setSupportModalOpen(true)} 
             className="text-slate-600 font-medium hover:text-[#00236f] transition-colors"

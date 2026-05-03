@@ -2,6 +2,7 @@ package com.skyBooker.booking.service;
 
 import com.skyBooker.booking.dto.BookingRequest;
 import com.skyBooker.booking.dto.BookingResponse;
+import com.skyBooker.booking.dto.TicketLookupResponse;
 import com.skyBooker.booking.entity.Booking;
 import com.skyBooker.booking.repository.BookingRepository;
 import lombok.RequiredArgsConstructor;
@@ -49,6 +50,9 @@ public class BookingServiceImpl implements BookingService {
 
     @Value("${services.payment-base-url:http://localhost:8086}")
     private String paymentServiceUrl;
+
+    @Value("${services.passenger-base-url:http://localhost:8085}")
+    private String passengerServiceUrl;
 
     @Override
     public BookingResponse createBooking(BookingRequest request) {
@@ -133,6 +137,22 @@ public class BookingServiceImpl implements BookingService {
         Booking booking = bookingRepository.findByPnr(pnr)
                 .orElseThrow(() -> new RuntimeException("Booking not found"));
         return mapToResponse(booking, booking.getSelectedSeats());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public TicketLookupResponse getTicketByPnr(String pnr) {
+        Booking booking = bookingRepository.findByPnr(pnr)
+                .orElseThrow(() -> new RuntimeException("Booking not found"));
+
+        FlightDTO flight = getFlightDetails(booking.getFlightId());
+        List<PassengerDTO> passengers = getPassengersByBookingId(booking.getId());
+
+        return new TicketLookupResponse(
+                mapToResponse(booking, booking.getSelectedSeats()),
+                mapFlightSummary(flight),
+                passengers.stream().map(this::mapPassengerSummary).toList()
+        );
     }
 
     @Override
@@ -362,6 +382,17 @@ public class BookingServiceImpl implements BookingService {
                 .block();
     }
 
+    private List<PassengerDTO> getPassengersByBookingId(Long bookingId) {
+        PassengerDTO[] passengers = webClientBuilder.build()
+                .get()
+                .uri(passengerServiceUrl + "/passengers/booking/{bookingId}", bookingId)
+                .retrieve()
+                .bodyToMono(PassengerDTO[].class)
+                .onErrorReturn(new PassengerDTO[0])
+                .block();
+        return passengers == null ? List.of() : List.of(passengers);
+    }
+
     private Map<String, Object> buildFlightDetailsMap(FlightDTO flight) {
         Map<String, Object> details = new HashMap<>();
         details.put("flightNumber", flight.getFlightNumber());
@@ -578,20 +609,117 @@ public class BookingServiceImpl implements BookingService {
         return response;
     }
 
+    private TicketLookupResponse.FlightSummary mapFlightSummary(FlightDTO flight) {
+        return new TicketLookupResponse.FlightSummary(
+                flight.getId(),
+                flight.getFlightNumber(),
+                flight.getAircraftType(),
+                flight.getAirlineId(),
+                flight.getDepartureAirportId(),
+                flight.getArrivalAirportId(),
+                flight.getDepartureTime() != null ? flight.getDepartureTime().toString() : null,
+                flight.getArrivalTime() != null ? flight.getArrivalTime().toString() : null,
+                flight.getTotalSeats(),
+                flight.getAvailableSeats(),
+                flight.getStatus()
+        );
+    }
+
+    private TicketLookupResponse.PassengerSummary mapPassengerSummary(PassengerDTO passenger) {
+        return new TicketLookupResponse.PassengerSummary(
+                passenger.getId(),
+                passenger.getBookingId(),
+                passenger.getFirstName(),
+                passenger.getLastName(),
+                passenger.getEmail(),
+                passenger.getPhoneNumber(),
+                passenger.getPassportNumber(),
+                passenger.getDateOfBirth(),
+                passenger.getCategory(),
+                passenger.getGender(),
+                passenger.getNationality(),
+                passenger.getSpecialRequests()
+        );
+    }
+
     public static class FlightDTO {
         private Long id;
         private String flightNumber;
+        private String aircraftType;
+        private Long airlineId;
+        private Long departureAirportId;
+        private Long arrivalAirportId;
+        private LocalDateTime arrivalTime;
+        private Integer totalSeats;
+        private Integer availableSeats;
         private BigDecimal baseFare;
         private LocalDateTime departureTime;
+        private String status;
 
         public Long getId() { return id; }
         public void setId(Long id) { this.id = id; }
         public String getFlightNumber() { return flightNumber; }
         public void setFlightNumber(String flightNumber) { this.flightNumber = flightNumber; }
+        public String getAircraftType() { return aircraftType; }
+        public void setAircraftType(String aircraftType) { this.aircraftType = aircraftType; }
+        public Long getAirlineId() { return airlineId; }
+        public void setAirlineId(Long airlineId) { this.airlineId = airlineId; }
+        public Long getDepartureAirportId() { return departureAirportId; }
+        public void setDepartureAirportId(Long departureAirportId) { this.departureAirportId = departureAirportId; }
+        public Long getArrivalAirportId() { return arrivalAirportId; }
+        public void setArrivalAirportId(Long arrivalAirportId) { this.arrivalAirportId = arrivalAirportId; }
+        public LocalDateTime getArrivalTime() { return arrivalTime; }
+        public void setArrivalTime(LocalDateTime arrivalTime) { this.arrivalTime = arrivalTime; }
+        public Integer getTotalSeats() { return totalSeats; }
+        public void setTotalSeats(Integer totalSeats) { this.totalSeats = totalSeats; }
+        public Integer getAvailableSeats() { return availableSeats; }
+        public void setAvailableSeats(Integer availableSeats) { this.availableSeats = availableSeats; }
         public BigDecimal getBaseFare() { return baseFare; }
         public void setBaseFare(BigDecimal baseFare) { this.baseFare = baseFare; }
         public LocalDateTime getDepartureTime() { return departureTime; }
         public void setDepartureTime(LocalDateTime departureTime) { this.departureTime = departureTime; }
+        public String getStatus() { return status; }
+        public void setStatus(String status) { this.status = status; }
+    }
+
+    public static class PassengerDTO {
+        private Long id;
+        private Long bookingId;
+        private String firstName;
+        private String lastName;
+        private String email;
+        private String phoneNumber;
+        private String passportNumber;
+        private String dateOfBirth;
+        private String category;
+        private String gender;
+        private String nationality;
+        private String specialRequests;
+
+        public Long getId() { return id; }
+        public void setId(Long id) { this.id = id; }
+        public Long getBookingId() { return bookingId; }
+        public void setBookingId(Long bookingId) { this.bookingId = bookingId; }
+        public String getFirstName() { return firstName; }
+        public void setFirstName(String firstName) { this.firstName = firstName; }
+        public String getLastName() { return lastName; }
+        public void setLastName(String lastName) { this.lastName = lastName; }
+        public String getEmail() { return email; }
+        public void setEmail(String email) { this.email = email; }
+        public String getPhoneNumber() { return phoneNumber; }
+        public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
+        public String getPassportNumber() { return passportNumber; }
+        public void setPassportNumber(String passportNumber) { this.passportNumber = passportNumber; }
+        public String getDateOfBirth() { return dateOfBirth; }
+        public void setDateOfBirth(String dateOfBirth) { this.dateOfBirth = dateOfBirth; }
+        public String getCategory() { return category; }
+        public void setCategory(String category) { this.category = category; }
+        public String getGender() { return gender; }
+        public void setGender(String gender) { this.gender = gender; }
+        public String getNationality() { return nationality; }
+        public void setNationality(String nationality) { this.nationality = nationality; }
+        public String getSpecialRequests() { return specialRequests; }
+        public void setSpecialRequests(String specialRequests) { this.specialRequests = specialRequests; }
     }
 
     public static class UserDTO {

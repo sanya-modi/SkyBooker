@@ -61,3 +61,4 @@ services:
   payment-base-url: ${PAYMENT_SERVICE_URL:http://localhost:8086}
   notification-base-url: ${NOTIFICATION_SERVICE_URL:http://localhost:8087}
   auth-base-url: ${AUTH_SERVICE_URL:http://localhost:8081}
+  passenger-base-url: ${PASSENGER_SERVICE_URL:http://localhost:8085}
