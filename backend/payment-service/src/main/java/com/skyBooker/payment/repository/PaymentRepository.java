@@ -16,6 +16,8 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     @Query("SELECT p FROM Payment p WHERE p.bookingId = :bookingId ORDER BY p.transactionDate DESC")
     List<Payment> findByBookingId(@Param("bookingId") Long bookingId);
 
+    Optional<Payment> findTopByBookingIdOrderByTransactionDateDesc(Long bookingId);
+
     @Query("SELECT p FROM Payment p WHERE p.userId = :userId ORDER BY p.transactionDate DESC")
     List<Payment> findByUserId(@Param("userId") Long userId);
 

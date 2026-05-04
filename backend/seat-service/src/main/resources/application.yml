@@ -16,6 +16,7 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
+    open-in-view: false
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     show-sql: false
     properties:
@@ -56,3 +57,7 @@ springdoc:
     path: /v3/api-docs
   swagger-ui:
     path: /swagger-ui.html
+
+services:
+  flight-base-url: ${FLIGHT_SERVICE_URL:http://localhost:8082}
+  booking-base-url: ${BOOKING_SERVICE_URL:http://localhost:8084}

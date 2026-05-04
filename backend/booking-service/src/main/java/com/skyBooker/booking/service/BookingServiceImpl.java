@@ -2,6 +2,7 @@ package com.skyBooker.booking.service;
 
 import com.skyBooker.booking.dto.BookingRequest;
 import com.skyBooker.booking.dto.BookingResponse;
+import com.skyBooker.booking.dto.FlightBookingAnalyticsResponse;
 import com.skyBooker.booking.dto.TicketLookupResponse;
 import com.skyBooker.booking.entity.Booking;
 import com.skyBooker.booking.repository.BookingRepository;
@@ -61,9 +62,11 @@ public class BookingServiceImpl implements BookingService {
 
         BigDecimal baseFare = getFlightBaseFare(request.getFlightId())
                 .multiply(BigDecimal.valueOf(request.getNumberOfPassengers()));
-        
-        BigDecimal taxes = baseFare.multiply(BigDecimal.valueOf(0.18));
-        BigDecimal ancillaryCharges = BigDecimal.valueOf(request.getNumberOfPassengers() * 5);
+
+        BigDecimal taxes = defaultAmount(request.getTaxes());
+        BigDecimal ancillaryCharges = defaultAmount(request.getSeatCharge())
+                .add(defaultAmount(request.getMealCharge()))
+                .add(defaultAmount(request.getBaggageCharge()));
         BigDecimal totalFare = baseFare.add(taxes).add(ancillaryCharges);
 
         Booking booking = new Booking();
@@ -95,6 +98,17 @@ public class BookingServiceImpl implements BookingService {
                 validatePassengerCategoryAge(passenger.getDateOfBirth(), passenger.getCategory());
             }
         }
+
+        if (defaultAmount(request.getTaxes()).compareTo(BigDecimal.ZERO) < 0
+                || defaultAmount(request.getSeatCharge()).compareTo(BigDecimal.ZERO) < 0
+                || defaultAmount(request.getMealCharge()).compareTo(BigDecimal.ZERO) < 0
+                || defaultAmount(request.getBaggageCharge()).compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("Pricing values must be zero or positive");
+        }
+    }
+
+    private BigDecimal defaultAmount(BigDecimal amount) {
+        return amount == null ? BigDecimal.ZERO : amount;
     }
 
     private void validatePassengerCategoryAge(LocalDate dateOfBirth, BookingRequest.PassengerCategory category) {
@@ -173,10 +187,13 @@ public TicketLookupResponse getTicketByPnr(String pnr) {
     }
 
     @Override
-    public BookingResponse updateBookingStatus(Long id, Booking.BookingStatus status) {
+    public BookingResponse updateBookingStatus(Long id, Booking.BookingStatus status, Long paymentId) {
         Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Booking not found"));
         booking.setStatus(status);
+        if (paymentId != null) {
+            booking.setPaymentId(paymentId);
+        }
         Booking updated = bookingRepository.save(booking);
         
         if (status == Booking.BookingStatus.CONFIRMED) {
@@ -369,6 +386,16 @@ public TicketLookupResponse getTicketByPnr(String pnr) {
     @Transactional(readOnly = true)
     public Long countConfirmedBookings(Long flightId) {
         return bookingRepository.countConfirmedBookingsByFlight(flightId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public FlightBookingAnalyticsResponse getFlightBookingAnalytics(Long flightId) {
+        return new FlightBookingAnalyticsResponse(
+                flightId,
+                bookingRepository.countConfirmedBookingsByFlight(flightId),
+                bookingRepository.sumConfirmedRevenueByFlight(flightId)
+        );
     }
 
     private String generatePNR() {
@@ -646,6 +673,7 @@ public TicketLookupResponse getTicketByPnr(String pnr) {
         response.setTaxes(booking.getTaxes());
         response.setAncillaryCharges(booking.getAncillaryCharges());
         response.setTotalFare(booking.getTotalFare());
+        response.setTotalAmount(booking.getTotalAmount());
         response.setStatus(booking.getStatus().toString());
         response.setBookingDate(booking.getBookingDate());
         response.setCheckedIn(booking.getCheckedIn());

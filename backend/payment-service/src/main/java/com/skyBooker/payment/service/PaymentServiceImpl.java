@@ -24,7 +24,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -50,11 +52,34 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     public RazorpayOrderResponse createRazorpayOrder(RazorpayOrderRequest request, String userEmail, String userName) {
         try {
+            BookingSnapshot booking = getBookingSnapshot(request.getBookingId());
+            validatePaymentRequest(request, booking);
+
+            Payment existingPendingPayment = paymentRepository.findTopByBookingIdOrderByTransactionDateDesc(request.getBookingId())
+                    .filter(payment -> Payment.PaymentStatus.PENDING.equals(payment.getStatus()))
+                    .filter(payment -> payment.getRazorpayOrderId() != null && !payment.getRazorpayOrderId().isBlank())
+                    .filter(payment -> Objects.equals(payment.getPaymentMethod(), request.getPaymentMethod()))
+                    .filter(payment -> payment.getAmount() != null && payment.getAmount().compareTo(resolveBookingAmount(booking)) == 0)
+                    .orElse(null);
+
+            if (existingPendingPayment != null) {
+                return RazorpayOrderResponse.builder()
+                        .orderId(existingPendingPayment.getRazorpayOrderId())
+                        .keyId(razorpayKeyId)
+                        .amount(existingPendingPayment.getAmount())
+                        .currency(request.getCurrency())
+                        .userId(request.getUserId())
+                        .userEmail(userEmail)
+                        .userName(userName)
+                        .build();
+            }
+
             RazorpayClient client = razorpayProvider.getClient();
             String transactionId = generateTransactionId();
+            BigDecimal bookingAmount = resolveBookingAmount(booking);
 
             JSONObject orderRequest = new JSONObject();
-            orderRequest.put("amount", request.getAmount().multiply(BigDecimal.valueOf(100)).intValue());
+            orderRequest.put("amount", bookingAmount.multiply(BigDecimal.valueOf(100)).intValue());
             orderRequest.put("currency", request.getCurrency());
             orderRequest.put("receipt", transactionId);
 
@@ -69,7 +94,7 @@ public class PaymentServiceImpl implements PaymentService {
             payment.setTransactionId(transactionId);
             payment.setBookingId(request.getBookingId());
             payment.setUserId(request.getUserId());
-            payment.setAmount(request.getAmount());
+            payment.setAmount(bookingAmount);
             payment.setPaymentMethod(request.getPaymentMethod());
             payment.setStatus(Payment.PaymentStatus.PENDING);
             payment.setRazorpayOrderId(order.get("id"));
@@ -78,7 +103,7 @@ public class PaymentServiceImpl implements PaymentService {
             return RazorpayOrderResponse.builder()
                     .orderId(order.get("id"))
                     .keyId(razorpayKeyId)
-                    .amount(request.getAmount())
+                    .amount(bookingAmount)
                     .currency(request.getCurrency())
                     .userId(request.getUserId())
                     .userEmail(userEmail)
@@ -120,7 +145,7 @@ public class PaymentServiceImpl implements PaymentService {
             payment.setGatewayTransactionId(request.getRazorpayPaymentId());
 
             Payment saved = paymentRepository.save(payment);
-            confirmBooking(saved.getBookingId());
+            confirmBooking(saved.getBookingId(), saved.getId());
             return saved;
 
         } catch (Exception e) {
@@ -170,7 +195,7 @@ public class PaymentServiceImpl implements PaymentService {
             payment.setRazorpayPaymentId(razorpayPaymentId);
             payment.setGatewayTransactionId(event.optString("created_at", payment.getGatewayTransactionId()));
             Payment saved = paymentRepository.save(payment);
-            confirmBooking(saved.getBookingId());
+            confirmBooking(saved.getBookingId(), saved.getId());
             return saved;
         }
 
@@ -291,9 +316,53 @@ public class PaymentServiceImpl implements PaymentService {
         }
     }
 
-    private void confirmBooking(Long bookingId) {
-        String confirmBookingUrl = bookingBaseUrl + "/bookings/" + bookingId + "/status?status=CONFIRMED";
+    private void confirmBooking(Long bookingId, Long paymentId) {
+        String confirmBookingUrl = bookingBaseUrl + "/bookings/" + bookingId + "/status?status=CONFIRMED&paymentId=" + paymentId;
         new RestTemplate().put(confirmBookingUrl, null);
+    }
+
+    private BookingSnapshot getBookingSnapshot(Long bookingId) {
+        BookingSnapshot booking = new RestTemplate().getForObject(
+                bookingBaseUrl + "/bookings/{bookingId}",
+                BookingSnapshot.class,
+                bookingId
+        );
+        if (booking == null) {
+            throw new RuntimeException("Booking not found");
+        }
+        return booking;
+    }
+
+    private void validatePaymentRequest(RazorpayOrderRequest request, BookingSnapshot booking) {
+        if (!request.getUserId().equals(booking.getUserId())) {
+            throw new RuntimeException("Booking does not belong to the current user");
+        }
+        if (!"PENDING".equalsIgnoreCase(booking.getStatus())) {
+            throw new RuntimeException("Payment can only be created for pending bookings");
+        }
+        List<String> selectedSeats = booking.getSelectedSeats() == null ? Collections.emptyList() : booking.getSelectedSeats();
+        if (selectedSeats.isEmpty()) {
+            throw new RuntimeException("Booking is missing selected seats");
+        }
+        if (booking.getNumberOfPassengers() == null || booking.getNumberOfPassengers() <= 0) {
+            throw new RuntimeException("Booking is missing passenger count");
+        }
+        if (selectedSeats.size() != booking.getNumberOfPassengers()) {
+            throw new RuntimeException("Selected seats must match the passenger count before payment");
+        }
+
+        BigDecimal bookingAmount = resolveBookingAmount(booking);
+        if (bookingAmount == null || bookingAmount.compareTo(request.getAmount()) != 0) {
+            throw new RuntimeException("Payment amount does not match the booking total");
+        }
+
+        if (paymentRepository.findSuccessfulPaymentByBookingId(request.getBookingId()).isPresent()) {
+            throw new RuntimeException("Payment has already been completed for this booking");
+        }
+    }
+
+    private BigDecimal resolveBookingAmount(BookingSnapshot booking) {
+        return booking.getTotalAmount() != null ? booking.getTotalAmount() : booking.getTotalFare();
     }
 
     private void writePdfLine(PDPageContentStream content, float y, String text, int fontSize) throws IOException {
@@ -302,5 +371,62 @@ public class PaymentServiceImpl implements PaymentService {
         content.newLineAtOffset(70, y);
         content.showText(text);
         content.endText();
+    }
+
+    private static class BookingSnapshot {
+        private Long userId;
+        private Integer numberOfPassengers;
+        private BigDecimal totalFare;
+        private BigDecimal totalAmount;
+        private String status;
+        private List<String> selectedSeats;
+
+        public Long getUserId() {
+            return userId;
+        }
+
+        public void setUserId(Long userId) {
+            this.userId = userId;
+        }
+
+        public Integer getNumberOfPassengers() {
+            return numberOfPassengers;
+        }
+
+        public void setNumberOfPassengers(Integer numberOfPassengers) {
+            this.numberOfPassengers = numberOfPassengers;
+        }
+
+        public BigDecimal getTotalFare() {
+            return totalFare;
+        }
+
+        public void setTotalFare(BigDecimal totalFare) {
+            this.totalFare = totalFare;
+        }
+
+        public BigDecimal getTotalAmount() {
+            return totalAmount;
+        }
+
+        public void setTotalAmount(BigDecimal totalAmount) {
+            this.totalAmount = totalAmount;
+        }
+
+        public String getStatus() {
+            return status;
+        }
+
+        public void setStatus(String status) {
+            this.status = status;
+        }
+
+        public List<String> getSelectedSeats() {
+            return selectedSeats;
+        }
+
+        public void setSelectedSeats(List<String> selectedSeats) {
+            this.selectedSeats = selectedSeats;
+        }
     }
 }

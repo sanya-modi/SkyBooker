@@ -53,6 +53,9 @@ public class Booking {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal totalFare;
 
+    @Column(name = "total_amount", nullable = false, precision = 10, scale = 2)
+    private BigDecimal totalAmount;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private BookingStatus status;
@@ -120,5 +123,15 @@ public class Booking {
         } catch (JsonProcessingException e) {
             this.selectedSeatsJson = "[]";
         }
+    }
+
+    public void setTotalFare(BigDecimal totalFare) {
+        this.totalFare = totalFare;
+        this.totalAmount = totalFare;
+    }
+
+    public void setTotalAmount(BigDecimal totalAmount) {
+        this.totalAmount = totalAmount;
+        this.totalFare = totalAmount;
     }
 }

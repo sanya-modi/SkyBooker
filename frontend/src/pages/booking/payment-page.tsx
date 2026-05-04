@@ -235,6 +235,9 @@ export function PaymentPage() {
   }
 
   async function handleConfirm() {
+    if (submitting) {
+      return
+    }
     if (!user) {
       setError('Please log in to continue with payment.')
       return
@@ -289,6 +292,10 @@ export function PaymentPage() {
         flightId: flight.id,
         numberOfPassengers: selectedSeatIds.length,
         selectedSeats: selectedSeatIds,
+        taxes,
+        seatCharge,
+        mealCharge,
+        baggageCharge,
         passengers: selectedPassengers.map((entry) => ({
           dateOfBirth: entry.dateOfBirth,
           category: entry.category as 'ADULT' | 'CHILD' | 'INFANT',
@@ -316,17 +323,19 @@ export function PaymentPage() {
         )
       } catch (passengerError) {
         const passengerMessage = passengerError instanceof Error ? passengerError.message : 'Failed to save passenger details.'
-        if (!isPassengerSchemaMismatchError(passengerMessage)) {
-          throw passengerError
+        if (isPassengerSchemaMismatchError(passengerMessage)) {
+          console.warn('Passenger persistence failed due to backend schema mismatch:', passengerMessage)
         }
-        console.warn('Passenger persistence skipped due to backend schema mismatch:', passengerMessage)
+        throw new Error(passengerMessage)
       }
+
+      const bookingAmount = Number(booking.totalAmount ?? booking.totalFare)
 
       // Step 2: Create Razorpay order
       const orderData = await paymentApi.createOrder(
         {
           bookingId: booking.id,
-          amount: total,
+          amount: bookingAmount,
           currency: 'INR',
           userId: user.userId,
           paymentMethod: selectedMethod
@@ -355,7 +364,7 @@ export function PaymentPage() {
             })
 
             console.log('Payment verified successfully')
-            setConfirmedBooking(booking)
+            setConfirmedBooking(await bookingApi.getById(booking.id))
             navigate('/confirmation')
           } catch (err) {
             console.error('Payment verification failed:', err)

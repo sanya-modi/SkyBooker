@@ -2,10 +2,12 @@ package com.skyBooker.booking.dto;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.DecimalMin;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.time.LocalDate;
 
@@ -28,6 +30,18 @@ public class BookingRequest {
 
     @NotNull(message = "Selected seats are required")
     private List<String> selectedSeats;
+
+    @DecimalMin(value = "0.00", inclusive = true, message = "Taxes must be zero or positive")
+    private BigDecimal taxes;
+
+    @DecimalMin(value = "0.00", inclusive = true, message = "Seat charge must be zero or positive")
+    private BigDecimal seatCharge;
+
+    @DecimalMin(value = "0.00", inclusive = true, message = "Meal charge must be zero or positive")
+    private BigDecimal mealCharge;
+
+    @DecimalMin(value = "0.00", inclusive = true, message = "Baggage charge must be zero or positive")
+    private BigDecimal baggageCharge;
 
     private List<PassengerValidationRequest> passengers;
 

@@ -6,14 +6,12 @@ import {
   BarChart3,
   DollarSign,
   TrendingUp,
-  Users,
   Plane,
   MapPin,
   ShoppingBag,
-  PieChart
 } from "lucide-react"
 import { useAuth } from "@/context/auth-context"
-import { flightApi, airportApi, airlineApi, seatApi, type FlightResult, type Airport, type Airline, type FlightAnalyticsEvent } from "@/services/api"
+import { bookingApi, flightApi, airportApi, airlineApi, seatApi, type FlightResult, type Airport, type Airline, type FlightAnalyticsEvent } from "@/services/api"
 
 export default function AnalyticsPage() {
   const navigate = useNavigate()
@@ -30,28 +28,27 @@ export default function AnalyticsPage() {
       navigate('/login')
       return
     }
-    loadData()
-    const intervalId = window.setInterval(loadData, 30000)
+    void loadData()
+    const intervalId = window.setInterval(() => {
+      void loadData()
+    }, 30000)
 
     return () => window.clearInterval(intervalId)
   }, [isLoggedIn, isAuthReady, navigate])
 
-  // Subscribe to real-time analytics updates
   useEffect(() => {
     if (flights.length === 0) return
 
     const streams: EventSource[] = []
-    const flightIds = flights.map(f => f.id)
-
-    for (const flightId of flightIds) {
+    for (const flight of flights) {
       try {
-        const stream = seatApi.createSeatStream(flightId)
+        const stream = seatApi.createSeatStream(flight.id)
         stream.addEventListener('flight-analytics', (event) => {
           try {
             const payload = JSON.parse((event as MessageEvent).data) as FlightAnalyticsEvent
             setAnalyticsData(prev => new Map(prev).set(payload.flightId, payload))
-            setFlights(prev => prev.map(f => 
-              f.id === payload.flightId ? { ...f, availableSeats: payload.availableSeats } : f
+            setFlights(prev => prev.map(current =>
+              current.id === payload.flightId ? { ...current, availableSeats: payload.availableSeats } : current
             ))
           } catch {
             // ignore malformed events
@@ -74,11 +71,36 @@ export default function AnalyticsPage() {
       const [flightsData, airportsData, airlinesData] = await Promise.all([
         flightApi.getAll(),
         airportApi.getAll(true),
-        airlineApi.getAll(true)
+        airlineApi.getAll(true),
       ])
+
+      const bookingAnalytics = await Promise.all(
+        flightsData.map(async (flight) => {
+          try {
+            return await bookingApi.getFlightAnalytics(flight.id)
+          } catch {
+            return null
+          }
+        }),
+      )
+
+      const initialAnalytics = new Map<number, FlightAnalyticsEvent>()
+      flightsData.forEach((flight, index) => {
+        const analytics = bookingAnalytics[index]
+        initialAnalytics.set(flight.id, {
+          flightId: flight.id,
+          totalSeats: flight.totalSeats,
+          bookedSeats: flight.totalSeats - flight.availableSeats,
+          availableSeats: flight.availableSeats,
+          revenue: Number(analytics?.revenue ?? 0),
+          bookingsCount: Number(analytics?.bookingsCount ?? 0),
+        })
+      })
+
       setFlights(flightsData)
       setAirports(airportsData)
       setAirlines(airlinesData)
+      setAnalyticsData(initialAnalytics)
     } catch (err) {
       console.error('Error loading data:', err)
     } finally {
@@ -86,49 +108,49 @@ export default function AnalyticsPage() {
     }
   }
 
-  const totalRevenue = Array.from(analyticsData.values()).reduce((sum, a) => sum + Number(a.revenue), 0)
-  const totalBookings = Array.from(analyticsData.values()).reduce((sum, a) => sum + a.bookingsCount, 0)
-  const totalSeats = flights.reduce((sum, f) => sum + f.totalSeats, 0)
-  const occupancyRate = totalSeats > 0 ? ((totalBookings / totalSeats) * 100).toFixed(1) : '0'
-  const activeFlights = flights.filter(f => f.status === 'ON_TIME' || f.status === 'DELAYED').length
+  const totalRevenue = Array.from(analyticsData.values()).reduce((sum, analytics) => sum + Number(analytics.revenue), 0)
+  const totalBookings = Array.from(analyticsData.values()).reduce((sum, analytics) => sum + analytics.bookingsCount, 0)
+  const totalBookedSeats = Array.from(analyticsData.values()).reduce((sum, analytics) => sum + analytics.bookedSeats, 0)
+  const totalSeats = flights.reduce((sum, flight) => sum + flight.totalSeats, 0)
+  const occupancyRate = totalSeats > 0 ? ((totalBookedSeats / totalSeats) * 100).toFixed(1) : '0'
+  const avgRevenuePerFlight = flights.length > 0 ? totalRevenue / flights.length : 0
 
   const stats = [
     {
       label: 'Total Revenue',
-      value: `₹${totalRevenue.toLocaleString()}`,
+      value: new Intl.NumberFormat('en-IN', {
+  style: 'currency',
+  currency: 'INR',
+}).format(totalRevenue),
       icon: DollarSign,
-      color: 'from-green-500 to-green-600',
       bgColor: 'bg-green-50',
       textColor: 'text-green-600',
-      change: '+15.3%'
+    },
+    {
+      label: 'Avg Revenue / Flight',
+      value: new Intl.NumberFormat('en-IN', {
+  style: 'currency',
+  currency: 'INR',
+  maximumFractionDigits: 0,
+}).format(avgRevenuePerFlight),
+      icon: BarChart3,
+      bgColor: 'bg-purple-50',
+      textColor: 'text-purple-600',
     },
     {
       label: 'Total Bookings',
       value: totalBookings,
       icon: ShoppingBag,
-      color: 'from-purple-500 to-purple-600',
-      bgColor: 'bg-purple-50',
-      textColor: 'text-purple-600',
-      change: '+12.5%'
-    },
-    {
-      label: 'Active Flights',
-      value: activeFlights,
-      icon: Plane,
-      color: 'from-blue-500 to-blue-600',
       bgColor: 'bg-blue-50',
       textColor: 'text-blue-600',
-      change: '+8.2%'
     },
     {
       label: 'Occupancy Rate',
       value: `${occupancyRate}%`,
       icon: TrendingUp,
-      color: 'from-orange-500 to-orange-600',
       bgColor: 'bg-orange-50',
       textColor: 'text-orange-600',
-      change: '+5.7%'
-    }
+    },
   ]
 
   const topAirlines = airlines.slice(0, 5)
@@ -160,7 +182,7 @@ export default function AnalyticsPage() {
                       <div className={`w-12 h-12 ${stat.bgColor} rounded-xl flex items-center justify-center`}>
                         <Icon className={`w-6 h-6 ${stat.textColor}`} />
                       </div>
-                      <span className="text-sm font-bold text-green-600">{stat.change}</span>
+                      <span className="text-sm font-bold text-slate-500">Live</span>
                     </div>
                     <p className="text-3xl font-black text-slate-800 mb-1">{stat.value}</p>
                     <p className="text-sm text-slate-500 font-bold">{stat.label}</p>

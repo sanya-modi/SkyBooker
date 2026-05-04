@@ -2,6 +2,7 @@ package com.skyBooker.booking.service;
 
 import com.skyBooker.booking.dto.BookingRequest;
 import com.skyBooker.booking.dto.BookingResponse;
+import com.skyBooker.booking.dto.FlightBookingAnalyticsResponse;
 import com.skyBooker.booking.dto.TicketLookupResponse;
 import com.skyBooker.booking.entity.Booking;
 
@@ -13,7 +14,7 @@ public interface BookingService {
     BookingResponse getBookingByPnr(String pnr);
     TicketLookupResponse getTicketByPnr(String pnr);
     List<BookingResponse> getBookingsByUserId(Long userId);
-    BookingResponse updateBookingStatus(Long id, Booking.BookingStatus status);
+    BookingResponse updateBookingStatus(Long id, Booking.BookingStatus status, Long paymentId);
     BookingResponse webCheckIn(Long id, String seatNumber);
     int markNoShowsAfterGateClosure();
     byte[] generateETicketPdf(Long id);
@@ -21,4 +22,5 @@ public interface BookingService {
     void cancelBooking(Long id);
     List<BookingResponse> getConfirmedBookingsByFlight(Long flightId);
     Long countConfirmedBookings(Long flightId);
+    FlightBookingAnalyticsResponse getFlightBookingAnalytics(Long flightId);
 }

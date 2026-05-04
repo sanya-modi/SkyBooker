@@ -14,7 +14,7 @@ import {
   ArrowRight
 } from "lucide-react"
 import { useAuth } from "@/context/auth-context"
-import { adminApi, flightApi, airportApi, airlineApi, seatApi, type FlightAnalyticsEvent } from "@/services/api"
+import { adminApi, bookingApi, flightApi, airportApi, airlineApi, seatApi, type FlightAnalyticsEvent } from "@/services/api"
 
 export default function AdminDashboard() {
   const navigate = useNavigate()
@@ -89,14 +89,11 @@ export default function AdminDashboard() {
       totalRevenue
     })
 
-    // Only update if we have meaningful data
-    if (totalBookings > 0 || totalRevenue > 0) {
-      setStats(prev => ({
-        ...prev,
-        totalBookings,
-        totalRevenue
-      }))
-    }
+    setStats(prev => ({
+      ...prev,
+      totalBookings,
+      totalRevenue
+    }))
   }, [analyticsData])
 
   const loadDashboardData = async () => {
@@ -109,18 +106,38 @@ export default function AdminDashboard() {
         airlineApi.getAll(true)
       ])
 
+      const bookingAnalytics = await Promise.all(
+        flights.map(async (flight) => {
+          try {
+            return await bookingApi.getFlightAnalytics(flight.id)
+          } catch {
+            return null
+          }
+        }),
+      )
+
+      const initialAnalytics = new Map<number, FlightAnalyticsEvent>()
+      flights.forEach((flight, index) => {
+        const analytics = bookingAnalytics[index]
+        initialAnalytics.set(flight.id, {
+          flightId: flight.id,
+          totalSeats: flight.totalSeats,
+          bookedSeats: flight.totalSeats - flight.availableSeats,
+          availableSeats: flight.availableSeats,
+          revenue: Number(analytics?.revenue ?? 0),
+          bookingsCount: Number(analytics?.bookingsCount ?? 0),
+        })
+      })
+      setAnalyticsData(initialAnalytics)
+
       // Store flight IDs for SSE subscriptions
       setFlightIds(flights.map(f => f.id))
 
-      // Calculate initial values from flight data
-      const totalBookings = flights.reduce((sum, flight) => sum + (flight.totalSeats - flight.availableSeats), 0)
+      const totalBookings = Array.from(initialAnalytics.values()).reduce((sum, analytics) => sum + analytics.bookingsCount, 0)
       const activeBookings = flights
         .filter(flight => flight.status === 'SCHEDULED' || flight.status === 'ON_TIME')
-        .reduce((sum, flight) => sum + (flight.totalSeats - flight.availableSeats), 0)
-      const totalRevenue = flights.reduce(
-        (sum, flight) => sum + ((flight.totalSeats - flight.availableSeats) * flight.baseFare),
-        0
-      )
+        .reduce((sum, flight) => sum + (initialAnalytics.get(flight.id)?.bookingsCount ?? 0), 0)
+      const totalRevenue = Array.from(initialAnalytics.values()).reduce((sum, analytics) => sum + Number(analytics.revenue), 0)
 
       console.log('[AdminDashboard] Initial data loaded:', {
         totalFlights: flights.length,
@@ -207,7 +224,7 @@ export default function AdminDashboard() {
     { label: 'Add Airline', href: '/admin/airlines', icon: Plane, color: 'from-green-500 to-green-600' },
     { label: 'Add Airport', href: '/admin/airports', icon: MapPin, color: 'from-orange-500 to-orange-600' },
     { label: 'View Bookings', href: '/admin/bookings', icon: ShoppingBag, color: 'from-purple-500 to-purple-600' },
-    { label: 'View Users', href: '/admin/users', icon: Users, color: 'from-emerald-500 to-emerald-600' },
+    { label: 'View Analytics', href: '/admin/analytics', icon: TrendingUp, color: 'from-emerald-500 to-emerald-600' },
     { label: 'Send Notification', href: '/admin/notifications', icon: AlertCircle, color: 'from-red-600 to-red-700' }
   ]
 
@@ -316,4 +333,3 @@ export default function AdminDashboard() {
     </div>
   )
 }
-

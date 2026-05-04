@@ -150,6 +150,12 @@ export interface FlightAnalyticsEvent {
   bookingsCount: number
 }
 
+export interface FlightBookingAnalyticsResult {
+  flightId: number
+  bookingsCount: number
+  revenue: number
+}
+
 export interface AuthResponseData {
   userId: number
   email: string
@@ -167,6 +173,7 @@ export interface BookingResult {
   taxes: number
   ancillaryCharges: number
   totalFare: number
+  totalAmount: number
   status: string
   bookingDate: string
   checkedIn: boolean
@@ -380,6 +387,10 @@ export const bookingApi = {
     flightId: number
     numberOfPassengers: number
     selectedSeats: string[]
+    taxes?: number
+    seatCharge?: number
+    mealCharge?: number
+    baggageCharge?: number
     specialRequests?: string
     passengers?: BookingPassengerValidationPayload[]
   }) => request<BookingResult>('/bookings', { method: 'POST', body: JSON.stringify(body) }),
@@ -387,6 +398,7 @@ export const bookingApi = {
   getByUser: (userId: number) => request<BookingResult[]>(`/bookings/user/${userId}`),
   getById: (id: number) => request<BookingResult>(`/bookings/${id}`),
   getByFlight: (flightId: number) => request<BookingResult[]>(`/bookings/flight/${flightId}/confirmed`),
+  getFlightAnalytics: (flightId: number) => request<FlightBookingAnalyticsResult>(`/bookings/flight/${flightId}/analytics`),
   cancel: (id: number) => request<void>(`/bookings/${id}`, { method: 'DELETE' }),
   checkIn: (id: number, seatNumber?: string) => {
     const url = seatNumber 

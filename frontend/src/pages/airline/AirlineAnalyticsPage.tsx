@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { DollarSign, TrendingUp, Plane, Users, BarChart3, PieChart } from "lucide-react"
 import { useAuth } from "@/context/auth-context"
-import { flightApi, getAllAirportsCached, seatApi, type FlightResult, type Airport, type FlightAnalyticsEvent } from "@/services/api"
+import { bookingApi, flightApi, getAllAirportsCached, seatApi, type FlightResult, type Airport, type FlightAnalyticsEvent } from "@/services/api"
 
 export default function AnalyticsPage() {
   const navigate = useNavigate()
@@ -18,28 +18,38 @@ export default function AnalyticsPage() {
     if (!profile?.airlineId) return
 
     Promise.all([flightApi.getByAirline(profile.airlineId), getAllAirportsCached()])
-      .then(([f, a]) => {
+      .then(async ([f, a]) => {
         setFlights(f)
         setAirports(a)
-        
-        // Initialize analytics data from flight data
+
+        const bookingAnalytics = await Promise.all(
+          f.map(async (flight) => {
+            try {
+              return await bookingApi.getFlightAnalytics(flight.id)
+            } catch {
+              return null
+            }
+          }),
+        )
+
         const initialAnalytics = new Map<number, FlightAnalyticsEvent>()
-        f.forEach(flight => {
+        f.forEach((flight, index) => {
           const bookedSeats = flight.totalSeats - flight.availableSeats
+          const analytics = bookingAnalytics[index]
           initialAnalytics.set(flight.id, {
             flightId: flight.id,
             totalSeats: flight.totalSeats,
-            bookedSeats: bookedSeats,
+            bookedSeats,
             availableSeats: flight.availableSeats,
-            revenue: bookedSeats * flight.baseFare,
-            bookingsCount: 0
+            revenue: Number(analytics?.revenue ?? 0),
+            bookingsCount: Number(analytics?.bookingsCount ?? 0),
           })
         })
         setAnalyticsData(initialAnalytics)
       })
       .catch(console.error)
       .finally(() => setLoading(false))
-  }, [isLoggedIn, profile?.airlineId])
+  }, [isLoggedIn, isAuthReady, navigate, profile?.airlineId])
 
   // Subscribe to real-time analytics updates
   useEffect(() => {
@@ -101,8 +111,8 @@ export default function AnalyticsPage() {
 
   const topFlights = [...flights]
     .sort((a, b) => {
-      const revenueA = analyticsData.get(a.id)?.revenue ?? ((a.totalSeats - a.availableSeats) * a.baseFare)
-      const revenueB = analyticsData.get(b.id)?.revenue ?? ((b.totalSeats - b.availableSeats) * b.baseFare)
+      const revenueA = analyticsData.get(a.id)?.revenue ?? 0
+      const revenueB = analyticsData.get(b.id)?.revenue ?? 0
       return Number(revenueB) - Number(revenueA)
     })
     .slice(0, 5)
@@ -240,7 +250,7 @@ export default function AnalyticsPage() {
                     {topFlights.map((flight, i) => {
                       const analytics = analyticsData.get(flight.id)
                       const booked = analytics?.bookedSeats ?? (flight.totalSeats - flight.availableSeats)
-                      const revenue = analytics?.revenue ?? (booked * flight.baseFare)
+                      const revenue = analytics?.revenue ?? 0
                       const occ = ((booked / flight.totalSeats) * 100).toFixed(1)
                       const dep = getAirport(flight.departureAirportId)
                       const arr = getAirport(flight.arrivalAirportId)

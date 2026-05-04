@@ -120,6 +120,8 @@ services:
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/seat_db
       SPRING_APPLICATION_NAME: seat-service
+      FLIGHT_SERVICE_URL: http://flight-service:8082
+      BOOKING_SERVICE_URL: http://booking-service:8084
     depends_on:
       postgres:
         condition: service_healthy

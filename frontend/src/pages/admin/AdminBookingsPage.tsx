@@ -13,7 +13,7 @@ import {
   Plane
 } from "lucide-react"
 import { useAuth } from "@/context/auth-context"
-import { flightApi, airportApi, airlineApi, seatApi, type FlightResult, type Airport, type Airline, type FlightAnalyticsEvent } from "@/services/api"
+import { bookingApi, flightApi, airportApi, airlineApi, seatApi, type FlightResult, type Airport, type Airline, type FlightAnalyticsEvent } from "@/services/api"
 
 export default function BookingsPage() {
   const navigate = useNavigate()
@@ -75,9 +75,34 @@ export default function BookingsPage() {
         airportApi.getAll(true),
         airlineApi.getAll(true)
       ])
+
+      const bookingAnalytics = await Promise.all(
+        flightsData.map(async (flight) => {
+          try {
+            return await bookingApi.getFlightAnalytics(flight.id)
+          } catch {
+            return null
+          }
+        }),
+      )
+
+      const initialAnalytics = new Map<number, FlightAnalyticsEvent>()
+      flightsData.forEach((flight, index) => {
+        const analytics = bookingAnalytics[index]
+        initialAnalytics.set(flight.id, {
+          flightId: flight.id,
+          totalSeats: flight.totalSeats,
+          bookedSeats: flight.totalSeats - flight.availableSeats,
+          availableSeats: flight.availableSeats,
+          revenue: Number(analytics?.revenue ?? 0),
+          bookingsCount: Number(analytics?.bookingsCount ?? 0),
+        })
+      })
+
       setFlights(flightsData)
       setAirports(airportsData)
       setAirlines(airlinesData)
+      setAnalyticsData(initialAnalytics)
     } catch (err) {
       console.error('Error loading data:', err)
     } finally {
@@ -199,7 +224,8 @@ export default function BookingsPage() {
                     const airline = getAirline(flight.airlineId)
                     const analytics = analyticsData.get(flight.id)
                     const bookedSeats = analytics?.bookedSeats ?? (flight.totalSeats - flight.availableSeats)
-                    const revenue = analytics?.revenue ?? (bookedSeats * flight.baseFare)
+                    const bookingCount = analytics?.bookingsCount ?? 0
+                    const revenue = analytics?.revenue ?? 0
                     
                     return (
                       <tr key={flight.id} className="border-t border-slate-100 hover:bg-slate-50">
@@ -230,9 +256,9 @@ export default function BookingsPage() {
                           </p>
                         </td>
                         <td className="py-4 px-6">
-                          <p className="font-bold text-slate-800">{bookedSeats} / {flight.totalSeats}</p>
+                          <p className="font-bold text-slate-800">{bookingCount}</p>
                           <p className="text-xs text-slate-500">
-                            {Math.round((bookedSeats / flight.totalSeats) * 100)}% occupied
+                            {bookedSeats} / {flight.totalSeats} seats occupied
                           </p>
                         </td>
                         <td className="py-4 px-6">
@@ -260,5 +286,3 @@ export default function BookingsPage() {
     </div>
   )
 }
-
-

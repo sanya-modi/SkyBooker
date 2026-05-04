@@ -39,6 +39,9 @@ public class SeatServiceImpl implements SeatService {
     
     @org.springframework.beans.factory.annotation.Value("${services.flight-base-url:http://localhost:8082}")
     private String flightServiceUrl;
+
+    @org.springframework.beans.factory.annotation.Value("${services.booking-base-url:http://localhost:8084}")
+    private String bookingServiceUrl;
     
     private final org.springframework.web.client.RestTemplate restTemplate = new org.springframework.web.client.RestTemplate();
 
@@ -74,6 +77,7 @@ public class SeatServiceImpl implements SeatService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<Seat> getAllSeatsByFlight(Long flightId) {
         return seatRepository.findByFlightId(flightId);
     }
@@ -220,11 +224,13 @@ public class SeatServiceImpl implements SeatService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<SeatClassConfig> getSeatConfig(Long flightId) {
         return seatClassConfigRepository.findByFlightIdOrderByStartRowAsc(flightId);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public SseEmitter subscribeToFlightSeatMap(Long flightId) {
         List<Seat> allSeats = getAllSeatsByFlight(flightId);
         List<SeatResponse> seats = allSeats.stream().map(this::mapToResponse).toList();
@@ -258,8 +264,12 @@ public class SeatServiceImpl implements SeatService {
                 availableSeats
         ));
         
-        // Send initial analytics
-        sendAnalyticsEvent(emitter, buildAnalyticsEvent(flightId, allSeats));
+        // Send initial analytics asynchronously to avoid blocking
+        try {
+            sendAnalyticsEvent(emitter, buildAnalyticsEvent(flightId, allSeats));
+        } catch (Exception e) {
+            log.warn("Failed to send initial analytics for flight {}: {}", flightId, e.getMessage());
+        }
 
         return emitter;
     }
@@ -268,15 +278,18 @@ public class SeatServiceImpl implements SeatService {
     }
 
     public void publishSeatUpdate(Long flightId, String eventType) {
+        log.info("publishSeatUpdate called for flight {} with event type {}", flightId, eventType);
         List<Seat> allSeats = getAllSeatsByFlight(flightId);
         int totalSeats = allSeats.size();
         int bookedSeats = (int) allSeats.stream().filter(s -> s.getStatus() == Seat.SeatStatus.BOOKED).count();
         int availableSeats = (int) allSeats.stream().filter(s -> s.getStatus() == Seat.SeatStatus.AVAILABLE).count();
         
+        log.info("Flight {} stats: total={}, booked={}, available={}", flightId, totalSeats, bookedSeats, availableSeats);
         updateFlightAvailableSeats(flightId, availableSeats);
         
         List<SseEmitter> emitters = emittersByFlight.get(flightId);
         if (emitters == null || emitters.isEmpty()) {
+            log.info("No SSE emitters for flight {}, skipping event broadcast", flightId);
             return;
         }
 
@@ -297,20 +310,26 @@ public class SeatServiceImpl implements SeatService {
                 bookedSeats,
                 availableSeats
         );
-        
-        FlightAnalyticsEvent analyticsEvent = buildAnalyticsEvent(flightId, allSeats);
 
         List<SseEmitter> staleEmitters = new ArrayList<>();
-        for (SseEmitter emitter : emitters) {
+        List<SseEmitter> emittersCopy = new ArrayList<>(emitters);
+        for (SseEmitter emitter : emittersCopy) {
             try {
                 sendEvent(emitter, event);
                 sendCountEvent(emitter, countEvent);
-                sendAnalyticsEvent(emitter, analyticsEvent);
+                // Send analytics asynchronously to avoid blocking
+                try {
+                    FlightAnalyticsEvent analyticsEvent = buildAnalyticsEvent(flightId, allSeats);
+                    sendAnalyticsEvent(emitter, analyticsEvent);
+                } catch (Exception e) {
+                    log.warn("Failed to send analytics for flight {}: {}", flightId, e.getMessage());
+                }
             } catch (Exception exception) {
                 staleEmitters.add(emitter);
             }
         }
         emitters.removeAll(staleEmitters);
+        log.info("Published SSE events to {} emitters for flight {}", emittersCopy.size() - staleEmitters.size(), flightId);
     }
 
     private void sendEvent(SseEmitter emitter, SeatMapUpdateEvent event) {
@@ -341,14 +360,18 @@ public class SeatServiceImpl implements SeatService {
         int totalSeats = allSeats.size();
         int bookedSeats = (int) allSeats.stream().filter(s -> s.getStatus() == Seat.SeatStatus.BOOKED).count();
         int availableSeats = (int) allSeats.stream().filter(s -> s.getStatus() == Seat.SeatStatus.AVAILABLE).count();
-        
-        java.math.BigDecimal baseFare = getFlightBaseFare(flightId);
-        java.math.BigDecimal revenue = baseFare.multiply(java.math.BigDecimal.valueOf(bookedSeats));
-        
-        Set<Long> uniqueBookings = allSeats.stream()
-                .filter(s -> s.getBookingId() != null)
-                .map(Seat::getBookingId)
-                .collect(Collectors.toSet());
+
+        BookingAnalyticsDTO bookingAnalytics = getBookingAnalytics(flightId);
+        java.math.BigDecimal revenue = bookingAnalytics != null && bookingAnalytics.getRevenue() != null
+                ? bookingAnalytics.getRevenue()
+                : java.math.BigDecimal.ZERO;
+        Integer bookingsCount = bookingAnalytics != null && bookingAnalytics.getBookingsCount() != null
+                ? bookingAnalytics.getBookingsCount().intValue()
+                : (int) allSeats.stream()
+                    .filter(s -> s.getBookingId() != null)
+                    .map(Seat::getBookingId)
+                    .collect(Collectors.toSet())
+                    .size();
         
         return new FlightAnalyticsEvent(
                 flightId,
@@ -356,20 +379,18 @@ public class SeatServiceImpl implements SeatService {
                 bookedSeats,
                 availableSeats,
                 revenue,
-                uniqueBookings.size()
+                bookingsCount
         );
     }
-    
-    private java.math.BigDecimal getFlightBaseFare(Long flightId) {
+
+    private BookingAnalyticsDTO getBookingAnalytics(Long flightId) {
         try {
-            FlightDTO flight = restTemplate.getForObject(
-                    flightServiceUrl + "/flights/" + flightId,
-                    FlightDTO.class
-            );
-            return flight != null ? flight.getBaseFare() : java.math.BigDecimal.ZERO;
+            String url = bookingServiceUrl + "/bookings/flight/" + flightId + "/analytics";
+            log.debug("Fetching booking analytics from: {}", url);
+            return restTemplate.getForObject(url, BookingAnalyticsDTO.class);
         } catch (Exception e) {
-            log.warn("Failed to fetch flight base fare for flight {}: {}", flightId, e.getMessage());
-            return java.math.BigDecimal.ZERO;
+            log.warn("Failed to fetch booking analytics for flight {}: {}", flightId, e.getMessage());
+            return null;
         }
     }
     
@@ -386,13 +407,15 @@ public class SeatServiceImpl implements SeatService {
     private void releaseSeatEntity(Seat seat) {
         log.info("Releasing seat {} for flight {} (bookingId: {}, status: {})", 
                 seat.getSeatNumber(), seat.getFlightId(), seat.getBookingId(), seat.getStatus());
+        Long flightId = seat.getFlightId();
         seat.setStatus(Seat.SeatStatus.AVAILABLE);
         seat.setPassengerId(null);
         seat.setBookingId(null);
         seat.setHoldExpiresAt(null);
         seatRepository.save(seat);
+        seatRepository.flush(); // Ensure changes are written to database
         log.info("Seat {} released successfully", seat.getSeatNumber());
-        publishSeatUpdate(seat.getFlightId(), "RELEASED");
+        publishSeatUpdate(flightId, "RELEASED");
     }
 
     private void validateRanges(List<SeatClassRangeRequest> ranges) {
@@ -476,16 +499,24 @@ public class SeatServiceImpl implements SeatService {
         );
     }
     
-    private static class FlightDTO {
-        private java.math.BigDecimal baseFare;
-        
-        public java.math.BigDecimal getBaseFare() {
-            return baseFare;
+    private static class BookingAnalyticsDTO {
+        private Long bookingsCount;
+        private java.math.BigDecimal revenue;
+
+        public Long getBookingsCount() {
+            return bookingsCount;
         }
-        
-        public void setBaseFare(java.math.BigDecimal baseFare) {
-            this.baseFare = baseFare;
+
+        public void setBookingsCount(Long bookingsCount) {
+            this.bookingsCount = bookingsCount;
+        }
+
+        public java.math.BigDecimal getRevenue() {
+            return revenue;
+        }
+
+        public void setRevenue(java.math.BigDecimal revenue) {
+            this.revenue = revenue;
         }
     }
 }
-

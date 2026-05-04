@@ -22,6 +22,7 @@ public class BookingResponse {
     private BigDecimal taxes;
     private BigDecimal ancillaryCharges;
     private BigDecimal totalFare;
+    private BigDecimal totalAmount;
     private String status;
     private LocalDateTime bookingDate;
     private Boolean checkedIn;

@@ -2,6 +2,7 @@ package com.skyBooker.booking.controller;
 
 import com.skyBooker.booking.dto.BookingRequest;
 import com.skyBooker.booking.dto.BookingResponse;
+import com.skyBooker.booking.dto.FlightBookingAnalyticsResponse;
 import com.skyBooker.booking.entity.Booking;
 import com.skyBooker.booking.service.BookingService;
 import com.skyBooker.booking.validation.BookingValidationPatterns;
@@ -49,8 +50,12 @@ public class BookingController {
     }
 
     @PutMapping("/{id}/status")
-    public ResponseEntity<BookingResponse> updateBookingStatus(@PathVariable Long id, @RequestParam Booking.BookingStatus status) {
-        return ResponseEntity.ok(bookingService.updateBookingStatus(id, status));
+    public ResponseEntity<BookingResponse> updateBookingStatus(
+            @PathVariable Long id,
+            @RequestParam Booking.BookingStatus status,
+            @RequestParam(required = false) Long paymentId
+    ) {
+        return ResponseEntity.ok(bookingService.updateBookingStatus(id, status, paymentId));
     }
 
     @PutMapping("/{id}/check-in")
@@ -93,5 +98,10 @@ public class BookingController {
     @GetMapping("/flight/{flightId}/count")
     public ResponseEntity<Long> countConfirmedBookings(@PathVariable Long flightId) {
         return ResponseEntity.ok(bookingService.countConfirmedBookings(flightId));
+    }
+
+    @GetMapping("/flight/{flightId}/analytics")
+    public ResponseEntity<FlightBookingAnalyticsResponse> getFlightBookingAnalytics(@PathVariable Long flightId) {
+        return ResponseEntity.ok(bookingService.getFlightBookingAnalytics(flightId));
     }
 }

@@ -50,4 +50,4 @@ springdoc:
 
 # Service URLs for direct communication
 services:
-  booking-base-url: ${BOOKING_SERVICE_URL:http://localhost:8080/bookings}
+  booking-base-url: ${BOOKING_SERVICE_URL:http://localhost:8084}
