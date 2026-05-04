@@ -14,7 +14,7 @@ import {
   ArrowRight
 } from "lucide-react"
 import { useAuth } from "@/context/auth-context"
-import { adminApi, flightApi, airportApi, airlineApi } from "@/services/api"
+import { adminApi, flightApi, airportApi, airlineApi, seatApi, type FlightAnalyticsEvent } from "@/services/api"
 
 export default function AdminDashboard() {
   const navigate = useNavigate()
@@ -29,6 +29,8 @@ export default function AdminDashboard() {
     totalRevenue: 0
   })
   const [loading, setLoading] = useState(true)
+  const [analyticsData, setAnalyticsData] = useState<Map<number, FlightAnalyticsEvent>>(new Map())
+  const [flightIds, setFlightIds] = useState<number[]>([])
 
   useEffect(() => {
     if (!isAuthReady) return
@@ -43,6 +45,60 @@ export default function AdminDashboard() {
     return () => window.clearInterval(intervalId)
   }, [isLoggedIn, isAuthReady, navigate])
 
+  // Subscribe to real-time analytics updates
+  useEffect(() => {
+    if (flightIds.length === 0) return
+
+    console.log('[AdminDashboard] Subscribing to analytics for', flightIds.length, 'flights')
+    const streams: EventSource[] = []
+
+    for (const flightId of flightIds) {
+      try {
+        const stream = seatApi.createSeatStream(flightId)
+        stream.addEventListener('flight-analytics', (event) => {
+          try {
+            const payload = JSON.parse((event as MessageEvent).data) as FlightAnalyticsEvent
+            console.log('[AdminDashboard] Received analytics for flight', payload.flightId, ':', payload)
+            setAnalyticsData(prev => new Map(prev).set(payload.flightId, payload))
+          } catch (err) {
+            console.error('[AdminDashboard] Error parsing analytics event:', err)
+          }
+        })
+        streams.push(stream)
+      } catch (err) {
+        console.error('[AdminDashboard] Error creating stream for flight', flightId, ':', err)
+      }
+    }
+
+    return () => {
+      console.log('[AdminDashboard] Cleaning up', streams.length, 'streams')
+      streams.forEach(stream => stream.close())
+    }
+  }, [flightIds.join(',')]) // eslint-disable-line
+
+  // Update stats when analytics data changes
+  useEffect(() => {
+    if (analyticsData.size === 0) return
+
+    const totalBookings = Array.from(analyticsData.values()).reduce((sum, a) => sum + a.bookingsCount, 0)
+    const totalRevenue = Array.from(analyticsData.values()).reduce((sum, a) => sum + Number(a.revenue), 0)
+
+    console.log('[AdminDashboard] Analytics data updated:', {
+      flightsWithData: analyticsData.size,
+      totalBookings,
+      totalRevenue
+    })
+
+    // Only update if we have meaningful data
+    if (totalBookings > 0 || totalRevenue > 0) {
+      setStats(prev => ({
+        ...prev,
+        totalBookings,
+        totalRevenue
+      }))
+    }
+  }, [analyticsData])
+
   const loadDashboardData = async () => {
     try {
       setLoading(true)
@@ -53,14 +109,25 @@ export default function AdminDashboard() {
         airlineApi.getAll(true)
       ])
 
+      // Store flight IDs for SSE subscriptions
+      setFlightIds(flights.map(f => f.id))
+
+      // Calculate initial values from flight data
       const totalBookings = flights.reduce((sum, flight) => sum + (flight.totalSeats - flight.availableSeats), 0)
       const activeBookings = flights
-        .filter(flight => flight.status === 'SCHEDULED')
+        .filter(flight => flight.status === 'SCHEDULED' || flight.status === 'ON_TIME')
         .reduce((sum, flight) => sum + (flight.totalSeats - flight.availableSeats), 0)
       const totalRevenue = flights.reduce(
         (sum, flight) => sum + ((flight.totalSeats - flight.availableSeats) * flight.baseFare),
         0
       )
+
+      console.log('[AdminDashboard] Initial data loaded:', {
+        totalFlights: flights.length,
+        totalBookings,
+        totalRevenue,
+        flightsWithBookings: flights.filter(f => f.totalSeats - f.availableSeats > 0).length
+      })
 
       setStats({
         totalUsers: users.length,

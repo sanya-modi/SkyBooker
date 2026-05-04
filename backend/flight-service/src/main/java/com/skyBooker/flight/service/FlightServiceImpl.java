@@ -258,6 +258,14 @@ public class FlightServiceImpl implements FlightService {
     }
 
     @Override
+    public void setAvailableSeats(Long flightId, Integer count) {
+        Flight flight = flightRepository.findById(flightId)
+                .orElseThrow(() -> new FlightException("Flight not found", "FLIGHT_NOT_FOUND"));
+        flight.setAvailableSeats(count);
+        flightRepository.save(flight);
+    }
+
+    @Override
     public List<FlightResponse> searchWithFilters(FlightSearchFilterDTO filter) {
 
         LocalDateTime startOfDay = filter.getDepartureDate().atStartOfDay();

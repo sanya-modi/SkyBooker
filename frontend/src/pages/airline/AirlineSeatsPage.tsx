@@ -18,6 +18,7 @@ import {
   type SeatClassConfigRange,
   type SeatResult,
   type FlightPassengerManifestItem,
+  type SeatCountUpdateEvent,
 } from "@/services/api"
 
 const SEAT_LETTERS = ["A", "B", "C", "D", "E", "F"] as const
@@ -122,6 +123,14 @@ export default function AirlineSeatsPage() {
         if (payload.configs) {
           setRanges(mapConfigRangesToDrafts(payload.configs))
         }
+      } catch {
+        // ignore malformed events
+      }
+    })
+    stream.addEventListener("seat-count", (event) => {
+      try {
+        const payload = JSON.parse((event as MessageEvent).data) as SeatCountUpdateEvent
+        setSelectedFlight(prev => prev ? { ...prev, availableSeats: payload.availableSeats } : null)
       } catch {
         // ignore malformed events
       }

@@ -13,7 +13,7 @@ import {
   PieChart
 } from "lucide-react"
 import { useAuth } from "@/context/auth-context"
-import { flightApi, airportApi, airlineApi, type FlightResult, type Airport, type Airline } from "@/services/api"
+import { flightApi, airportApi, airlineApi, seatApi, type FlightResult, type Airport, type Airline, type FlightAnalyticsEvent } from "@/services/api"
 
 export default function AnalyticsPage() {
   const navigate = useNavigate()
@@ -22,6 +22,7 @@ export default function AnalyticsPage() {
   const [airports, setAirports] = useState<Airport[]>([])
   const [airlines, setAirlines] = useState<Airline[]>([])
   const [loading, setLoading] = useState(true)
+  const [analyticsData, setAnalyticsData] = useState<Map<number, FlightAnalyticsEvent>>(new Map())
 
   useEffect(() => {
     if (!isAuthReady) return
@@ -34,6 +35,38 @@ export default function AnalyticsPage() {
 
     return () => window.clearInterval(intervalId)
   }, [isLoggedIn, isAuthReady, navigate])
+
+  // Subscribe to real-time analytics updates
+  useEffect(() => {
+    if (flights.length === 0) return
+
+    const streams: EventSource[] = []
+    const flightIds = flights.map(f => f.id)
+
+    for (const flightId of flightIds) {
+      try {
+        const stream = seatApi.createSeatStream(flightId)
+        stream.addEventListener('flight-analytics', (event) => {
+          try {
+            const payload = JSON.parse((event as MessageEvent).data) as FlightAnalyticsEvent
+            setAnalyticsData(prev => new Map(prev).set(payload.flightId, payload))
+            setFlights(prev => prev.map(f => 
+              f.id === payload.flightId ? { ...f, availableSeats: payload.availableSeats } : f
+            ))
+          } catch {
+            // ignore malformed events
+          }
+        })
+        streams.push(stream)
+      } catch {
+        // ignore stream creation errors
+      }
+    }
+
+    return () => {
+      streams.forEach(stream => stream.close())
+    }
+  }, [flights.map(f => f.id).join(',')]) // eslint-disable-line
 
   const loadData = async () => {
     try {
@@ -53,12 +86,8 @@ export default function AnalyticsPage() {
     }
   }
 
-  const totalRevenue = flights.reduce((sum, f) => {
-    const bookedSeats = f.totalSeats - f.availableSeats
-    return sum + (bookedSeats * f.baseFare)
-  }, 0)
-
-  const totalBookings = flights.reduce((sum, f) => sum + (f.totalSeats - f.availableSeats), 0)
+  const totalRevenue = Array.from(analyticsData.values()).reduce((sum, a) => sum + Number(a.revenue), 0)
+  const totalBookings = Array.from(analyticsData.values()).reduce((sum, a) => sum + a.bookingsCount, 0)
   const totalSeats = flights.reduce((sum, f) => sum + f.totalSeats, 0)
   const occupancyRate = totalSeats > 0 ? ((totalBookings / totalSeats) * 100).toFixed(1) : '0'
   const activeFlights = flights.filter(f => f.status === 'ON_TIME' || f.status === 'DELAYED').length

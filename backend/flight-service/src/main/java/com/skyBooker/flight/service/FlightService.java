@@ -25,6 +25,7 @@ public interface FlightService {
     List<FlightPassengerManifestResponse> getFlightPassengers(Long flightId);
     FlightResponse updateFlightStatus(Long id, Flight.FlightStatus status);
     boolean updateAvailableSeats(Long flightId, Integer seatsToReduce);
+    void setAvailableSeats(Long flightId, Integer count);
     List<FlightResponse> searchWithFilters(FlightSearchFilterDTO filter);
     List<SeatClassConfigResponse> saveSeatConfig(Long flightId, SeatConfigRequest request, String userEmail, String userRole);
     List<SeatClassConfigResponse> getSeatConfig(Long flightId, String userEmail, String userRole);

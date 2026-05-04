@@ -13,7 +13,7 @@ import {
   Plane
 } from "lucide-react"
 import { useAuth } from "@/context/auth-context"
-import { flightApi, airportApi, airlineApi, type FlightResult, type Airport, type Airline } from "@/services/api"
+import { flightApi, airportApi, airlineApi, seatApi, type FlightResult, type Airport, type Airline, type FlightAnalyticsEvent } from "@/services/api"
 
 export default function BookingsPage() {
   const navigate = useNavigate()
@@ -24,6 +24,7 @@ export default function BookingsPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('ALL')
+  const [analyticsData, setAnalyticsData] = useState<Map<number, FlightAnalyticsEvent>>(new Map())
 
   useEffect(() => {
     if (!isAuthReady) return
@@ -33,6 +34,38 @@ export default function BookingsPage() {
     }
     loadData()
   }, [isLoggedIn, isAuthReady, navigate])
+
+  // Subscribe to real-time analytics updates
+  useEffect(() => {
+    if (flights.length === 0) return
+
+    const streams: EventSource[] = []
+    const flightIds = flights.map(f => f.id)
+
+    for (const flightId of flightIds) {
+      try {
+        const stream = seatApi.createSeatStream(flightId)
+        stream.addEventListener('flight-analytics', (event) => {
+          try {
+            const payload = JSON.parse((event as MessageEvent).data) as FlightAnalyticsEvent
+            setAnalyticsData(prev => new Map(prev).set(payload.flightId, payload))
+            setFlights(prev => prev.map(f => 
+              f.id === payload.flightId ? { ...f, availableSeats: payload.availableSeats } : f
+            ))
+          } catch {
+            // ignore malformed events
+          }
+        })
+        streams.push(stream)
+      } catch {
+        // ignore stream creation errors
+      }
+    }
+
+    return () => {
+      streams.forEach(stream => stream.close())
+    }
+  }, [flights.map(f => f.id).join(',')]) // eslint-disable-line
 
   const loadData = async () => {
     try {
@@ -61,8 +94,8 @@ export default function BookingsPage() {
     return matchesSearch && matchesStatus
   })
 
-  const totalBookings = flights.reduce((sum, f) => sum + (f.totalSeats - f.availableSeats), 0)
-  const totalRevenue = flights.reduce((sum, f) => sum + ((f.totalSeats - f.availableSeats) * f.baseFare), 0)
+  const totalBookings = Array.from(analyticsData.values()).reduce((sum, a) => sum + a.bookingsCount, 0)
+  const totalRevenue = Array.from(analyticsData.values()).reduce((sum, a) => sum + Number(a.revenue), 0)
 
   return (
     <div className="min-h-screen bg-[#f7f9fb]">
@@ -164,8 +197,9 @@ export default function BookingsPage() {
                     const depAirport = getAirport(flight.departureAirportId)
                     const arrAirport = getAirport(flight.arrivalAirportId)
                     const airline = getAirline(flight.airlineId)
-                    const bookedSeats = flight.totalSeats - flight.availableSeats
-                    const revenue = bookedSeats * flight.baseFare
+                    const analytics = analyticsData.get(flight.id)
+                    const bookedSeats = analytics?.bookedSeats ?? (flight.totalSeats - flight.availableSeats)
+                    const revenue = analytics?.revenue ?? (bookedSeats * flight.baseFare)
                     
                     return (
                       <tr key={flight.id} className="border-t border-slate-100 hover:bg-slate-50">
@@ -202,7 +236,7 @@ export default function BookingsPage() {
                           </p>
                         </td>
                         <td className="py-4 px-6">
-                          <p className="font-bold text-green-600">₹{revenue.toLocaleString()}</p>
+                          <p className="font-bold text-green-600">₹{Number(revenue).toLocaleString()}</p>
                         </td>
                         <td className="py-4 px-6">
                           <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-bold ${

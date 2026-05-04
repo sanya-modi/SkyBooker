@@ -140,20 +140,29 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public TicketLookupResponse getTicketByPnr(String pnr) {
-        Booking booking = bookingRepository.findByPnr(pnr)
-                .orElseThrow(() -> new RuntimeException("Booking not found"));
+   @Transactional(readOnly = true)
+public TicketLookupResponse getTicketByPnr(String pnr) {
 
-        FlightDTO flight = getFlightDetails(booking.getFlightId());
-        List<PassengerDTO> passengers = getPassengersByBookingId(booking.getId());
+    Booking booking = bookingRepository.findByPnr(pnr)
+            .orElseThrow(() -> new RuntimeException("Booking not found"));
 
-        return new TicketLookupResponse(
-                mapToResponse(booking, booking.getSelectedSeats()),
-                mapFlightSummary(flight),
-                passengers.stream().map(this::mapPassengerSummary).toList()
-        );
+    if (booking.getStatus() == Booking.BookingStatus.CANCELLED) {
+        throw new RuntimeException("This booking has been cancelled");
     }
+
+    if (booking.getStatus() == Booking.BookingStatus.PENDING) {
+        throw new RuntimeException("Payment is pending for this booking. Please complete the payment first.");
+    }
+
+    FlightDTO flight = getFlightDetails(booking.getFlightId());
+    List<PassengerDTO> passengers = getPassengersByBookingId(booking.getId());
+
+    return new TicketLookupResponse(
+            mapToResponse(booking, booking.getSelectedSeats()),
+            mapFlightSummary(flight),
+            passengers.stream().map(this::mapPassengerSummary).toList()
+    );
+}
 
     @Override
     @Transactional(readOnly = true)
@@ -241,6 +250,14 @@ public class BookingServiceImpl implements BookingService {
         Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Booking not found"));
 
+        if (booking.getStatus() == Booking.BookingStatus.PENDING) {
+            throw new RuntimeException("Cannot generate e-ticket. Payment is pending for this booking.");
+        }
+
+        if (booking.getStatus() == Booking.BookingStatus.CANCELLED) {
+            throw new RuntimeException("Cannot generate e-ticket. This booking has been cancelled.");
+        }
+
         try {
             FlightDTO flight = getFlightDetails(booking.getFlightId());
             if (flight == null) {
@@ -258,6 +275,14 @@ public class BookingServiceImpl implements BookingService {
     public byte[] generateBoardingPassPdf(Long id) {
         Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Booking not found"));
+
+        if (booking.getStatus() == Booking.BookingStatus.PENDING) {
+            throw new RuntimeException("Cannot generate boarding pass. Payment is pending for this booking.");
+        }
+
+        if (booking.getStatus() == Booking.BookingStatus.CANCELLED) {
+            throw new RuntimeException("Cannot generate boarding pass. This booking has been cancelled.");
+        }
 
         if (!Boolean.TRUE.equals(booking.getCheckedIn())) {
             throw new RuntimeException("Boarding pass is available only after web check-in");
@@ -301,6 +326,7 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+    @Transactional
     public void cancelBooking(Long id) {
         Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Booking not found"));
@@ -313,12 +339,16 @@ public class BookingServiceImpl implements BookingService {
             throw new RuntimeException("Cannot cancel completed bookings");
         }
         
+        log.info("Cancelling booking {} with {} seats", booking.getId(), 
+                booking.getSelectedSeats() != null ? booking.getSelectedSeats().size() : 0);
+        
+        // Release seats BEFORE updating booking status to ensure seats are freed even if status update fails
+        releaseSeats(booking);
+        
         // Update booking status
         booking.setStatus(Booking.BookingStatus.CANCELLED);
         bookingRepository.save(booking);
-        
-        // Release seats
-        releaseSeats(booking);
+        log.info("Booking {} status updated to CANCELLED", booking.getId());
         
         // Initiate refund
         initiateRefund(booking);
@@ -485,22 +515,37 @@ public class BookingServiceImpl implements BookingService {
 
     private void releaseSeats(Booking booking) {
         try {
-            if (booking.getSelectedSeats() != null && !booking.getSelectedSeats().isEmpty()) {
-                for (String seatNumber : booking.getSelectedSeats()) {
+            if (booking.getSelectedSeats() == null || booking.getSelectedSeats().isEmpty()) {
+                log.warn("No seats to release for booking {}", booking.getId());
+                return;
+            }
+            
+            log.info("Starting to release {} seats for booking {}: {}", 
+                    booking.getSelectedSeats().size(), booking.getId(), booking.getSelectedSeats());
+            
+            for (String seatNumber : booking.getSelectedSeats()) {
+                try {
+                    log.info("Releasing seat {} for flight {} (booking {})", 
+                            seatNumber, booking.getFlightId(), booking.getId());
+                    
                     webClientBuilder.build()
                             .delete()
                             .uri(seatServiceUrl + "/seats/release/{flightId}/{seatNumber}",
                                  booking.getFlightId(), seatNumber)
                             .retrieve()
                             .toBodilessEntity()
+                            .doOnSuccess(response -> log.info("Successfully released seat {}", seatNumber))
+                            .doOnError(ex -> log.error("Failed to release seat {}: {}", seatNumber, ex.getMessage()))
                             .onErrorResume(ex -> {
                                 log.error("Failed to release seat: {}", seatNumber, ex);
                                 return reactor.core.publisher.Mono.empty();
                             })
                             .block();
+                } catch (Exception ex) {
+                    log.error("Exception while releasing seat {}: {}", seatNumber, ex.getMessage(), ex);
                 }
-                log.info("Released {} seats for booking {}", booking.getSelectedSeats().size(), booking.getId());
             }
+            log.info("Completed releasing {} seats for booking {}", booking.getSelectedSeats().size(), booking.getId());
         } catch (Exception e) {
             log.error("Error releasing seats for booking {}", booking.getId(), e);
         }
@@ -732,3 +777,4 @@ public class BookingServiceImpl implements BookingService {
         public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
     }
 }
+

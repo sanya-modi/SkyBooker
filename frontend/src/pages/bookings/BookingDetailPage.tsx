@@ -462,7 +462,7 @@ export default function BookingDetailPage() {
             <div className="bg-white rounded-2xl p-6 shadow-sm">
               <h3 className="font-bold text-slate-800 mb-4">Quick Actions</h3>
               <div className="space-y-3">
-                {isUpcoming && (
+                {isUpcoming && booking.status.toUpperCase() === 'CONFIRMED' && (
                   <button
                     onClick={handleDownloadTicket}
                     disabled={downloadingTicket}
@@ -480,6 +480,17 @@ export default function BookingDetailPage() {
                       </>
                     )}
                   </button>
+                )}
+                {booking.status.toUpperCase() === 'PENDING' && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+                    <div className="flex items-start gap-2">
+                      <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-bold text-yellow-800 mb-1">Payment Pending</p>
+                        <p className="text-xs text-yellow-700">Complete your payment to download the e-ticket and access booking details.</p>
+                      </div>
+                    </div>
+                  </div>
                 )}
               </div>
             </div>

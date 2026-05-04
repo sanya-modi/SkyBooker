@@ -38,7 +38,9 @@ server:
 logging:
   level:
     ROOT: INFO
-    com.skyBooker: INFO
+    com.skyBooker: DEBUG
+    org.springframework.web: DEBUG
+    org.hibernate.SQL: DEBUG
 
 management:
   endpoints:

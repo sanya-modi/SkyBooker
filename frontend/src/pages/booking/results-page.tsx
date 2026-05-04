@@ -12,9 +12,11 @@ import {
   getAllAirlinesCached,
   getAllAirportsCached,
   searchFlights,
+  seatApi,
   type Airline,
   type Airport,
   type EnrichedFlightResult,
+  type SeatCountUpdateEvent,
 } from '../../services/api'
 
 export type SortKey = 'price' | 'departure' | 'duration' | 'arrival'
@@ -144,6 +146,37 @@ export function ResultsPage() {
     }
     void load()
   }, [departureDate, fromId, hasValidDepartureDate, hasValidRouteIds, passengers, returnDate, setSearchCriteria, toId, tripType]) // eslint-disable-line
+
+  // Subscribe to seat count updates for all flights
+  useEffect(() => {
+    if (allFlights.length === 0) return
+
+    const streams: EventSource[] = []
+    const flightIds = allFlights.map(f => f.id)
+
+    for (const flightId of flightIds) {
+      try {
+        const stream = seatApi.createSeatStream(flightId)
+        stream.addEventListener('seat-count', (event) => {
+          try {
+            const payload = JSON.parse((event as MessageEvent).data) as SeatCountUpdateEvent
+            setAllFlights(prev => prev.map(f => 
+              f.id === payload.flightId ? { ...f, availableSeats: payload.availableSeats } : f
+            ))
+          } catch {
+            // ignore malformed events
+          }
+        })
+        streams.push(stream)
+      } catch {
+        // ignore stream creation errors
+      }
+    }
+
+    return () => {
+      streams.forEach(stream => stream.close())
+    }
+  }, [allFlights.map(f => f.id).join(',')]) // eslint-disable-line
 
   // Animate list when flights change
   useEffect(() => {

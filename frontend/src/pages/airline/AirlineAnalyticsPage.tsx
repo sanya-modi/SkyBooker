@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { DollarSign, TrendingUp, Plane, Users, BarChart3, PieChart } from "lucide-react"
 import { useAuth } from "@/context/auth-context"
-import { flightApi, getAllAirportsCached, type FlightResult, type Airport } from "@/services/api"
+import { flightApi, getAllAirportsCached, seatApi, type FlightResult, type Airport, type FlightAnalyticsEvent } from "@/services/api"
 
 export default function AnalyticsPage() {
   const navigate = useNavigate()
@@ -10,6 +10,7 @@ export default function AnalyticsPage() {
   const [flights, setFlights] = useState<FlightResult[]>([])
   const [airports, setAirports] = useState<Airport[]>([])
   const [loading, setLoading] = useState(true)
+  const [analyticsData, setAnalyticsData] = useState<Map<number, FlightAnalyticsEvent>>(new Map())
 
   useEffect(() => {
     if (!isAuthReady) return
@@ -20,41 +21,97 @@ export default function AnalyticsPage() {
       .then(([f, a]) => {
         setFlights(f)
         setAirports(a)
+        
+        // Initialize analytics data from flight data
+        const initialAnalytics = new Map<number, FlightAnalyticsEvent>()
+        f.forEach(flight => {
+          const bookedSeats = flight.totalSeats - flight.availableSeats
+          initialAnalytics.set(flight.id, {
+            flightId: flight.id,
+            totalSeats: flight.totalSeats,
+            bookedSeats: bookedSeats,
+            availableSeats: flight.availableSeats,
+            revenue: bookedSeats * flight.baseFare,
+            bookingsCount: 0
+          })
+        })
+        setAnalyticsData(initialAnalytics)
       })
       .catch(console.error)
       .finally(() => setLoading(false))
   }, [isLoggedIn, profile?.airlineId])
 
+  // Subscribe to real-time analytics updates
+  useEffect(() => {
+    if (flights.length === 0) return
+
+    const streams: EventSource[] = []
+    const flightIds = flights.map(f => f.id)
+
+    for (const flightId of flightIds) {
+      try {
+        const stream = seatApi.createSeatStream(flightId)
+        stream.addEventListener('flight-analytics', (event) => {
+          try {
+            const payload = JSON.parse((event as MessageEvent).data) as FlightAnalyticsEvent
+            setAnalyticsData(prev => new Map(prev).set(payload.flightId, payload))
+            setFlights(prev => prev.map(f => 
+              f.id === payload.flightId ? { ...f, availableSeats: payload.availableSeats } : f
+            ))
+          } catch {
+            // ignore malformed events
+          }
+        })
+        streams.push(stream)
+      } catch {
+        // ignore stream creation errors
+      }
+    }
+
+    return () => {
+      streams.forEach(stream => stream.close())
+    }
+  }, [flights.map(f => f.id).join(',')]) // eslint-disable-line
+
   const getAirport = (id: number) => airports.find(a => a.id === id)
 
   const totalFlights = flights.length
-  const scheduled = flights.filter(f => f.status === 'SCHEDULED').length
-  const completed = flights.filter(f => f.status === 'COMPLETED').length
+  const onTime = flights.filter(f => f.status === 'ON_TIME').length
+  const departed = flights.filter(f => f.status === 'DEPARTED').length
+  const arrived = flights.filter(f => f.status === 'ARRIVED').length
   const cancelled = flights.filter(f => f.status === 'CANCELLED').length
   const delayed = flights.filter(f => f.status === 'DELAYED').length
 
   const totalSeats = flights.reduce((s, f) => s + f.totalSeats, 0)
-  const bookedSeats = flights.reduce((s, f) => s + (f.totalSeats - f.availableSeats), 0)
+  const bookedSeats = flights.reduce((s, f) => {
+    const analytics = analyticsData.get(f.id)
+    return s + (analytics?.bookedSeats ?? (f.totalSeats - f.availableSeats))
+  }, 0)
   const occupancyRate = totalSeats > 0 ? ((bookedSeats / totalSeats) * 100).toFixed(1) : '0'
-  const totalRevenue = flights.reduce((s, f) => s + (f.totalSeats - f.availableSeats) * f.baseFare, 0)
+  const totalRevenue = Array.from(analyticsData.values()).reduce((s, a) => s + Number(a.revenue), 0)
   const avgRevenue = totalFlights > 0 ? (totalRevenue / totalFlights) : 0
 
   const statusDist = [
-    { label: 'Scheduled', count: scheduled, color: 'bg-green-500' },
-    { label: 'Completed', count: completed, color: 'bg-blue-500' },
+    { label: 'On Time', count: onTime, color: 'bg-green-500' },
+    { label: 'Departed', count: departed, color: 'bg-blue-500' },
+    { label: 'Arrived', count: arrived, color: 'bg-indigo-500' },
     { label: 'Delayed', count: delayed, color: 'bg-yellow-500' },
     { label: 'Cancelled', count: cancelled, color: 'bg-red-500' },
   ]
 
   const topFlights = [...flights]
-    .sort((a, b) => (b.totalSeats - b.availableSeats) * b.baseFare - (a.totalSeats - a.availableSeats) * a.baseFare)
+    .sort((a, b) => {
+      const revenueA = analyticsData.get(a.id)?.revenue ?? ((a.totalSeats - a.availableSeats) * a.baseFare)
+      const revenueB = analyticsData.get(b.id)?.revenue ?? ((b.totalSeats - b.availableSeats) * b.baseFare)
+      return Number(revenueB) - Number(revenueA)
+    })
     .slice(0, 5)
 
   const stats = [
     { label: 'Total Revenue', value: `₹${totalRevenue.toLocaleString('en-IN')}`, icon: DollarSign, bgColor: 'bg-green-50', textColor: 'text-green-600' },
     { label: 'Avg Revenue / Flight', value: `₹${avgRevenue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`, icon: TrendingUp, bgColor: 'bg-blue-50', textColor: 'text-blue-600' },
     { label: 'Occupancy Rate', value: `${occupancyRate}%`, icon: Users, bgColor: 'bg-purple-50', textColor: 'text-purple-600' },
-    { label: 'Scheduled Flights', value: scheduled, icon: Plane, bgColor: 'bg-orange-50', textColor: 'text-orange-600' },
+    { label: 'On Time Flights', value: onTime, icon: Plane, bgColor: 'bg-orange-50', textColor: 'text-orange-600' },
   ]
 
   return (
@@ -181,8 +238,9 @@ export default function AnalyticsPage() {
                   </thead>
                   <tbody>
                     {topFlights.map((flight, i) => {
-                      const booked = flight.totalSeats - flight.availableSeats
-                      const revenue = booked * flight.baseFare
+                      const analytics = analyticsData.get(flight.id)
+                      const booked = analytics?.bookedSeats ?? (flight.totalSeats - flight.availableSeats)
+                      const revenue = analytics?.revenue ?? (booked * flight.baseFare)
                       const occ = ((booked / flight.totalSeats) * 100).toFixed(1)
                       const dep = getAirport(flight.departureAirportId)
                       const arr = getAirport(flight.arrivalAirportId)
@@ -215,7 +273,7 @@ export default function AnalyticsPage() {
                             </div>
                           </td>
                           <td className="py-4 px-4">
-                            <p className="font-bold text-green-600">₹{revenue.toLocaleString('en-IN')}</p>
+                            <p className="font-bold text-green-600">₹{Number(revenue).toLocaleString('en-IN')}</p>
                           </td>
                         </tr>
                       )

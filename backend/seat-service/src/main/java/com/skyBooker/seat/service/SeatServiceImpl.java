@@ -4,10 +4,13 @@ import com.skyBooker.seat.entity.Seat;
 import com.skyBooker.seat.entity.SeatClassConfig;
 import com.skyBooker.seat.dto.SeatClassRangeRequest;
 import com.skyBooker.seat.dto.SeatMapUpdateEvent;
+import com.skyBooker.seat.dto.SeatCountUpdateEvent;
+import com.skyBooker.seat.dto.FlightAnalyticsEvent;
 import com.skyBooker.seat.dto.SeatResponse;
 import com.skyBooker.seat.repository.SeatClassConfigRepository;
 import com.skyBooker.seat.repository.SeatRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +28,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class SeatServiceImpl implements SeatService {
 
     private final SeatRepository seatRepository;
@@ -32,6 +36,11 @@ public class SeatServiceImpl implements SeatService {
     private static final int SEAT_HOLD_MINUTES = 15;
     private static final String[] SEAT_LETTERS = {"A", "B", "C", "D", "E", "F"};
     private final Map<Long, List<SseEmitter>> emittersByFlight = new ConcurrentHashMap<>();
+    
+    @org.springframework.beans.factory.annotation.Value("${services.flight-base-url:http://localhost:8082}")
+    private String flightServiceUrl;
+    
+    private final org.springframework.web.client.RestTemplate restTemplate = new org.springframework.web.client.RestTemplate();
 
     @Override
     @Transactional
@@ -65,7 +74,6 @@ public class SeatServiceImpl implements SeatService {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public List<Seat> getAllSeatsByFlight(Long flightId) {
         return seatRepository.findByFlightId(flightId);
     }
@@ -85,53 +93,61 @@ public class SeatServiceImpl implements SeatService {
     @Override
     @Transactional
     public Seat holdSeat(Long flightId, String seatNumber, Long passengerId) {
-        Seat seat = seatRepository.findByFlightIdAndSeatNumberForUpdate(flightId, seatNumber)
-                .orElseThrow(() -> new RuntimeException("Seat not found"));
+        try {
+            Seat seat = seatRepository.findByFlightIdAndSeatNumberForUpdate(flightId, seatNumber)
+                    .orElseThrow(() -> new RuntimeException("Seat not found: " + seatNumber + " for flight: " + flightId));
 
-        if (seat.getStatus() == Seat.SeatStatus.HELD && passengerId.equals(seat.getPassengerId())) {
+            if (seat.getStatus() == Seat.SeatStatus.HELD && passengerId.equals(seat.getPassengerId())) {
+                seat.setHoldExpiresAt(LocalDateTime.now().plusMinutes(SEAT_HOLD_MINUTES));
+                Seat savedSeat = seatRepository.save(seat);
+                publishSeatUpdate(flightId, "HELD");
+                return savedSeat;
+            }
+
+            if (seat.getStatus() != Seat.SeatStatus.AVAILABLE) {
+                throw new RuntimeException("Seat is not available. Current status: " + seat.getStatus());
+            }
+
+            seat.setStatus(Seat.SeatStatus.HELD);
+            seat.setPassengerId(passengerId);
             seat.setHoldExpiresAt(LocalDateTime.now().plusMinutes(SEAT_HOLD_MINUTES));
             Seat savedSeat = seatRepository.save(seat);
             publishSeatUpdate(flightId, "HELD");
             return savedSeat;
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to hold seat: " + e.getMessage(), e);
         }
-
-        if (seat.getStatus() != Seat.SeatStatus.AVAILABLE) {
-            throw new RuntimeException("Seat is not available");
-        }
-
-        seat.setStatus(Seat.SeatStatus.HELD);
-        seat.setPassengerId(passengerId);
-        seat.setHoldExpiresAt(LocalDateTime.now().plusMinutes(SEAT_HOLD_MINUTES));
-        Seat savedSeat = seatRepository.save(seat);
-        publishSeatUpdate(flightId, "HELD");
-        return savedSeat;
     }
 
     @Override
     @Transactional
     public Seat bookSeat(Long flightId, String seatNumber, Long bookingId, Long passengerId) {
-        Seat seat = seatRepository.findByFlightIdAndSeatNumberForUpdate(flightId, seatNumber)
-                .orElseThrow(() -> new RuntimeException("Seat not found"));
+        try {
+            Seat seat = seatRepository.findByFlightIdAndSeatNumberForUpdate(flightId, seatNumber)
+                    .orElseThrow(() -> new RuntimeException("Seat not found: " + seatNumber + " for flight: " + flightId));
 
-        if (seat.getStatus() == Seat.SeatStatus.BOOKED) {
-            throw new RuntimeException("Seat is already booked");
+            if (seat.getStatus() == Seat.SeatStatus.BOOKED) {
+                throw new RuntimeException("Seat is already booked");
+            }
+
+            if (seat.getStatus() == Seat.SeatStatus.HELD && seat.getPassengerId() != null && !seat.getPassengerId().equals(passengerId)) {
+                throw new RuntimeException("Seat is held by another passenger");
+            }
+
+            if (seat.getStatus() != Seat.SeatStatus.HELD && seat.getStatus() != Seat.SeatStatus.AVAILABLE) {
+                throw new RuntimeException("Seat is not available for booking. Current status: " + seat.getStatus());
+            }
+
+            seat.setStatus(Seat.SeatStatus.BOOKED);
+            seat.setBookingId(bookingId);
+            seat.setPassengerId(passengerId);
+            seat.setHoldExpiresAt(null);
+            Seat savedSeat = seatRepository.save(seat);
+            publishSeatUpdate(flightId, "BOOKED");
+            return savedSeat;
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to book seat: " + e.getMessage(), e);
         }
-
-        if (seat.getStatus() == Seat.SeatStatus.HELD && seat.getPassengerId() != null && !seat.getPassengerId().equals(passengerId)) {
-            throw new RuntimeException("Seat is held by another passenger");
-        }
-
-        if (seat.getStatus() != Seat.SeatStatus.HELD && seat.getStatus() != Seat.SeatStatus.AVAILABLE) {
-            throw new RuntimeException("Seat is not available for booking");
-        }
-
-        seat.setStatus(Seat.SeatStatus.BOOKED);
-        seat.setBookingId(bookingId);
-        seat.setPassengerId(passengerId);
-        seat.setHoldExpiresAt(null);
-        Seat savedSeat = seatRepository.save(seat);
-        publishSeatUpdate(flightId, "BOOKED");
-        return savedSeat;
     }
 
     @Override
@@ -146,7 +162,7 @@ public class SeatServiceImpl implements SeatService {
     @Transactional
     public void releaseSeat(Long flightId, String seatNumber) {
         Seat seat = seatRepository.findByFlightIdAndSeatNumber(flightId, seatNumber)
-                .orElseThrow(() -> new RuntimeException("Seat not found"));
+                .orElseThrow(() -> new RuntimeException("Seat not found: " + seatNumber + " for flight: " + flightId));
         releaseSeatEntity(seat);
     }
 
@@ -204,15 +220,14 @@ public class SeatServiceImpl implements SeatService {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public List<SeatClassConfig> getSeatConfig(Long flightId) {
         return seatClassConfigRepository.findByFlightIdOrderByStartRowAsc(flightId);
     }
 
     @Override
-    @Transactional(readOnly = true)
     public SseEmitter subscribeToFlightSeatMap(Long flightId) {
-        List<SeatResponse> seats = getAllSeatsByFlight(flightId).stream().map(this::mapToResponse).toList();
+        List<Seat> allSeats = getAllSeatsByFlight(flightId);
+        List<SeatResponse> seats = allSeats.stream().map(this::mapToResponse).toList();
         List<com.skyBooker.seat.dto.SeatClassConfigResponse> configs = getSeatConfig(flightId).stream().map(this::mapConfigToResponse).toList();
         
         SseEmitter emitter = new SseEmitter(0L);
@@ -222,6 +237,7 @@ public class SeatServiceImpl implements SeatService {
         emitter.onTimeout(() -> removeEmitter(flightId, emitter));
         emitter.onError(ignored -> removeEmitter(flightId, emitter));
 
+        // Send initial snapshot
         sendEvent(emitter, new SeatMapUpdateEvent(
                 flightId,
                 "SNAPSHOT",
@@ -229,6 +245,21 @@ public class SeatServiceImpl implements SeatService {
                 seats,
                 configs
         ));
+        
+        // Send initial seat count
+        int totalSeats = allSeats.size();
+        int bookedSeats = (int) allSeats.stream().filter(s -> s.getStatus() == Seat.SeatStatus.BOOKED).count();
+        int availableSeats = (int) allSeats.stream().filter(s -> s.getStatus() == Seat.SeatStatus.AVAILABLE).count();
+        
+        sendCountEvent(emitter, new SeatCountUpdateEvent(
+                flightId,
+                totalSeats,
+                bookedSeats,
+                availableSeats
+        ));
+        
+        // Send initial analytics
+        sendAnalyticsEvent(emitter, buildAnalyticsEvent(flightId, allSeats));
 
         return emitter;
     }
@@ -236,14 +267,20 @@ public class SeatServiceImpl implements SeatService {
         Optional.ofNullable(emittersByFlight.get(flightId)).ifPresent(emitters -> emitters.remove(emitter));
     }
 
-    @Transactional
     public void publishSeatUpdate(Long flightId, String eventType) {
+        List<Seat> allSeats = getAllSeatsByFlight(flightId);
+        int totalSeats = allSeats.size();
+        int bookedSeats = (int) allSeats.stream().filter(s -> s.getStatus() == Seat.SeatStatus.BOOKED).count();
+        int availableSeats = (int) allSeats.stream().filter(s -> s.getStatus() == Seat.SeatStatus.AVAILABLE).count();
+        
+        updateFlightAvailableSeats(flightId, availableSeats);
+        
         List<SseEmitter> emitters = emittersByFlight.get(flightId);
         if (emitters == null || emitters.isEmpty()) {
             return;
         }
 
-        List<SeatResponse> seats = getAllSeatsByFlight(flightId).stream().map(this::mapToResponse).toList();
+        List<SeatResponse> seats = allSeats.stream().map(this::mapToResponse).toList();
         List<com.skyBooker.seat.dto.SeatClassConfigResponse> configs = getSeatConfig(flightId).stream().map(this::mapConfigToResponse).toList();
 
         SeatMapUpdateEvent event = new SeatMapUpdateEvent(
@@ -253,11 +290,22 @@ public class SeatServiceImpl implements SeatService {
                 seats,
                 configs
         );
+        
+        SeatCountUpdateEvent countEvent = new SeatCountUpdateEvent(
+                flightId,
+                totalSeats,
+                bookedSeats,
+                availableSeats
+        );
+        
+        FlightAnalyticsEvent analyticsEvent = buildAnalyticsEvent(flightId, allSeats);
 
         List<SseEmitter> staleEmitters = new ArrayList<>();
         for (SseEmitter emitter : emitters) {
             try {
                 sendEvent(emitter, event);
+                sendCountEvent(emitter, countEvent);
+                sendAnalyticsEvent(emitter, analyticsEvent);
             } catch (Exception exception) {
                 staleEmitters.add(emitter);
             }
@@ -273,12 +321,77 @@ public class SeatServiceImpl implements SeatService {
         }
     }
 
+    private void sendCountEvent(SseEmitter emitter, SeatCountUpdateEvent event) {
+        try {
+            emitter.send(SseEmitter.event().name("seat-count").data(event));
+        } catch (Exception exception) {
+            emitter.completeWithError(exception);
+        }
+    }
+    
+    private void sendAnalyticsEvent(SseEmitter emitter, FlightAnalyticsEvent event) {
+        try {
+            emitter.send(SseEmitter.event().name("flight-analytics").data(event));
+        } catch (Exception exception) {
+            emitter.completeWithError(exception);
+        }
+    }
+    
+    private FlightAnalyticsEvent buildAnalyticsEvent(Long flightId, List<Seat> allSeats) {
+        int totalSeats = allSeats.size();
+        int bookedSeats = (int) allSeats.stream().filter(s -> s.getStatus() == Seat.SeatStatus.BOOKED).count();
+        int availableSeats = (int) allSeats.stream().filter(s -> s.getStatus() == Seat.SeatStatus.AVAILABLE).count();
+        
+        java.math.BigDecimal baseFare = getFlightBaseFare(flightId);
+        java.math.BigDecimal revenue = baseFare.multiply(java.math.BigDecimal.valueOf(bookedSeats));
+        
+        Set<Long> uniqueBookings = allSeats.stream()
+                .filter(s -> s.getBookingId() != null)
+                .map(Seat::getBookingId)
+                .collect(Collectors.toSet());
+        
+        return new FlightAnalyticsEvent(
+                flightId,
+                totalSeats,
+                bookedSeats,
+                availableSeats,
+                revenue,
+                uniqueBookings.size()
+        );
+    }
+    
+    private java.math.BigDecimal getFlightBaseFare(Long flightId) {
+        try {
+            FlightDTO flight = restTemplate.getForObject(
+                    flightServiceUrl + "/flights/" + flightId,
+                    FlightDTO.class
+            );
+            return flight != null ? flight.getBaseFare() : java.math.BigDecimal.ZERO;
+        } catch (Exception e) {
+            log.warn("Failed to fetch flight base fare for flight {}: {}", flightId, e.getMessage());
+            return java.math.BigDecimal.ZERO;
+        }
+    }
+    
+    private void updateFlightAvailableSeats(Long flightId, int availableSeats) {
+        try {
+            String url = flightServiceUrl + "/flights/" + flightId + "/available-seats?count=" + availableSeats;
+            restTemplate.put(url, null);
+            log.info("Updated flight {} available seats to {}", flightId, availableSeats);
+        } catch (Exception e) {
+            log.error("Failed to update flight available seats for flight {}: {}", flightId, e.getMessage());
+        }
+    }
+
     private void releaseSeatEntity(Seat seat) {
+        log.info("Releasing seat {} for flight {} (bookingId: {}, status: {})", 
+                seat.getSeatNumber(), seat.getFlightId(), seat.getBookingId(), seat.getStatus());
         seat.setStatus(Seat.SeatStatus.AVAILABLE);
         seat.setPassengerId(null);
         seat.setBookingId(null);
         seat.setHoldExpiresAt(null);
         seatRepository.save(seat);
+        log.info("Seat {} released successfully", seat.getSeatNumber());
         publishSeatUpdate(seat.getFlightId(), "RELEASED");
     }
 
@@ -361,6 +474,18 @@ public class SeatServiceImpl implements SeatService {
                 config.getEndRow(),
                 config.getSeatClass()
         );
+    }
+    
+    private static class FlightDTO {
+        private java.math.BigDecimal baseFare;
+        
+        public java.math.BigDecimal getBaseFare() {
+            return baseFare;
+        }
+        
+        public void setBaseFare(java.math.BigDecimal baseFare) {
+            this.baseFare = baseFare;
+        }
     }
 }
 

@@ -10,7 +10,7 @@ import { getEffectiveSeatClass, getSeatPrice, SeatPicker } from '../../component
 import { TopNav } from '../../components/booking/top-nav'
 import { useAuth } from '../../context/auth-context'
 import { useBookingFlow } from '../../context/booking-flow-context'
-import { flightApi, seatApi, type EnrichedFlightResult, type SeatResult } from '../../services/api'
+import { flightApi, seatApi, type EnrichedFlightResult, type SeatResult, type SeatCountUpdateEvent } from '../../services/api'
 
 type PassengerErrors = {
   firstName?: string
@@ -238,6 +238,14 @@ export function BookingPage() {
         if (payload && payload.seats && Array.isArray(payload.seats)) {
           applySeats(payload.seats)
         }
+      } catch {
+        // ignore malformed events
+      }
+    })
+    stream.addEventListener('seat-count', (event) => {
+      try {
+        const payload = JSON.parse((event as MessageEvent).data) as SeatCountUpdateEvent
+        setFlight(prev => prev ? { ...prev, availableSeats: payload.availableSeats } : null)
       } catch {
         // ignore malformed events
       }

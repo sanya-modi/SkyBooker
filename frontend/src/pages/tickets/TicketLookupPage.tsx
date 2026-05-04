@@ -43,9 +43,15 @@ export function TicketLookupPage() {
       setPnr(normalizedPnr)
       setTicket(ticketResult)
       setAirports(airportResults)
-    } catch {
+    } catch (err: any) {
       setTicket(null)
-      setError('Invalid PNR')
+      if (err?.response?.data?.message === 'This booking has been cancelled') {
+        setError('This booking has been cancelled')
+      } else if (err?.response?.data?.message?.includes('Payment is pending')) {
+        setError('Payment is pending for this booking. Please complete the payment first.')
+      } else {
+        setError('Invalid PNR')
+      }
     } finally {
       setLoading(false)
     }

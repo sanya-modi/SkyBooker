@@ -26,6 +26,15 @@ public class TicketController {
             @Pattern(regexp = BookingValidationPatterns.PNR, message = "PNR must be a 6-character alphanumeric code")
             String pnr
     ) {
-        return ResponseEntity.ok(bookingService.getTicketByPnr(pnr));
+        try {
+            return ResponseEntity.ok(bookingService.getTicketByPnr(pnr));
+        } catch (RuntimeException e) {
+            // Propagate specific error messages for cancelled and pending bookings
+            if (e.getMessage().equals("This booking has been cancelled") ||
+                e.getMessage().contains("Payment is pending")) {
+                throw e;
+            }
+            throw e;
+        }
     }
 }

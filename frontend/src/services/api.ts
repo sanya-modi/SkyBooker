@@ -134,6 +134,22 @@ export interface SeatMapUpdateEvent {
   configs: SeatClassConfigRange[]
 }
 
+export interface SeatCountUpdateEvent {
+  flightId: number
+  totalSeats: number
+  bookedSeats: number
+  availableSeats: number
+}
+
+export interface FlightAnalyticsEvent {
+  flightId: number
+  totalSeats: number
+  bookedSeats: number
+  availableSeats: number
+  revenue: number
+  bookingsCount: number
+}
+
 export interface AuthResponseData {
   userId: number
   email: string

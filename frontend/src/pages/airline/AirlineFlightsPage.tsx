@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import { Link, useNavigate } from 'react-router-dom'
 import { Plane, Plus, Search, Filter, Edit, Trash2 } from "lucide-react"
 import { useAuth } from "@/context/auth-context"
-import { flightApi, getAllAirportsCached, getAllAirlinesCached, type FlightResult, type Airport, type Airline } from "@/services/api"
+import { flightApi, getAllAirportsCached, getAllAirlinesCached, seatApi, type FlightResult, type Airport, type Airline, type SeatCountUpdateEvent } from "@/services/api"
 
 export default function ViewFlightsPage() {
   const navigate = useNavigate()
@@ -28,6 +28,37 @@ export default function ViewFlightsPage() {
       .catch(console.error)
       .finally(() => setLoading(false))
   }, [isLoggedIn, profile?.airlineId])
+
+  // Subscribe to real-time seat count updates for all flights
+  useEffect(() => {
+    if (flights.length === 0) return
+
+    const streams: EventSource[] = []
+    const flightIds = flights.map(f => f.id)
+
+    for (const flightId of flightIds) {
+      try {
+        const stream = seatApi.createSeatStream(flightId)
+        stream.addEventListener('seat-count', (event) => {
+          try {
+            const payload = JSON.parse((event as MessageEvent).data) as SeatCountUpdateEvent
+            setFlights(prev => prev.map(f => 
+              f.id === payload.flightId ? { ...f, availableSeats: payload.availableSeats } : f
+            ))
+          } catch {
+            // ignore malformed events
+          }
+        })
+        streams.push(stream)
+      } catch {
+        // ignore stream creation errors
+      }
+    }
+
+    return () => {
+      streams.forEach(stream => stream.close())
+    }
+  }, [flights.map(f => f.id).join(',')]) // eslint-disable-line
 
   const handleDelete = async (id: number) => {
     if (!confirm('Are you sure you want to delete this flight?')) return

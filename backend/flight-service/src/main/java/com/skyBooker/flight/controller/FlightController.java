@@ -94,6 +94,14 @@ public class FlightController {
         return ResponseEntity.ok(flightService.updateAvailableSeats(flightId, seatsToReduce));
     }
 
+    @PutMapping("/{flightId}/available-seats")
+    public ResponseEntity<Void> setAvailableSeats(
+            @PathVariable Long flightId,
+            @RequestParam Integer count) {
+        flightService.setAvailableSeats(flightId, count);
+        return ResponseEntity.ok().build();
+    }
+
     @GetMapping("/{id}/seat-config")
     public ResponseEntity<List<SeatClassConfigResponse>> getSeatConfig(
             @PathVariable Long id,

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import { Link } from 'react-router-dom'
 import { Plane, Calendar, Users, TrendingUp, Clock, CheckCircle2, Plus, ArrowRight } from "lucide-react"
 import { useAuth } from "@/context/auth-context"
-import { flightApi, getAllAirportsCached, getAllAirlinesCached, type FlightResult, type Airport, type Airline } from "@/services/api"
+import { flightApi, getAllAirportsCached, getAllAirlinesCached, seatApi, type FlightResult, type Airport, type Airline, type SeatCountUpdateEvent } from "@/services/api"
 
 export default function AirlineDashboard() {
   const { profile } = useAuth()
@@ -23,6 +23,33 @@ export default function AirlineDashboard() {
       .catch(console.error)
       .finally(() => setLoading(false))
   }, [profile?.airlineId])
+
+  // Subscribe to real-time seat count updates
+  useEffect(() => {
+    if (flights.length === 0) return
+
+    const streams: EventSource[] = []
+    for (const flight of flights) {
+      try {
+        const stream = seatApi.createSeatStream(flight.id)
+        stream.addEventListener('seat-count', (event) => {
+          try {
+            const payload = JSON.parse((event as MessageEvent).data) as SeatCountUpdateEvent
+            setFlights(prev => prev.map(f => 
+              f.id === payload.flightId ? { ...f, availableSeats: payload.availableSeats } : f
+            ))
+          } catch {
+            // ignore
+          }
+        })
+        streams.push(stream)
+      } catch {
+        // ignore
+      }
+    }
+
+    return () => streams.forEach(s => s.close())
+  }, [flights.map(f => f.id).join(',')]) // eslint-disable-line
 
   const getAirport = (id: number) => airports.find(a => a.id === id)
   const myAirline = airlines.find(a => a.id === profile?.airlineId)
