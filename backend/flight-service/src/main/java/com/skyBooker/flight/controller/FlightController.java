@@ -4,6 +4,7 @@ import com.skyBooker.flight.dto.FlightRequest;
 import com.skyBooker.flight.dto.FlightPassengerManifestResponse;
 import com.skyBooker.flight.dto.FlightResponse;
 import com.skyBooker.flight.dto.FlightSearchFilterDTO;
+import com.skyBooker.flight.dto.PopularDestinationResponse;
 import com.skyBooker.flight.dto.SeatClassConfigResponse;
 import com.skyBooker.flight.dto.SeatConfigRequest;
 import com.skyBooker.flight.entity.Flight;
@@ -120,5 +121,15 @@ public class FlightController {
     ) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(flightService.saveSeatConfig(id, request, userEmail, userRole));
+    }
+
+    @GetMapping("/popular-destinations")
+    public ResponseEntity<List<PopularDestinationResponse>> getPopularDestinations() {
+        return ResponseEntity.ok(flightService.getPopularDestinations());
+    }
+
+    @GetMapping("/by-destination")
+    public ResponseEntity<List<FlightResponse>> getFlightsByDestination(@RequestParam String to) {
+        return ResponseEntity.ok(flightService.getFlightsByDestination(to));
     }
 }

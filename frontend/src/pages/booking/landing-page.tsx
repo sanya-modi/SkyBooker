@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '../../components/booking/button'
 import { MobileDock } from '../../components/booking/mobile-dock'
+import { PopularDestinations } from '../../components/booking/popular-destinations'
 import { SearchForm } from '../../components/booking/search-form'
 import { TopNav } from '../../components/booking/top-nav'
 import { useBookingFlow, type SearchCriteria } from '../../context/booking-flow-context'
@@ -77,29 +78,7 @@ export function LandingPage() {
           />
         </section>
 
-        <section className="landing-promos" id="deals">
-          <div className="landing-section-head">
-            <div>
-              <span className="section-kicker">Booking Flow</span>
-              <h2>Search, compare, book, pay, confirm</h2>
-            </div>
-          </div>
-          <div className="passenger-pillars">
-            <div className="passenger-card">
-              <h3>Validated search</h3>
-              <p>Origin and destination checks, valid travel dates, and tighter form alignment.</p>
-            </div>
-            <div className="passenger-card">
-              <h3>Live results</h3>
-              <p>Flight cards now load from the backend and can be filtered by price, stops, and airline.</p>
-            </div>
-            <div className="passenger-card">
-              <h3>Professional checkout</h3>
-              <p>Passenger details, seat selection, payment summary, and confirmation are split into clear steps.</p>
-              <Button onClick={() => navigate('/support')} variant="secondary">Need Help?</Button>
-            </div>
-          </div>
-        </section>
+        <PopularDestinations />
       </motion.section>
       <MobileDock active="explore" />
     </div>

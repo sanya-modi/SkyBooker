@@ -12,6 +12,7 @@ import {
   getAllAirlinesCached,
   getAllAirportsCached,
   searchFlights,
+  searchByDestination,
   seatApi,
   type Airline,
   type Airport,
@@ -80,8 +81,12 @@ export function ResultsPage() {
   const returnDate = params.get('returnDate') ?? ''
   const passengers = Number(params.get('passengers') ?? '1')
   const tripType = (params.get('tripType') as 'roundtrip' | 'oneway') || 'roundtrip'
+  const destinationOnly = params.get('destinationOnly') === 'true'
+  const toIata = params.get('to') ?? ''
+  
   const hasValidRouteIds = Number.isFinite(fromId) && fromId > 0 && Number.isFinite(toId) && toId > 0
   const hasValidDepartureDate = Boolean(departureDate) && !Number.isNaN(new Date(departureDate).getTime())
+  const hasValidDestinationOnly = destinationOnly && Boolean(toIata)
 
   // Hero entrance animation
   useLayoutEffect(() => {
@@ -104,13 +109,22 @@ export function ResultsPage() {
         setAirports(airportList)
         setAirlines(airlineList)
 
-        if (!hasValidRouteIds || !hasValidDepartureDate) {
+        if (!destinationOnly && (!hasValidRouteIds || !hasValidDepartureDate)) {
           setAllFlights([])
           setError('Please select valid travel details.')
           return
         }
 
-        const flightList = await searchFlights(fromId, toId, departureDate)
+        if (destinationOnly && !hasValidDestinationOnly) {
+          setAllFlights([])
+          setError('Invalid destination.')
+          return
+        }
+
+        const flightList = destinationOnly 
+          ? await searchByDestination(toIata)
+          : await searchFlights(fromId, toId, departureDate)
+          
         setAllFlights(flightList)
 
         const prices = flightList.map((f) => Number(f.baseFare))
@@ -126,11 +140,19 @@ export function ResultsPage() {
           timeSlots: [0, 1, 2, 3],
         })
 
-        const fromAirport = airportList.find((a) => a.id === fromId) ?? null
-        const toAirport = airportList.find((a) => a.id === toId) ?? null
+        const fromAirport = destinationOnly ? null : (airportList.find((a) => a.id === fromId) ?? null)
+        const toAirport = destinationOnly 
+          ? (airportList.find((a) => a.iataCode === toIata) ?? null)
+          : (airportList.find((a) => a.id === toId) ?? null)
+          
         setSearchCriteria({
-          fromAirport, toAirport, departureDate, returnDate,
-          passengers, tripType, directOnly: false,
+          fromAirport, 
+          toAirport, 
+          departureDate: destinationOnly ? '' : departureDate, 
+          returnDate: destinationOnly ? '' : returnDate,
+          passengers, 
+          tripType, 
+          directOnly: false,
         })
       } catch (err) {
         setAllFlights([])

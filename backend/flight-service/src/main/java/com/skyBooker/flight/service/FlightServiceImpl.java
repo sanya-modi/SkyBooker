@@ -4,18 +4,17 @@ import com.skyBooker.flight.dto.FlightRequest;
 import com.skyBooker.flight.dto.FlightPassengerManifestResponse;
 import com.skyBooker.flight.dto.FlightResponse;
 import com.skyBooker.flight.dto.FlightSearchFilterDTO;
+import com.skyBooker.flight.dto.PopularDestinationResponse;
 import com.skyBooker.flight.dto.SeatClassConfigResponse;
 import com.skyBooker.flight.dto.SeatConfigRequest;
-import com.skyBooker.flight.dto.remote.FlightStatusNotificationRequest;
-import com.skyBooker.flight.dto.remote.RemoteBookingResponse;
-import com.skyBooker.flight.dto.remote.RemotePassengerResponse;
-import com.skyBooker.flight.dto.remote.RemoteUserResponse;
+import com.skyBooker.flight.dto.remote.*;
 import com.skyBooker.flight.entity.Flight;
 import com.skyBooker.flight.exception.FlightException;
 import com.skyBooker.flight.repository.FlightRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -311,6 +310,62 @@ public class FlightServiceImpl implements FlightService {
                 new ParameterizedTypeReference<>() {}
         );
         return response.getBody() != null ? response.getBody() : List.of();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PopularDestinationResponse> getPopularDestinations() {
+        List<Long> topAirportIds = flightRepository.findTopDestinationsByBookingCount(PageRequest.of(0, 6));
+        
+        if (topAirportIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        return topAirportIds.stream()
+                .map(id -> {
+                    try {
+                        RemoteAirportResponse airport = restTemplate.getForObject(
+                                airlineAirportServiceBaseUrl + "/airports/" + id,
+                                RemoteAirportResponse.class
+                        );
+                        if (airport != null) {
+                            String imageUrl = String.format(
+    "https://source.unsplash.com/800x600/?%s,travel,city",
+    airport.getCity().replace(" ", "+")
+);
+                            return new PopularDestinationResponse(
+                                    airport.getCity(),
+                                    airport.getIataCode(),
+                                    imageUrl
+                            );
+                        }
+                    } catch (Exception e) {
+                        System.err.println("Failed to fetch airport details for ID " + id + ": " + e.getMessage());
+                    }
+                    return null;
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<FlightResponse> getFlightsByDestination(String iataCode) {
+        try {
+            RemoteAirportResponse airport = restTemplate.getForObject(
+                    airlineAirportServiceBaseUrl + "/airports/iata/" + iataCode,
+                    RemoteAirportResponse.class
+            );
+            if (airport == null) {
+                return Collections.emptyList();
+            }
+            return flightRepository.findByArrivalAirportId(airport.getId()).stream()
+                    .map(this::mapToResponse)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            System.err.println("Failed to fetch flights for destination " + iataCode + ": " + e.getMessage());
+            return Collections.emptyList();
+        }
     }
 
     private Flight getFlightEntity(Long id) {

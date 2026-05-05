@@ -1,6 +1,7 @@
 package com.skyBooker.flight.repository;
 
 import com.skyBooker.flight.entity.Flight;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -49,5 +50,10 @@ public interface FlightRepository extends JpaRepository<Flight, Long> {
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end
     );
+
+    @Query("SELECT f.arrivalAirportId FROM Flight f GROUP BY f.arrivalAirportId ORDER BY SUM(f.totalSeats - f.availableSeats) DESC")
+    List<Long> findTopDestinationsByBookingCount(Pageable pageable);
+
+    List<Flight> findByArrivalAirportId(Long arrivalAirportId);
 
 }

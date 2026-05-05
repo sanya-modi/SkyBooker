@@ -192,6 +192,12 @@ export interface BookingPassengerValidationPayload {
   category: 'ADULT' | 'CHILD' | 'INFANT'
 }
 
+export interface PopularDestination {
+  destinationName: string
+  airportCode: string
+  imageUrl: string
+}
+
 export const authApi = {
   register: (body: {
     firstName: string
@@ -347,6 +353,8 @@ export const flightApi = {
       body: JSON.stringify({ ranges }),
     }),
   delete: (id: number) => request<void>(`/flights/${id}`, { method: 'DELETE' }),
+  getPopularDestinations: () => request<PopularDestination[]>('/flights/popular-destinations'),
+  getFlightsByDestination: (to: string) => request<FlightResult[]>(`/flights/by-destination?to=${to}`),
 }
 
 export const seatApi = {
@@ -470,6 +478,23 @@ export async function searchFlights(
   }))
 }
 
+export async function searchByDestination(iataCode: string) {
+  const [flightResults, airports, airlines] = await Promise.all([
+    flightApi.getFlightsByDestination(iataCode),
+    getAllAirportsCached(),
+    getAllAirlinesCached(),
+  ])
+
+  return flightResults.map<EnrichedFlightResult>((flight) => ({
+    ...flight,
+    airline: airlines.find((airline) => airline.id === flight.airlineId),
+    departureAirport: airports.find((airport) => airport.id === flight.departureAirportId),
+    arrivalAirport: airports.find((airport) => airport.id === flight.arrivalAirportId),
+    stopCount: 0,
+    stopsLabel: 'Direct',
+  }))
+}
+
 export interface PaymentResult {
   id: number
   transactionId: string
@@ -539,4 +564,3 @@ export const passengerApi = {
   delete: (id: number) => request<void>(`/passengers/${id}`, { method: 'DELETE' }),
   block: (id: number) => request<void>(`/passengers/${id}/block`, { method: 'PUT' }),
 }
-

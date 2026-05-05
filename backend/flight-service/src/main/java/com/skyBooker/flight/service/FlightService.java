@@ -4,6 +4,7 @@ import com.skyBooker.flight.dto.FlightRequest;
 import com.skyBooker.flight.dto.FlightPassengerManifestResponse;
 import com.skyBooker.flight.dto.FlightResponse;
 import com.skyBooker.flight.dto.FlightSearchFilterDTO;
+import com.skyBooker.flight.dto.PopularDestinationResponse;
 import com.skyBooker.flight.dto.SeatClassConfigResponse;
 import com.skyBooker.flight.dto.SeatConfigRequest;
 import com.skyBooker.flight.entity.Flight;
@@ -29,4 +30,6 @@ public interface FlightService {
     List<FlightResponse> searchWithFilters(FlightSearchFilterDTO filter);
     List<SeatClassConfigResponse> saveSeatConfig(Long flightId, SeatConfigRequest request, String userEmail, String userRole);
     List<SeatClassConfigResponse> getSeatConfig(Long flightId, String userEmail, String userRole);
+    List<PopularDestinationResponse> getPopularDestinations();
+    List<FlightResponse> getFlightsByDestination(String iataCode);
 }
