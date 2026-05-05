@@ -26,6 +26,57 @@ spring:
             allowCredentials: true
             maxAge: 3600
       routes:
+        # ===== Swagger API Docs routes (MUST come before general routes) =====
+        - id: flight-service-api-docs
+          uri: lb://flight-service
+          predicates:
+            - Path=/flights/v3/api-docs
+          filters:
+            - RewritePath=/flights/v3/api-docs, /v3/api-docs
+
+        - id: seat-service-api-docs
+          uri: lb://seat-service
+          predicates:
+            - Path=/seats/v3/api-docs
+          filters:
+            - RewritePath=/seats/v3/api-docs, /v3/api-docs
+
+        - id: booking-service-api-docs
+          uri: lb://booking-service
+          predicates:
+            - Path=/bookings/v3/api-docs
+          filters:
+            - RewritePath=/bookings/v3/api-docs, /v3/api-docs
+
+        - id: passenger-service-api-docs
+          uri: lb://passenger-service
+          predicates:
+            - Path=/passengers/v3/api-docs
+          filters:
+            - RewritePath=/passengers/v3/api-docs, /v3/api-docs
+
+        - id: payment-service-api-docs
+          uri: lb://payment-service
+          predicates:
+            - Path=/payments/v3/api-docs
+          filters:
+            - RewritePath=/payments/v3/api-docs, /v3/api-docs
+
+        - id: notification-service-api-docs
+          uri: lb://notification-service
+          predicates:
+            - Path=/notifications/v3/api-docs
+          filters:
+            - RewritePath=/notifications/v3/api-docs, /v3/api-docs
+
+        - id: airline-airport-service-api-docs
+          uri: lb://airline-airport-service
+          predicates:
+            - Path=/airlines/v3/api-docs
+          filters:
+            - RewritePath=/airlines/v3/api-docs, /v3/api-docs
+
+        # ===== General service routes =====
         - id: auth-service
           uri: lb://auth-service
           predicates:
