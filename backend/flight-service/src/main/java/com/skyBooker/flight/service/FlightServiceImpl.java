@@ -368,6 +368,14 @@ public class FlightServiceImpl implements FlightService {
         }
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<FlightResponse> getOnTimeFlightsByAirlineId(Long airlineId) {
+        return flightRepository.findByAirlineIdAndStatus(airlineId, Flight.FlightStatus.ON_TIME).stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
     private Flight getFlightEntity(Long id) {
         return flightRepository.findById(id)
                 .orElseThrow(() -> new FlightException("Flight not found", "FLIGHT_NOT_FOUND"));

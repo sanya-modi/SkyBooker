@@ -1,0 +1,553 @@
+================================================================================
+                    SKYBOOKER - DETAILED CLASS DIAGRAM
+                    Airline Ticket Booking System
+                    Microservices Architecture
+================================================================================
+
+PROJECT OVERVIEW:
+-----------------
+SkyBooker is a comprehensive airline ticket booking system built using 
+microservices architecture with Spring Boot. The system consists of 9 core 
+services handling authentication, flight management, booking, payments, 
+notifications, and administrative functions.
+
+================================================================================
+                        MICROSERVICES ARCHITECTURE
+================================================================================
+
+1. AUTH-SERVICE (Port: 8081)
+2. FLIGHT-SERVICE (Port: 8082)
+3. SEAT-SERVICE (Port: 8083)
+4. BOOKING-SERVICE (Port: 8084)
+5. PASSENGER-SERVICE (Port: 8085)
+6. PAYMENT-SERVICE (Port: 8086)
+7. NOTIFICATION-SERVICE (Port: 8087)
+8. AIRLINE-AIRPORT-SERVICE (Port: 8088)
+9. ADMIN-USER-SERVICE (Port: 8089)
+
+================================================================================
+                    1. AUTH-SERVICE - DOMAIN MODEL
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                              User                                        │
+├─────────────────────────────────────────────────────────────────────────┤
+│ - id: Long (PK, Auto-generated)                                         │
+│ - firstName: String (NOT NULL, 2-50 chars)                              │
+│ - lastName: String (NOT NULL, 2-50 chars)                               │
+│ - email: String (NOT NULL, UNIQUE, 100 chars)                           │
+│ - password: String (nullable for OAuth users)                           │
+│ - phoneNumber: String (10 digits, nullable)                             │
+│ - passportNumber: String (20 chars, nullable)                           │
+│ - nationality: String (50 chars, nullable)                              │
+│ - profilePhotoUrl: String (1000 chars, nullable)                        │
+│ - airlineId: Long (FK to Airline, nullable)                             │
+│ - googleId: String (UNIQUE, nullable)                                   │
+│ - authProvider: AuthProvider (ENUM: LOCAL, GOOGLE)                      │
+│ - role: UserRole (ENUM: PASSENGER, ADMIN, AIRLINE_STAFF)                │
+│ - isActive: Boolean (default: true)                                     │
+│ - resetToken: String (100 chars, nullable)                              │
+│ - resetTokenExpiry: LocalDateTime (nullable)                            │
+│ - createdAt: LocalDateTime (NOT NULL, auto-set)                         │
+│ - updatedAt: LocalDateTime (NOT NULL, auto-updated)                     │
+├─────────────────────────────────────────────────────────────────────────┤
+│ Relationships:                                                           │
+│ - ManyToOne → Airline (via airlineId)                                   │
+├─────────────────────────────────────────────────────────────────────────┤
+│ Enums:                                                                   │
+│   UserRole: PASSENGER, ADMIN, AIRLINE_STAFF                             │
+│   AuthProvider: LOCAL, GOOGLE                                           │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                            Airline (in Auth)                             │
+├─────────────────────────────────────────────────────────────────────────┤
+│ - id: Long (PK)                                                          │
+│ - name: String                                                           │
+│ - iataCode: String                                                       │
+│ - Other airline details...                                               │
+└─────────────────────────────────────────────────────────────────────────┘
+
+================================================================================
+                    2. FLIGHT-SERVICE - DOMAIN MODEL
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                             Flight                                       │
+├─────────────────────────────────────────────────────────────────────────┤
+│ - id: Long (PK, Auto-generated)                                         │
+│ - flightNumber: String (NOT NULL, UNIQUE, 10 chars)                     │
+│ - aircraftType: String (NOT NULL, 10 chars)                             │
+│ - airlineId: Long (FK to Airline, NOT NULL)                             │
+│ - departureAirportId: Long (FK to Airport, NOT NULL)                    │
+│ - arrivalAirportId: Long (FK to Airport, NOT NULL)                      │
+│ - departureTime: LocalDateTime (NOT NULL)                               │
+│ - arrivalTime: LocalDateTime (NOT NULL)                                 │
+│ - totalSeats: Integer (NOT NULL)                                        │
+│ - availableSeats: Integer (NOT NULL)                                    │
+│ - baseFare: BigDecimal (NOT NULL, precision=10, scale=2)                │
+│ - status: FlightStatus (ENUM, NOT NULL)                                 │
+│ - createdAt: LocalDateTime (NOT NULL, auto-set)                         │
+│ - updatedAt: LocalDateTime (NOT NULL, auto-updated)                     │
+├─────────────────────────────────────────────────────────────────────────┤
+│ Relationships:                                                           │
+│ - References Airline (via airlineId)                                    │
+│ - References Airport (via departureAirportId, arrivalAirportId)         │
+├─────────────────────────────────────────────────────────────────────────┤
+│ Enums:                                                                   │
+│   FlightStatus: ON_TIME, DELAYED, CANCELLED, DEPARTED, ARRIVED          │
+└─────────────────────────────────────────────────────────────────────────┘
+
+================================================================================
+                    3. SEAT-SERVICE - DOMAIN MODEL
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                              Seat                                        │
+├─────────────────────────────────────────────────────────────────────────┤
+│ - id: Long (PK, Auto-generated)                                         │
+│ - flightId: Long (FK to Flight, NOT NULL)                               │
+│ - seatNumber: String (NOT NULL, 10 chars)                               │
+│ - seatClass: SeatClass (ENUM, NOT NULL)                                 │
+│ - status: SeatStatus (ENUM, NOT NULL)                                   │
+│ - passengerId: Long (FK to Passenger, nullable)                         │
+│ - bookingId: Long (FK to Booking, nullable)                             │
+│ - holdExpiresAt: LocalDateTime (nullable)                               │
+│ - createdAt: LocalDateTime (NOT NULL, auto-set)                         │
+│ - updatedAt: LocalDateTime (NOT NULL, auto-updated)                     │
+├─────────────────────────────────────────────────────────────────────────┤
+│ Constraints:                                                             │
+│ - UNIQUE(flightId, seatNumber)                                           │
+├─────────────────────────────────────────────────────────────────────────┤
+│ Relationships:                                                           │
+│ - References Flight (via flightId)                                      │
+│ - References Passenger (via passengerId)                                │
+│ - References Booking (via bookingId)                                    │
+├─────────────────────────────────────────────────────────────────────────┤
+│ Enums:                                                                   │
+│   SeatClass: ECONOMY, BUSINESS, FIRST                                   │
+│   SeatStatus: AVAILABLE, HELD, BOOKED, UNAVAILABLE                      │
+└─────────────────────────────────────────────────────────────────────────┘
+
+================================================================================
+                    4. BOOKING-SERVICE - DOMAIN MODEL
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                            Booking                                       │
+├─────────────────────────────────────────────────────────────────────────┤
+│ - id: Long (PK, Auto-generated)                                         │
+│ - pnr: String (NOT NULL, UNIQUE, 20 chars) [Indexed]                    │
+│ - userId: Long (FK to User, NOT NULL)                                   │
+│ - flightId: Long (FK to Flight, NOT NULL)                               │
+│ - numberOfPassengers: Integer (NOT NULL)                                │
+│ - baseFare: BigDecimal (NOT NULL, precision=10, scale=2)                │
+│ - taxes: BigDecimal (NOT NULL, precision=10, scale=2)                   │
+│ - ancillaryCharges: BigDecimal (NOT NULL, precision=10, scale=2)        │
+│ - totalFare: BigDecimal (NOT NULL, precision=10, scale=2)               │
+│ - totalAmount: BigDecimal (NOT NULL, precision=10, scale=2)             │
+│ - status: BookingStatus (ENUM, NOT NULL)                                │
+│ - bookingDate: LocalDateTime (NOT NULL)                                 │
+│ - paymentId: Long (FK to Payment, nullable)                             │
+│ - checkedIn: Boolean (NOT NULL, default: false)                         │
+│ - checkedInAt: LocalDateTime (nullable)                                 │
+│ - selectedSeatsJson: String (TEXT, JSON array)                          │
+│ - checkInReminderSent: Boolean (NOT NULL, default: false)               │
+│ - createdAt: LocalDateTime (NOT NULL, auto-set)                         │
+│ - updatedAt: LocalDateTime (NOT NULL, auto-updated)                     │
+├─────────────────────────────────────────────────────────────────────────┤
+│ Relationships:                                                           │
+│ - References User (via userId)                                          │
+│ - References Flight (via flightId)                                      │
+│ - References Payment (via paymentId)                                    │
+│ - OneToMany → Passenger (via bookingId)                                 │
+├─────────────────────────────────────────────────────────────────────────┤
+│ Methods:                                                                 │
+│ + getSelectedSeats(): List<String> (deserialize JSON)                   │
+│ + setSelectedSeats(List<String>): void (serialize to JSON)              │
+├─────────────────────────────────────────────────────────────────────────┤
+│ Enums:                                                                   │
+│   BookingStatus: PENDING, CONFIRMED, CANCELLED, COMPLETED, NO_SHOW      │
+└─────────────────────────────────────────────────────────────────────────┘
+
+================================================================================
+                    5. PASSENGER-SERVICE - DOMAIN MODEL
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                           Passenger                                      │
+├─────────────────────────────────────────────────────────────────────────┤
+│ - id: Long (PK, Auto-generated)                                         │
+│ - bookingId: Long (FK to Booking, NOT NULL)                             │
+│ - firstName: String (NOT NULL, 100 chars)                               │
+│ - lastName: String (NOT NULL, 100 chars)                                │
+│ - email: String (255 chars, nullable)                                   │
+│ - phoneNumber: String (20 chars, nullable)                              │
+│ - passportNumber: String (NOT NULL, 20 chars)                           │
+│ - dateOfBirth: LocalDate (NOT NULL)                                     │
+│ - category: Category (ENUM, NOT NULL)                                   │
+│ - gender: Gender (ENUM, NOT NULL)                                       │
+│ - nationality: String (NOT NULL, 50 chars)                              │
+│ - specialRequests: String (50 chars, nullable)                          │
+│ - createdAt: LocalDateTime (NOT NULL, auto-set)                         │
+│ - updatedAt: LocalDateTime (NOT NULL, auto-updated)                     │
+├─────────────────────────────────────────────────────────────────────────┤
+│ Relationships:                                                           │
+│ - ManyToOne → Booking (via bookingId)                                   │
+├─────────────────────────────────────────────────────────────────────────┤
+│ Enums:                                                                   │
+│   Gender: MALE, FEMALE, OTHER                                           │
+│   Category: ADULT, CHILD, INFANT                                        │
+└─────────────────────────────────────────────────────────────────────────┘
+
+================================================================================
+                    6. PAYMENT-SERVICE - DOMAIN MODEL
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                            Payment                                       │
+├─────────────────────────────────────────────────────────────────────────┤
+│ - id: Long (PK, Auto-generated)                                         │
+│ - transactionId: String (NOT NULL, UNIQUE, 50 chars)                    │
+│ - bookingId: Long (FK to Booking, NOT NULL)                             │
+│ - userId: Long (FK to User, NOT NULL)                                   │
+│ - amount: BigDecimal (NOT NULL, precision=10, scale=2)                  │
+│ - paymentMethod: PaymentMethod (ENUM, NOT NULL)                         │
+│ - status: PaymentStatus (ENUM, NOT NULL)                                │
+│ - gatewayTransactionId: String (100 chars, nullable)                    │
+│ - razorpayOrderId: String (100 chars, nullable)                         │
+│ - razorpayPaymentId: String (100 chars, nullable)                       │
+│ - failureReason: String (500 chars, nullable)                           │
+│ - transactionDate: LocalDateTime (NOT NULL)                             │
+│ - refundAmount: BigDecimal (precision=10, scale=2, nullable)            │
+│ - createdAt: LocalDateTime (NOT NULL, auto-set)                         │
+│ - updatedAt: LocalDateTime (NOT NULL, auto-updated)                     │
+├─────────────────────────────────────────────────────────────────────────┤
+│ Relationships:                                                           │
+│ - References Booking (via bookingId)                                    │
+│ - References User (via userId)                                          │
+├─────────────────────────────────────────────────────────────────────────┤
+│ Enums:                                                                   │
+│   PaymentMethod: CREDIT_CARD, DEBIT_CARD, NET_BANKING, WALLET, UPI      │
+│   PaymentStatus: PENDING, SUCCESS, FAILED, REFUNDED, CANCELLED          │
+└─────────────────────────────────────────────────────────────────────────┘
+
+================================================================================
+                    7. NOTIFICATION-SERVICE - DOMAIN MODEL
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                          Notification                                    │
+├─────────────────────────────────────────────────────────────────────────┤
+│ - id: Long (PK, Auto-generated)                                         │
+│ - userId: Long (FK to User, NOT NULL)                                   │
+│ - bookingId: Long (FK to Booking, NOT NULL)                             │
+│ - type: NotificationType (ENUM, NOT NULL, 50 chars)                     │
+│ - channel: Channel (ENUM, NOT NULL, 20 chars)                           │
+│ - subject: String (NOT NULL, 500 chars)                                 │
+│ - message: String (NOT NULL, 2000 chars)                                │
+│ - status: NotificationStatus (ENUM, NOT NULL)                           │
+│ - isRead: Boolean (NOT NULL, default: false)                            │
+│ - recipient: String (nullable)                                          │
+│ - createdAt: LocalDateTime (NOT NULL, auto-set)                         │
+│ - updatedAt: LocalDateTime (NOT NULL, auto-updated)                     │
+├─────────────────────────────────────────────────────────────────────────┤
+│ Relationships:                                                           │
+│ - References User (via userId)                                          │
+│ - References Booking (via bookingId)                                    │
+├─────────────────────────────────────────────────────────────────────────┤
+│ Enums:                                                                   │
+│   NotificationType: BOOKING_CONFIRMATION, PAYMENT_SUCCESS,              │
+│                     CHECK_IN_REMINDER, FLIGHT_UPDATE,                   │
+│                     CANCELLATION, REFUND                                │
+│   Channel: EMAIL, SMS, IN_APP, PUSH_NOTIFICATION                        │
+│   NotificationStatus: PENDING, SENT, DELIVERED, FAILED, UNDELIVERABLE   │
+└─────────────────────────────────────────────────────────────────────────┘
+
+================================================================================
+                    8. AIRLINE-AIRPORT-SERVICE - DOMAIN MODEL
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                            Airline                                       │
+├─────────────────────────────────────────────────────────────────────────┤
+│ - id: Long (PK, Auto-generated)                                         │
+│ - name: String (NOT NULL, UNIQUE, 100 chars)                            │
+│ - iataCode: String (NOT NULL, UNIQUE, 10 chars)                         │
+│ - description: String (2000 chars, nullable)                            │
+│ - phoneNumber: String (20 chars, nullable)                              │
+│ - email: String (100 chars, nullable)                                   │
+│ - isActive: Boolean (NOT NULL, default: true)                           │
+│ - createdAt: LocalDateTime (NOT NULL, auto-set)                         │
+│ - updatedAt: LocalDateTime (NOT NULL, auto-updated)                     │
+├─────────────────────────────────────────────────────────────────────────┤
+│ Relationships:                                                           │
+│ - OneToMany → Flight (via airlineId)                                    │
+│ - OneToMany → User (airline staff, via airlineId)                       │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                            Airport                                       │
+├─────────────────────────────────────────────────────────────────────────┤
+│ - id: Long (PK, Auto-generated)                                         │
+│ - name: String (NOT NULL, UNIQUE, 100 chars)                            │
+│ - iataCode: String (NOT NULL, UNIQUE, 10 chars)                         │
+│ - city: String (NOT NULL, 50 chars)                                     │
+│ - country: String (NOT NULL, 50 chars)                                  │
+│ - description: String (2000 chars, nullable)                            │
+│ - phoneNumber: String (20 chars, nullable)                              │
+│ - email: String (100 chars, nullable)                                   │
+│ - isActive: Boolean (NOT NULL, default: true)                           │
+│ - createdAt: LocalDateTime (NOT NULL, auto-set)                         │
+│ - updatedAt: LocalDateTime (NOT NULL, auto-updated)                     │
+├─────────────────────────────────────────────────────────────────────────┤
+│ Relationships:                                                           │
+│ - OneToMany → Flight (via departureAirportId)                           │
+│ - OneToMany → Flight (via arrivalAirportId)                             │
+└─────────────────────────────────────────────────────────────────────────┘
+
+================================================================================
+                    9. ADMIN-USER-SERVICE - DOMAIN MODEL
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                          AdminReport                                     │
+├─────────────────────────────────────────────────────────────────────────┤
+│ - id: Long (PK, Auto-generated)                                         │
+│ - reportName: String (NOT NULL, 100 chars)                              │
+│ - description: String (500 chars, nullable)                             │
+│ - reportType: ReportType (ENUM, NOT NULL)                               │
+│ - totalRevenue: BigDecimal (NOT NULL, precision=15, scale=2)            │
+│ - totalBookings: Long (NOT NULL)                                        │
+│ - totalFlights: Long (NOT NULL)                                         │
+│ - activeUsers: Long (NOT NULL)                                          │
+│ - createdAt: LocalDateTime (NOT NULL, auto-set)                         │
+│ - updatedAt: LocalDateTime (NOT NULL, auto-updated)                     │
+├─────────────────────────────────────────────────────────────────────────┤
+│ Enums:                                                                   │
+│   ReportType: DAILY, WEEKLY, MONTHLY, YEARLY, CUSTOM                    │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                           AuditLog                                       │
+├─────────────────────────────────────────────────────────────────────────┤
+│ - id: Long (PK, Auto-generated)                                         │
+│ - actor: String (NOT NULL, 100 chars)                                   │
+│ - action: String (NOT NULL, 100 chars)                                  │
+│ - targetType: String (NOT NULL, 100 chars)                              │
+│ - targetId: String (100 chars, nullable)                                │
+│ - details: String (1000 chars, nullable)                                │
+│ - createdAt: LocalDateTime (NOT NULL, auto-set)                         │
+└─────────────────────────────────────────────────────────────────────────┘
+
+================================================================================
+                        ENTITY RELATIONSHIPS SUMMARY
+================================================================================
+
+USER (Auth Service)
+  ├─→ ManyToOne: Airline
+  ├─→ OneToMany: Booking (via userId)
+  ├─→ OneToMany: Payment (via userId)
+  └─→ OneToMany: Notification (via userId)
+
+AIRLINE (Airline-Airport Service)
+  ├─→ OneToMany: Flight (via airlineId)
+  └─→ OneToMany: User (airline staff, via airlineId)
+
+AIRPORT (Airline-Airport Service)
+  ├─→ OneToMany: Flight (via departureAirportId)
+  └─→ OneToMany: Flight (via arrivalAirportId)
+
+FLIGHT (Flight Service)
+  ├─→ ManyToOne: Airline (via airlineId)
+  ├─→ ManyToOne: Airport (departure, via departureAirportId)
+  ├─→ ManyToOne: Airport (arrival, via arrivalAirportId)
+  ├─→ OneToMany: Seat (via flightId)
+  └─→ OneToMany: Booking (via flightId)
+
+BOOKING (Booking Service)
+  ├─→ ManyToOne: User (via userId)
+  ├─→ ManyToOne: Flight (via flightId)
+  ├─→ OneToOne: Payment (via paymentId)
+  ├─→ OneToMany: Passenger (via bookingId)
+  └─→ OneToMany: Notification (via bookingId)
+
+SEAT (Seat Service)
+  ├─→ ManyToOne: Flight (via flightId)
+  ├─→ ManyToOne: Passenger (via passengerId)
+  └─→ ManyToOne: Booking (via bookingId)
+
+PASSENGER (Passenger Service)
+  ├─→ ManyToOne: Booking (via bookingId)
+  └─→ OneToMany: Seat (via passengerId)
+
+PAYMENT (Payment Service)
+  ├─→ ManyToOne: Booking (via bookingId)
+  └─→ ManyToOne: User (via userId)
+
+NOTIFICATION (Notification Service)
+  ├─→ ManyToOne: User (via userId)
+  └─→ ManyToOne: Booking (via bookingId)
+
+ADMIN REPORT (Admin-User Service)
+  └─→ Aggregates data from multiple services
+
+AUDIT LOG (Admin-User Service)
+  └─→ Tracks all administrative actions
+
+================================================================================
+                        DATABASE SCHEMA SUMMARY
+================================================================================
+
+DATABASE: auth_db
+  └─ Table: users
+
+DATABASE: airline_airport_db
+  ├─ Table: airlines
+  └─ Table: airports
+
+DATABASE: flight_db
+  └─ Table: flights
+
+DATABASE: seat_db
+  └─ Table: seats
+
+DATABASE: booking_db
+  └─ Table: bookings (with index on pnr)
+
+DATABASE: passenger_db
+  └─ Table: passengers
+
+DATABASE: payment_db
+  └─ Table: payments
+
+DATABASE: notification_db
+  └─ Table: notifications
+
+DATABASE: admin_db
+  ├─ Table: admin_reports
+  └─ Table: admin_audit_logs
+
+================================================================================
+                        SERVICE LAYER ARCHITECTURE
+================================================================================
+
+Each microservice follows a layered architecture:
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         CONTROLLER LAYER                                 │
+│  - REST endpoints                                                        │
+│  - Request/Response handling                                             │
+│  - Input validation                                                      │
+└─────────────────────────────────────────────────────────────────────────┘
+                                  ↓
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         SERVICE LAYER                                    │
+│  - Business logic                                                        │
+│  - Transaction management                                                │
+│  - Inter-service communication                                           │
+└─────────────────────────────────────────────────────────────────────────┘
+                                  ↓
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         REPOSITORY LAYER                                 │
+│  - Data access                                                           │
+│  - JPA queries                                                           │
+│  - Database operations                                                   │
+└─────────────────────────────────────────────────────────────────────────┘
+                                  ↓
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         DATABASE LAYER                                   │
+│  - PostgreSQL databases                                                  │
+│  - Separate DB per service                                               │
+└─────────────────────────────────────────────────────────────────────────┘
+
+================================================================================
+                        KEY DESIGN PATTERNS
+================================================================================
+
+1. MICROSERVICES PATTERN
+   - Each service is independently deployable
+   - Database per service pattern
+   - Service-to-service communication via REST
+
+2. REPOSITORY PATTERN
+   - Spring Data JPA repositories
+   - Custom query methods
+   - JPQL for complex queries
+
+3. DTO PATTERN
+   - Request DTOs for input validation
+   - Response DTOs for data transfer
+   - Entity-DTO mapping
+
+4. ENUM PATTERN
+   - Type-safe status management
+   - FlightStatus, BookingStatus, PaymentStatus, etc.
+
+5. AUDIT PATTERN
+   - Automatic timestamp management (@PrePersist, @PreUpdate)
+   - Audit logs for admin actions
+
+6. SOFT DELETE PATTERN
+   - isActive flag for logical deletion
+   - Maintains data integrity
+
+================================================================================
+                        INTER-SERVICE COMMUNICATION
+================================================================================
+
+Services communicate via:
+1. REST API calls (RestTemplate/WebClient)
+2. RabbitMQ message queues (for notifications)
+3. Shared reference IDs (userId, flightId, bookingId, etc.)
+
+Example Flow - Booking Creation:
+1. User creates booking → Booking Service
+2. Booking Service → Flight Service (check availability)
+3. Booking Service → Seat Service (hold seats)
+4. Booking Service → Payment Service (process payment)
+5. Payment Service → Notification Service (send confirmation)
+6. Notification Service → User (email/SMS)
+
+================================================================================
+                        SECURITY & VALIDATION
+================================================================================
+
+1. JWT-based authentication (Auth Service)
+2. Role-based access control (PASSENGER, ADMIN, AIRLINE_STAFF)
+3. Input validation using Jakarta Validation
+4. Password encryption (BCrypt)
+5. OAuth 2.0 integration (Google)
+6. CORS configuration
+7. Global exception handling
+
+================================================================================
+                        TECHNOLOGY STACK
+================================================================================
+
+Backend:
+- Java 17
+- Spring Boot 3.2.0
+- Spring Cloud 2023.0.0
+- Spring Data JPA
+- Spring Security
+- PostgreSQL
+- RabbitMQ
+- Lombok
+- Jackson (JSON processing)
+
+Build Tool:
+- Maven
+
+Testing:
+- JUnit 5
+- Mockito
+- Spring Boot Test
+
+Code Quality:
+- SonarQube
+- JaCoCo (code coverage)
+
+================================================================================
+                        END OF CLASS DIAGRAM
+================================================================================

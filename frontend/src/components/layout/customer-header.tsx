@@ -33,8 +33,9 @@ export function CustomerHeader({
   const [isModalOpen, setIsModalOpen] = useState(false)
 
   const handleLogout = () => {
+    console.log('[CustomerHeader] Signing out, redirecting to /')
     logout()
-    navigate('/login')
+    navigate('/')
   }
 
   return (

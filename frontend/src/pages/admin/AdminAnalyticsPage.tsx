@@ -138,8 +138,8 @@ export default function AnalyticsPage() {
       textColor: 'text-purple-600',
     },
     {
-      label: 'Total Bookings',
-      value: totalBookings,
+      label: 'Booked Seats',
+      value: totalBookedSeats,
       icon: ShoppingBag,
       bgColor: 'bg-blue-50',
       textColor: 'text-blue-600',

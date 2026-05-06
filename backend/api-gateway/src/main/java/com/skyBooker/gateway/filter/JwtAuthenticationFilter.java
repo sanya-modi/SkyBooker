@@ -26,11 +26,12 @@ public class JwtAuthenticationFilter extends AbstractGatewayFilterFactory<JwtAut
             String path = exchange.getRequest().getURI().getPath();
 
             if (path.startsWith("/auth/login") || path.startsWith("/auth/register") ||
+                path.startsWith("/auth/forgot-password") || path.startsWith("/auth/reset-password") ||
                 path.startsWith("/payments/webhooks/") ||
-                path.startsWith("/airports/airports") ||
-                path.startsWith("/airlines/airlines") ||
-                path.startsWith("/flights/flights/search") ||
-                path.startsWith("/flights/search") ||
+                path.startsWith("/airports") ||
+                path.startsWith("/airlines") ||
+                path.startsWith("/flights") ||
+                path.startsWith("/tickets") ||
                 path.contains("/v3/api-docs") || path.contains("/swagger-ui") || path.contains("/webjars")) {
                 return chain.filter(exchange);
             }

@@ -15,8 +15,9 @@ export function AdminHeader() {
   const [isModalOpen, setIsModalOpen] = useState(false)
 
   const handleLogout = () => {
+    console.log('[AdminHeader] Signing out, redirecting to /')
     logout()
-    navigate('/login')
+    navigate('/')
   }
 
   const navItems = [

@@ -1,10 +1,10 @@
-package com.skyBooker.airlineairport.controller;
+package com.skybooker.airlineairport.controller;
 
-import com.skyBooker.airlineairport.dto.AirportRequest;
-import com.skyBooker.airlineairport.dto.AirportResponse;
-import com.skyBooker.airlineairport.entity.Airport;
-import com.skyBooker.airlineairport.service.AirportService;
-import com.skyBooker.airlineairport.validation.AirlineAirportValidationPatterns;
+import com.skybooker.airlineairport.dto.AirportRequest;
+import com.skybooker.airlineairport.dto.AirportResponse;
+import com.skybooker.airlineairport.entity.Airport;
+import com.skybooker.airlineairport.service.AirportService;
+import com.skybooker.airlineairport.validation.AirlineAirportValidationPatterns;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
@@ -50,7 +50,7 @@ public class AirportController {
     ) {
         return ResponseEntity.ok(airportService.getAllAirports(includeInactive).stream()
                 .map(this::mapToResponse)
-                .collect(Collectors.toList()));
+                .toList());
     }
 
     @GetMapping("/city/{city}")
@@ -59,7 +59,7 @@ public class AirportController {
             @Pattern(regexp = AirlineAirportValidationPatterns.CITY_COUNTRY, message = "City format is invalid")
             String city
     ) {
-        return ResponseEntity.ok(airportService.getAirportsByCity(city).stream().map(this::mapToResponse).collect(Collectors.toList()));
+        return ResponseEntity.ok(airportService.getAirportsByCity(city).stream().map(this::mapToResponse).toList());
     }
 
     @GetMapping("/country/{country}")
@@ -68,7 +68,7 @@ public class AirportController {
             @Pattern(regexp = AirlineAirportValidationPatterns.CITY_COUNTRY, message = "Country format is invalid")
             String country
     ) {
-        return ResponseEntity.ok(airportService.getAirportsByCountry(country).stream().map(this::mapToResponse).collect(Collectors.toList()));
+        return ResponseEntity.ok(airportService.getAirportsByCountry(country).stream().map(this::mapToResponse).toList());
     }
 
     @PutMapping("/{id}")
@@ -101,7 +101,7 @@ public class AirportController {
         if (searchTerm == null || searchTerm.trim().isEmpty()) {
             return ResponseEntity.ok(List.of());
         }
-        return ResponseEntity.ok(airportService.searchCities(searchTerm.trim()).stream().map(this::mapToResponse).collect(Collectors.toList()));
+        return ResponseEntity.ok(airportService.searchCities(searchTerm.trim()).stream().map(this::mapToResponse).toList());
     }
 
     private Airport mapToEntity(AirportRequest request) {

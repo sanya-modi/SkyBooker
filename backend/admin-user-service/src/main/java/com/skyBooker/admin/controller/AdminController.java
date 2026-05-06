@@ -16,7 +16,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/admin")
@@ -39,12 +38,12 @@ public class AdminController {
 
     @GetMapping("/reports")
     public ResponseEntity<List<AdminReportResponse>> getAllReports() {
-        return ResponseEntity.ok(adminService.getAllReports().stream().map(this::mapToResponse).collect(Collectors.toList()));
+        return ResponseEntity.ok(adminService.getAllReports().stream().map(this::mapToResponse).toList());
     }
 
     @GetMapping("/reports/type/{reportType}")
     public ResponseEntity<List<AdminReportResponse>> getReportsByType(@PathVariable AdminReport.ReportType reportType) {
-        return ResponseEntity.ok(adminService.getReportsByType(reportType).stream().map(this::mapToResponse).collect(Collectors.toList()));
+        return ResponseEntity.ok(adminService.getReportsByType(reportType).stream().map(this::mapToResponse).toList());
     }
 
     @PutMapping("/reports/{id}")

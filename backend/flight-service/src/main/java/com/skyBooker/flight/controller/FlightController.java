@@ -83,6 +83,11 @@ public class FlightController {
         return ResponseEntity.ok(flightService.searchWithFilters(filter));
     }
 
+    @GetMapping("/airline/{airlineId}/on-time")
+    public ResponseEntity<List<FlightResponse>> getOnTimeFlightsByAirlineId(@PathVariable Long airlineId) {
+        return ResponseEntity.ok(flightService.getOnTimeFlightsByAirlineId(airlineId));
+    }
+
     @GetMapping("/airline/{airlineId}")
     public ResponseEntity<List<FlightResponse>> getFlightsByAirlineId(@PathVariable Long airlineId) {
         return ResponseEntity.ok(flightService.getFlightsByAirlineId(airlineId));

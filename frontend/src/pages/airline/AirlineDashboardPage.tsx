@@ -7,6 +7,7 @@ import { flightApi, getAllAirportsCached, getAllAirlinesCached, seatApi, type Fl
 export default function AirlineDashboard() {
   const { profile } = useAuth()
   const [flights, setFlights] = useState<FlightResult[]>([])
+  const [allFlights, setAllFlights] = useState<FlightResult[]>([])
   const [airports, setAirports] = useState<Airport[]>([])
   const [airlines, setAirlines] = useState<Airline[]>([])
   const [loading, setLoading] = useState(true)
@@ -16,7 +17,11 @@ export default function AirlineDashboard() {
 
     Promise.all([flightApi.getByAirline(profile.airlineId), getAllAirportsCached(), getAllAirlinesCached()])
       .then(([f, a, al]) => {
-        setFlights(f)
+        // Store all flights for stats calculation
+        setAllFlights(f)
+        // Filter to show only ON_TIME flights in the table
+        const onTimeFlights = f.filter(flight => flight.status === 'ON_TIME')
+        setFlights(onTimeFlights)
         setAirports(a)
         setAirlines(al)
       })
@@ -55,10 +60,10 @@ export default function AirlineDashboard() {
   const myAirline = airlines.find(a => a.id === profile?.airlineId)
 
   const stats = [
-    { label: 'Total Flights', value: flights.length, icon: Plane, bgColor: 'bg-blue-50', textColor: 'text-blue-600' },
-    { label: 'Scheduled', value: flights.filter(f => f.status === 'SCHEDULED').length, icon: Calendar, bgColor: 'bg-green-50', textColor: 'text-green-600' },
-    { label: 'Total Seats', value: flights.reduce((s, f) => s + f.totalSeats, 0), icon: Users, bgColor: 'bg-purple-50', textColor: 'text-purple-600' },
-    { label: 'Available Seats', value: flights.reduce((s, f) => s + f.availableSeats, 0), icon: CheckCircle2, bgColor: 'bg-orange-50', textColor: 'text-orange-600' },
+    { label: 'On-Time Flights', value: flights.length, icon: Plane, bgColor: 'bg-blue-50', textColor: 'text-blue-600' },
+    { label: 'Booked Seats', value: allFlights.reduce((s, f) => s + (f.totalSeats - f.availableSeats), 0), icon: CheckCircle2, bgColor: 'bg-green-50', textColor: 'text-green-600' },
+    { label: 'Total Seats', value: allFlights.reduce((s, f) => s + f.totalSeats, 0), icon: Users, bgColor: 'bg-purple-50', textColor: 'text-purple-600' },
+    { label: 'Available Seats', value: allFlights.reduce((s, f) => s + f.availableSeats, 0), icon: CheckCircle2, bgColor: 'bg-orange-50', textColor: 'text-orange-600' },
   ]
 
   const quickActions = [
@@ -113,7 +118,7 @@ export default function AirlineDashboard() {
 
         <div className="bg-white rounded-2xl shadow-sm p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-black text-slate-800">Recent Flights</h2>
+            <h2 className="text-xl font-black text-slate-800">On-Time Flights</h2>
             <Link to="/airline/flights" className="text-[#00236f] font-bold hover:underline flex items-center gap-2">
               View All <ArrowRight className="w-4 h-4" />
             </Link>
@@ -127,10 +132,8 @@ export default function AirlineDashboard() {
           ) : flights.length === 0 ? (
             <div className="text-center py-12">
               <Plane className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-              <p className="text-slate-600 font-bold mb-2">No flights yet</p>
-              <Link to="/airline/flights/add" className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#00236f] to-[#1e3a8a] text-white rounded-xl font-bold hover:shadow-lg transition-all">
-                <Plus className="w-5 h-5" /> Add Flight
-              </Link>
+              <p className="text-slate-600 font-bold mb-2">No on-time flights</p>
+              <p className="text-slate-500 text-sm">All flights are currently on schedule</p>
             </div>
           ) : (
             <div className="overflow-x-auto">

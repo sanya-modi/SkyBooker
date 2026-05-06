@@ -19,6 +19,9 @@ import java.util.Map;
 @Transactional
 public class AdminServiceImpl implements AdminService {
 
+    private static final String ACTOR_SYSTEM = "SYSTEM";
+    private static final String TARGET_TYPE_ADMIN_REPORT = "AdminReport";
+
     private final AdminReportRepository adminReportRepository;
     private final AuditLogRepository auditLogRepository;
 
@@ -34,7 +37,7 @@ public class AdminServiceImpl implements AdminService {
         report.setActiveUsers(request.getActiveUsers());
 
         AdminReport saved = adminReportRepository.save(report);
-        auditLogRepository.save(buildAuditLog("SYSTEM", "CREATE_REPORT", "AdminReport", saved.getId(), "Created report " + saved.getReportName()));
+        auditLogRepository.save(buildAuditLog(ACTOR_SYSTEM, "CREATE_REPORT", TARGET_TYPE_ADMIN_REPORT, saved.getId(), "Created report " + saved.getReportName()));
         return saved;
     }
 
@@ -79,13 +82,13 @@ public class AdminServiceImpl implements AdminService {
             report.setActiveUsers(reportData.getActiveUsers());
         }
         AdminReport saved = adminReportRepository.save(report);
-        auditLogRepository.save(buildAuditLog("SYSTEM", "UPDATE_REPORT", "AdminReport", saved.getId(), "Updated report " + saved.getReportName()));
+        auditLogRepository.save(buildAuditLog(ACTOR_SYSTEM, "UPDATE_REPORT", TARGET_TYPE_ADMIN_REPORT, saved.getId(), "Updated report " + saved.getReportName()));
         return saved;
     }
 
     @Override
     public void deleteReport(Long id) {
-        auditLogRepository.save(buildAuditLog("SYSTEM", "DELETE_REPORT", "AdminReport", id, "Deleted report " + id));
+        auditLogRepository.save(buildAuditLog(ACTOR_SYSTEM, "DELETE_REPORT", TARGET_TYPE_ADMIN_REPORT, id, "Deleted report " + id));
         adminReportRepository.deleteById(id);
     }
 

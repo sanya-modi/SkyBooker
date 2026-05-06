@@ -1,7 +1,7 @@
-package com.skyBooker.airlineairport.controller;
+package com.skybooker.airlineairport.controller;
 
-import com.skyBooker.airlineairport.entity.Airport;
-import com.skyBooker.airlineairport.repository.AirportRepository;
+import com.skybooker.airlineairport.entity.Airport;
+import com.skybooker.airlineairport.repository.AirportRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

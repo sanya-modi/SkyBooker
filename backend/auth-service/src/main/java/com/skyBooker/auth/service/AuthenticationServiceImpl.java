@@ -7,7 +7,9 @@ import com.skyBooker.auth.entity.User;
 import com.skyBooker.auth.exception.AuthException;
 import com.skyBooker.auth.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,7 +20,14 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class AuthenticationServiceImpl implements AuthenticationService {
+
+    private static final String USER_INACTIVE = "USER_INACTIVE";
+    private static final String USER_NOT_FOUND = "USER_NOT_FOUND";
+    private static final String USER_NOT_FOUND_MSG = "User not found";
+    private static final String EMAIL_KEY = "email";
+    private static final String FIRST_NAME_KEY = "firstName";
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -42,7 +51,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             if (!Boolean.TRUE.equals(existingUser.getIsActive())
                     && (User.UserRole.PASSENGER.equals(existingUser.getRole())
                     || User.UserRole.AIRLINE_STAFF.equals(existingUser.getRole()))) {
-                throw new AuthException("This account has been deactivated by admin. Please contact support.", "USER_INACTIVE");
+                throw new AuthException("This account has been deactivated by admin. Please contact support.", USER_INACTIVE);
             }
             throw new AuthException("Email already exists", "EMAIL_EXISTS");
         }
@@ -97,13 +106,13 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Override
     public AuthResponse login(AuthRequest request) {
         User user = userRepository.findByEmailWithAirline(request.getEmail())
-                .orElseThrow(() -> new AuthException("User not found", "USER_NOT_FOUND"));
+                .orElseThrow(() -> new AuthException(USER_NOT_FOUND_MSG, USER_NOT_FOUND));
 
         if (!user.getIsActive()) {
-            throw new AuthException("User account is inactive", "USER_INACTIVE");
+            throw new AuthException("User account is inactive", USER_INACTIVE);
         }
 
-        System.out.println("[AUTH] Login attempt - Email: " + user.getEmail() + ", Role: " + user.getRole() + ", AirlineId: " + user.getAirlineId());
+        log.info("[AUTH] Login attempt - Email: {}, Role: {}, AirlineId: {}", user.getEmail(), user.getRole(), user.getAirlineId());
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new AuthException("Invalid password", "INVALID_PASSWORD");
@@ -120,7 +129,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 user.getRole().toString()
         );
 
-        System.out.println("[AUTH] Login successful - Email: " + user.getEmail());
+        log.info("[AUTH] Login successful - Email: {}", user.getEmail());
 
         return new AuthResponse(
                 user.getId(),
@@ -135,14 +144,14 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Transactional(readOnly = true)
     public User getUserById(Long userId) {
         return userRepository.findByIdAndIsActiveTrue(userId)
-                .orElseThrow(() -> new AuthException("User not found", "USER_NOT_FOUND"));
+                .orElseThrow(() -> new AuthException(USER_NOT_FOUND_MSG, USER_NOT_FOUND));
     }
 
     @Override
     @Transactional(readOnly = true)
     public User getUserByEmail(String email) {
         return userRepository.findByEmailAndIsActiveTrue(email)
-                .orElseThrow(() -> new AuthException("User not found", "USER_NOT_FOUND"));
+                .orElseThrow(() -> new AuthException(USER_NOT_FOUND_MSG, USER_NOT_FOUND));
     }
 
     @Transactional(readOnly = true)
@@ -154,7 +163,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Override
     public User updateUser(Long userId, UpdateUserRequest user) {
         User existingUser = userRepository.findById(userId)
-                .orElseThrow(() -> new AuthException("User not found", "USER_NOT_FOUND"));
+                .orElseThrow(() -> new AuthException(USER_NOT_FOUND_MSG, USER_NOT_FOUND));
 
         if (user.getFirstName() != null) {
             existingUser.setFirstName(user.getFirstName());
@@ -221,7 +230,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         }
 
         if (!user.getIsActive()) {
-            throw new AuthException("User account is inactive", "USER_INACTIVE");
+            throw new AuthException("User account is inactive", USER_INACTIVE);
         }
 
         if (User.UserRole.AIRLINE_STAFF.equals(user.getRole()) && user.getAirlineId() != null) {
@@ -286,24 +295,27 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private void validateAirlineActive(Long airlineId) {
         try {
             String url = airlineAirportServiceBaseUrl + "/airlines/" + airlineId;
-            System.out.println("[AUTH] Validating airline ID: " + airlineId);
+            log.info("[AUTH] Validating airline ID: {}", airlineId);
             
-            var response = restTemplate.getForEntity(url, AirlineResponse.class);
+            ResponseEntity<AirlineResponse> response = restTemplate.getForEntity(url, AirlineResponse.class);
             
             if (response.getBody() != null) {
-                Boolean isActive = response.getBody().getIsActive();
-                String airlineName = response.getBody().getName();
+                AirlineResponse airlineResponse = response.getBody();
+                Boolean isActive = airlineResponse.getIsActive();
+                String airlineName = airlineResponse.getName();
                 
-                System.out.println("[AUTH] Airline validation - ID: " + airlineId + ", Name: " + airlineName + ", Active: " + isActive);
+                log.info("[AUTH] Airline validation - ID: {}, Name: {}, Active: {}", airlineId, airlineName, isActive);
                 
                 if (isActive == null || !isActive) {
                     throw new AuthException("Your airline (" + airlineName + ") is currently inactive. Please contact support.", "AIRLINE_INACTIVE");
                 }
+            } else {
+                log.warn("[AUTH] Airline validation returned null response body for ID: {}", airlineId);
             }
         } catch (AuthException e) {
             throw e;
         } catch (Exception e) {
-            System.err.println("[AUTH] Error validating airline: " + e.getMessage());
+            log.error("[AUTH] Error validating airline: {}", e.getMessage());
             throw new AuthException("Unable to verify airline status. Please try again.", "AIRLINE_VALIDATION_ERROR");
         }
     }

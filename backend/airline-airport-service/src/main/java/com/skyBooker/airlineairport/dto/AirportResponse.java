@@ -1,4 +1,4 @@
-package com.skyBooker.airlineairport.dto;
+package com.skybooker.airlineairport.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;

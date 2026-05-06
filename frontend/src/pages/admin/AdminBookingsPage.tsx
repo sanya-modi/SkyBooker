@@ -119,7 +119,7 @@ export default function BookingsPage() {
     return matchesSearch && matchesStatus
   })
 
-  const totalBookings = Array.from(analyticsData.values()).reduce((sum, a) => sum + a.bookingsCount, 0)
+  const totalBookings = Array.from(analyticsData.values()).reduce((sum, a) => sum + a.bookedSeats, 0)
   const totalRevenue = Array.from(analyticsData.values()).reduce((sum, a) => sum + Number(a.revenue), 0)
 
   return (
@@ -140,7 +140,7 @@ export default function BookingsPage() {
               </div>
             </div>
             <p className="text-3xl font-black text-slate-800 mb-1">{totalBookings}</p>
-            <p className="text-sm text-slate-500 font-bold">Total Bookings</p>
+            <p className="text-sm text-slate-500 font-bold">Booked Seats</p>
           </div>
 
           <div className="bg-white rounded-2xl shadow-sm p-6">
@@ -212,7 +212,7 @@ export default function BookingsPage() {
                     <th className="text-left py-4 px-6 text-sm font-bold text-slate-600">Flight</th>
                     <th className="text-left py-4 px-6 text-sm font-bold text-slate-600">Route</th>
                     <th className="text-left py-4 px-6 text-sm font-bold text-slate-600">Date</th>
-                    <th className="text-left py-4 px-6 text-sm font-bold text-slate-600">Bookings</th>
+                    <th className="text-left py-4 px-6 text-sm font-bold text-slate-600">Booked Seats</th>
                     <th className="text-left py-4 px-6 text-sm font-bold text-slate-600">Revenue</th>
                     <th className="text-left py-4 px-6 text-sm font-bold text-slate-600">Status</th>
                   </tr>
@@ -256,10 +256,8 @@ export default function BookingsPage() {
                           </p>
                         </td>
                         <td className="py-4 px-6">
-                          <p className="font-bold text-slate-800">{bookingCount}</p>
-                          <p className="text-xs text-slate-500">
-                            {bookedSeats} / {flight.totalSeats} seats occupied
-                          </p>
+                          <p className="font-bold text-slate-800">{bookedSeats} / {flight.totalSeats}</p>
+                          <p className="text-xs text-slate-500">{bookingCount} bookings</p>
                         </td>
                         <td className="py-4 px-6">
                           <p className="font-bold text-green-600">₹{Number(revenue).toLocaleString()}</p>

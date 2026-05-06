@@ -58,11 +58,12 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handleGlobalException(Exception ex, WebRequest request) {
+        ex.printStackTrace(); // Log the full stack trace
         Map<String, Object> response = new HashMap<>();
         response.put("timestamp", LocalDateTime.now());
         response.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
         response.put("error", "Internal Server Error");
-        response.put("message", "An unexpected error occurred");
+        response.put("message", ex.getMessage() != null ? ex.getMessage() : "An unexpected error occurred");
         response.put("path", request.getDescription(false).replace("uri=", ""));
         
         return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);

@@ -78,6 +78,7 @@ export function ProfileMenu() {
   }
 
   function handleSignOut() {
+    console.log('[ProfileMenu] Signing out, redirecting to /')
     logout()
     navigate('/', { replace: true })
   }

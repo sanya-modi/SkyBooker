@@ -14,14 +14,17 @@ import java.util.Map;
 @Slf4j
 public class NotificationPublisher {
 
-    private final RabbitTemplate rabbitTemplate;
+    private static final String EMAIL_KEY = "email";
+    private static final String FIRST_NAME_KEY = "firstName";
     private static final String EXCHANGE = "notification.exchange";
+
+    private final RabbitTemplate rabbitTemplate;
 
     public void publishSignupEvent(String email, String firstName, String lastName) {
         try {
             Map<String, Object> event = new HashMap<>();
-            event.put("email", email);
-            event.put("firstName", firstName);
+            event.put(EMAIL_KEY, email);
+            event.put(FIRST_NAME_KEY, firstName);
             event.put("lastName", lastName);
             
             rabbitTemplate.convertAndSend(EXCHANGE, "notification.signup", event);
@@ -34,8 +37,8 @@ public class NotificationPublisher {
     public void publishLoginEvent(String email, String firstName, String ipAddress, String device) {
         try {
             Map<String, Object> event = new HashMap<>();
-            event.put("email", email);
-            event.put("firstName", firstName);
+            event.put(EMAIL_KEY, email);
+            event.put(FIRST_NAME_KEY, firstName);
             event.put("loginTime", LocalDateTime.now().toString());
             event.put("ipAddress", ipAddress);
             event.put("device", device);
@@ -50,8 +53,8 @@ public class NotificationPublisher {
     public void publishPasswordResetEvent(String email, String firstName, String token) {
         try {
             Map<String, Object> event = new HashMap<>();
-            event.put("email", email);
-            event.put("firstName", firstName);
+            event.put(EMAIL_KEY, email);
+            event.put(FIRST_NAME_KEY, firstName);
             event.put("resetToken", token);
             
             rabbitTemplate.convertAndSend(EXCHANGE, "notification.password.reset", event);
@@ -64,8 +67,8 @@ public class NotificationPublisher {
     public void publishPasswordResetSuccessEvent(String email, String firstName) {
         try {
             Map<String, Object> event = new HashMap<>();
-            event.put("email", email);
-            event.put("firstName", firstName);
+            event.put(EMAIL_KEY, email);
+            event.put(FIRST_NAME_KEY, firstName);
             
             rabbitTemplate.convertAndSend(EXCHANGE, "notification.password.reset.success", event);
             log.info("Published password reset success event for: {}", email);

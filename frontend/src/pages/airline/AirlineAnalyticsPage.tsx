@@ -121,7 +121,7 @@ export default function AnalyticsPage() {
     { label: 'Total Revenue', value: `₹${totalRevenue.toLocaleString('en-IN')}`, icon: DollarSign, bgColor: 'bg-green-50', textColor: 'text-green-600' },
     { label: 'Avg Revenue / Flight', value: `₹${avgRevenue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`, icon: TrendingUp, bgColor: 'bg-blue-50', textColor: 'text-blue-600' },
     { label: 'Occupancy Rate', value: `${occupancyRate}%`, icon: Users, bgColor: 'bg-purple-50', textColor: 'text-purple-600' },
-    { label: 'On Time Flights', value: onTime, icon: Plane, bgColor: 'bg-orange-50', textColor: 'text-orange-600' },
+    { label: 'Booked Seats', value: bookedSeats, icon: Plane, bgColor: 'bg-orange-50', textColor: 'text-orange-600' },
   ]
 
   return (

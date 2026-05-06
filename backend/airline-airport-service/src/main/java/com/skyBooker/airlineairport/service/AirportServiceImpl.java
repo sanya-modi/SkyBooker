@@ -1,7 +1,7 @@
-package com.skyBooker.airlineairport.service;
+package com.skybooker.airlineairport.service;
 
-import com.skyBooker.airlineairport.entity.Airport;
-import com.skyBooker.airlineairport.repository.AirportRepository;
+import com.skybooker.airlineairport.entity.Airport;
+import com.skybooker.airlineairport.repository.AirportRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

@@ -4,6 +4,7 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
 import com.skyBooker.auth.dto.GoogleTokenPayload;
+import com.skyBooker.auth.exception.AuthException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -17,6 +18,7 @@ public class GoogleOAuthProvider {
 
     private GoogleIdTokenVerifier verifier;
 
+    // Default constructor required by Spring for dependency injection
     public GoogleOAuthProvider() {
     }
 
@@ -36,7 +38,7 @@ public class GoogleOAuthProvider {
                 return (String) idToken.getPayload().get("email");
             }
         } catch (Exception e) {
-            throw new RuntimeException("Invalid Google token: " + e.getMessage());
+            throw new AuthException("Invalid Google token: " + e.getMessage(), "INVALID_GOOGLE_TOKEN");
         }
         return null;
     }
@@ -54,7 +56,7 @@ public class GoogleOAuthProvider {
                         .build();
             }
         } catch (Exception e) {
-            throw new RuntimeException("Invalid Google token: " + e.getMessage());
+            throw new AuthException("Invalid Google token: " + e.getMessage(), "INVALID_GOOGLE_TOKEN");
         }
         return null;
     }

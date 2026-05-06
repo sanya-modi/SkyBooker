@@ -1,6 +1,6 @@
-package com.skyBooker.airlineairport.repository;
+package com.skybooker.airlineairport.repository;
 
-import com.skyBooker.airlineairport.entity.Airline;
+import com.skybooker.airlineairport.entity.Airline;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;

@@ -190,6 +190,12 @@ public class PaymentServiceImpl implements PaymentService {
             return payment;
         }
 
+        if (eventType.startsWith("payment.failed") || "failed".equalsIgnoreCase(status)) {
+            payment.setStatus(Payment.PaymentStatus.FAILED);
+            payment.setFailureReason(paymentEntity.optString("error_description", "Webhook payment failure"));
+            return paymentRepository.save(payment);
+        }
+
         if (eventType.startsWith("payment.") || "captured".equalsIgnoreCase(status) || "authorized".equalsIgnoreCase(status)) {
             payment.setStatus(Payment.PaymentStatus.SUCCESS);
             payment.setRazorpayPaymentId(razorpayPaymentId);
@@ -197,12 +203,6 @@ public class PaymentServiceImpl implements PaymentService {
             Payment saved = paymentRepository.save(payment);
             confirmBooking(saved.getBookingId(), saved.getId());
             return saved;
-        }
-
-        if (eventType.startsWith("payment.failed") || "failed".equalsIgnoreCase(status)) {
-            payment.setStatus(Payment.PaymentStatus.FAILED);
-            payment.setFailureReason(paymentEntity.optString("error_description", "Webhook payment failure"));
-            return paymentRepository.save(payment);
         }
 
         return payment;

@@ -1,4 +1,4 @@
-package com.skyBooker.airlineairport.validation;
+package com.skybooker.airlineairport.validation;
 
 public final class AirlineAirportValidationPatterns {
 

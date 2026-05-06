@@ -355,6 +355,7 @@ export const flightApi = {
   delete: (id: number) => request<void>(`/flights/${id}`, { method: 'DELETE' }),
   getPopularDestinations: () => request<PopularDestination[]>('/flights/popular-destinations'),
   getFlightsByDestination: (to: string) => request<FlightResult[]>(`/flights/by-destination?to=${to}`),
+  getOnTimeFlightsByAirline: (airlineId: number) => request<FlightResult[]>(`/flights/airline/${airlineId}/on-time`),
 }
 
 export const seatApi = {

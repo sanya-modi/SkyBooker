@@ -32,4 +32,5 @@ public interface FlightService {
     List<SeatClassConfigResponse> getSeatConfig(Long flightId, String userEmail, String userRole);
     List<PopularDestinationResponse> getPopularDestinations();
     List<FlightResponse> getFlightsByDestination(String iataCode);
+    List<FlightResponse> getOnTimeFlightsByAirlineId(Long airlineId);
 }

@@ -101,12 +101,6 @@ public class AuthController {
         );
     }
 
-    // private String buildName(User user) {
-    //     String firstName = user.getFirstName() == null ? "" : user.getFirstName().trim();
-    //     String lastName = user.getLastName() == null ? "" : user.getLastName().trim();
-    //     return (firstName + " " + lastName).trim();
-    // }
-
     @PostMapping("/forgot-password")
     public ResponseEntity<Void> forgotPassword(@Valid @RequestBody com.skyBooker.auth.dto.ForgotPasswordRequest request) {
         authenticationService.forgotPassword(request.getEmail());

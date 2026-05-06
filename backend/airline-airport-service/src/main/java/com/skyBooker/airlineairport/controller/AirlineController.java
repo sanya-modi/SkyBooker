@@ -1,10 +1,10 @@
-package com.skyBooker.airlineairport.controller;
+package com.skybooker.airlineairport.controller;
 
-import com.skyBooker.airlineairport.dto.AirlineRequest;
-import com.skyBooker.airlineairport.dto.AirlineResponse;
-import com.skyBooker.airlineairport.entity.Airline;
-import com.skyBooker.airlineairport.service.AirlineService;
-import com.skyBooker.airlineairport.validation.AirlineAirportValidationPatterns;
+import com.skybooker.airlineairport.dto.AirlineRequest;
+import com.skybooker.airlineairport.dto.AirlineResponse;
+import com.skybooker.airlineairport.entity.Airline;
+import com.skybooker.airlineairport.service.AirlineService;
+import com.skybooker.airlineairport.validation.AirlineAirportValidationPatterns;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
@@ -50,7 +50,7 @@ public class AirlineController {
     ) {
         return ResponseEntity.ok(airlineService.getAllAirlines(includeInactive).stream()
                 .map(this::mapToResponse)
-                .collect(Collectors.toList()));
+                .toList());
     }
 
     @PutMapping("/{id}")

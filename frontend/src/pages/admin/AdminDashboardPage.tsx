@@ -80,7 +80,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (analyticsData.size === 0) return
 
-    const totalBookings = Array.from(analyticsData.values()).reduce((sum, a) => sum + a.bookingsCount, 0)
+    const totalBookings = Array.from(analyticsData.values()).reduce((sum, a) => sum + a.bookedSeats, 0)
     const totalRevenue = Array.from(analyticsData.values()).reduce((sum, a) => sum + Number(a.revenue), 0)
 
     console.log('[AdminDashboard] Analytics data updated:', {
@@ -133,10 +133,10 @@ export default function AdminDashboard() {
       // Store flight IDs for SSE subscriptions
       setFlightIds(flights.map(f => f.id))
 
-      const totalBookings = Array.from(initialAnalytics.values()).reduce((sum, analytics) => sum + analytics.bookingsCount, 0)
+      const totalBookings = Array.from(initialAnalytics.values()).reduce((sum, analytics) => sum + analytics.bookedSeats, 0)
       const activeBookings = flights
         .filter(flight => flight.status === 'SCHEDULED' || flight.status === 'ON_TIME')
-        .reduce((sum, flight) => sum + (initialAnalytics.get(flight.id)?.bookingsCount ?? 0), 0)
+        .reduce((sum, flight) => sum + (initialAnalytics.get(flight.id)?.bookedSeats ?? 0), 0)
       const totalRevenue = Array.from(initialAnalytics.values()).reduce((sum, analytics) => sum + Number(analytics.revenue), 0)
 
       console.log('[AdminDashboard] Initial data loaded:', {
@@ -200,7 +200,7 @@ export default function AdminDashboard() {
       href: '/admin/airports'
     },
     {
-      label: 'Total Bookings',
+      label: 'Booked Seats',
       value: stats.totalBookings,
       icon: ShoppingBag,
       color: 'from-pink-500 to-pink-600',

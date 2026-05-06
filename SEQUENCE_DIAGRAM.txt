@@ -1,0 +1,474 @@
+================================================================================
+                    SKYBOOKER SEQUENCE DIAGRAMS
+                    Flight Booking System
+================================================================================
+
+This document contains detailed sequence diagrams for key workflows in the
+SkyBooker airline ticket booking system, a microservices-based application.
+
+================================================================================
+SYSTEM ARCHITECTURE OVERVIEW
+================================================================================
+
+Microservices:
+- API Gateway (Port 8080) - Entry point for all client requests
+- Eureka Server (Port 8761) - Service discovery and registration
+- Auth Service (Port 8081) - User authentication and authorization
+- Flight Service (Port 8082) - Flight management and search
+- Seat Service (Port 8083) - Seat availability and booking
+- Booking Service (Port 8084) - Booking management and orchestration
+- Passenger Service (Port 8085) - Passenger information management
+- Payment Service (Port 8086) - Payment processing (Razorpay integration)
+- Notification Service (Port 8087) - Email/SMS/In-app notifications
+- Airline-Airport Service (Port 8088) - Airline and airport data
+- Admin Service (Port 8089) - Admin operations
+- Admin User Service (Port 8090) - Admin user management
+
+Infrastructure:
+- PostgreSQL - Database (separate DB per service)
+- RabbitMQ - Message broker for async communication
+- Frontend - React/TypeScript application
+
+================================================================================
+SEQUENCE DIAGRAM 1: USER REGISTRATION & AUTHENTICATION
+================================================================================
+
+Actor: User
+Systems: Frontend → API Gateway → Auth Service → PostgreSQL → RabbitMQ → Notification Service
+
+Flow:
+1. User → Frontend: Enter registration details (email, password, name, phone)
+2. Frontend → API Gateway: POST /auth/register
+3. API Gateway → Auth Service: Forward registration request
+4. Auth Service → Auth Service: Validate input data
+5. Auth Service → Auth Service: Hash password (BCrypt)
+6. Auth Service → PostgreSQL (auth_db): INSERT user record
+7. PostgreSQL → Auth Service: User created (userId)
+8. Auth Service → Auth Service: Generate JWT token
+9. Auth Service → RabbitMQ: Publish welcome email event
+10. RabbitMQ → Notification Service: Consume welcome email event
+11. Notification Service → SMTP Server: Send welcome email
+12. Auth Service → API Gateway: Return JWT token + user details
+13. API Gateway → Frontend: Return authentication response
+14. Frontend → Frontend: Store JWT token in localStorage
+15. Frontend → User: Display success message
+
+Alternative Flow - Google OAuth:
+1. User → Frontend: Click "Sign in with Google"
+2. Frontend → Google OAuth: Redirect to Google login
+3. Google OAuth → Frontend: Return authorization code
+4. Frontend → API Gateway: POST /auth/google with code
+5. API Gateway → Auth Service: Forward OAuth request
+6. Auth Service → Google API: Validate token and get user info
+7. Auth Service → PostgreSQL: Check if user exists
+8. Auth Service → PostgreSQL: Create/Update user record
+9. Auth Service → Auth Service: Generate JWT token
+10. Auth Service → API Gateway: Return JWT + user details
+11. API Gateway → Frontend: Return authentication response
+
+================================================================================
+SEQUENCE DIAGRAM 2: FLIGHT SEARCH
+================================================================================
+
+Actor: User
+Systems: Frontend → API Gateway → Flight Service → Airline-Airport Service → PostgreSQL
+
+Flow:
+1. User → Frontend: Enter search criteria (origin, destination, date, passengers)
+2. Frontend → API Gateway: GET /flights/search?params
+3. API Gateway → Flight Service: Forward search request
+4. Flight Service → PostgreSQL (flight_db): Query flights with filters
+5. PostgreSQL → Flight Service: Return matching flights
+6. Flight Service → Airline-Airport Service: GET /airlines/{airlineId} (for each flight)
+7. Airline-Airport Service → PostgreSQL (airline_airport_db): Query airline details
+8. PostgreSQL → Airline-Airport Service: Return airline info
+9. Airline-Airport Service → Flight Service: Return airline details
+10. Flight Service → Airline-Airport Service: GET /airports/{airportId} (departure/arrival)
+11. Airline-Airport Service → PostgreSQL: Query airport details
+12. PostgreSQL → Airline-Airport Service: Return airport info
+13. Airline-Airport Service → Flight Service: Return airport details
+14. Flight Service → Seat Service: GET /seats/flight/{flightId}/available
+15. Seat Service → PostgreSQL (seat_db): Query available seats count
+16. PostgreSQL → Seat Service: Return seat availability
+17. Seat Service → Flight Service: Return available seats
+18. Flight Service → Flight Service: Enrich flight data with airline/airport/seat info
+19. Flight Service → API Gateway: Return enriched flight list
+20. API Gateway → Frontend: Return search results
+21. Frontend → User: Display flight options with prices and availability
+
+================================================================================
+SEQUENCE DIAGRAM 3: FLIGHT BOOKING (COMPLETE FLOW)
+================================================================================
+
+Actor: User
+Systems: Frontend → API Gateway → Booking Service → Flight Service → Seat Service → 
+         Passenger Service → Payment Service → Notification Service → PostgreSQL → RabbitMQ
+
+Phase 1: Booking Initiation
+----------------------------
+1. User → Frontend: Select flight and click "Book Now"
+2. Frontend → Frontend: Navigate to passenger details page
+3. User → Frontend: Enter passenger details (name, DOB, passport, category)
+4. Frontend → API Gateway: GET /seats/flight/{flightId}
+5. API Gateway → Seat Service: Forward seat availability request
+6. Seat Service → PostgreSQL (seat_db): Query available seats
+7. PostgreSQL → Seat Service: Return seat map
+8. Seat Service → API Gateway: Return available seats
+9. API Gateway → Frontend: Return seat layout
+10. Frontend → User: Display seat selection interface
+11. User → Frontend: Select seats for all passengers
+
+Phase 2: Booking Creation
+--------------------------
+12. Frontend → API Gateway: POST /bookings (with flight, passengers, seats, charges)
+13. API Gateway → Booking Service: Forward booking request
+14. Booking Service → Booking Service: Validate request (seats match passengers)
+15. Booking Service → Booking Service: Validate passenger age vs category
+16. Booking Service → Flight Service: GET /flights/{flightId}
+17. Flight Service → PostgreSQL (flight_db): Query flight details
+18. PostgreSQL → Flight Service: Return flight data
+19. Flight Service → Booking Service: Return flight with base fare
+20. Booking Service → Booking Service: Calculate total fare (base + taxes + ancillary)
+21. Booking Service → Booking Service: Generate unique PNR (6-char alphanumeric)
+22. Booking Service → PostgreSQL (booking_db): INSERT booking (status=PENDING)
+23. PostgreSQL → Booking Service: Return booking ID
+24. Booking Service → API Gateway: Return booking response with PNR
+25. API Gateway → Frontend: Return booking details
+26. Frontend → User: Display booking summary with PNR
+
+Phase 3: Passenger Registration
+--------------------------------
+27. Frontend → API Gateway: POST /passengers (for each passenger)
+28. API Gateway → Passenger Service: Forward passenger data
+29. Passenger Service → Passenger Service: Validate passenger details
+30. Passenger Service → PostgreSQL (passenger_db): INSERT passenger record
+31. PostgreSQL → Passenger Service: Return passenger ID
+32. Passenger Service → API Gateway: Return passenger details
+33. API Gateway → Frontend: Confirm passenger registration
+
+Phase 4: Payment Processing
+----------------------------
+34. Frontend → User: Display payment page
+35. User → Frontend: Enter payment details
+36. Frontend → API Gateway: POST /payments/initiate
+37. API Gateway → Payment Service: Forward payment request
+38. Payment Service → Payment Service: Validate booking exists
+39. Payment Service → Razorpay API: Create payment order
+40. Razorpay API → Payment Service: Return order ID
+41. Payment Service → PostgreSQL (payment_db): INSERT payment (status=INITIATED)
+42. PostgreSQL → Payment Service: Return payment ID
+43. Payment Service → API Gateway: Return Razorpay order details
+44. API Gateway → Frontend: Return payment order
+45. Frontend → Razorpay Checkout: Open payment modal
+46. User → Razorpay Checkout: Complete payment
+47. Razorpay → Frontend: Payment success callback
+48. Frontend → API Gateway: POST /payments/verify
+49. API Gateway → Payment Service: Forward payment verification
+50. Payment Service → Razorpay API: Verify payment signature
+51. Razorpay API → Payment Service: Confirm payment success
+52. Payment Service → PostgreSQL: UPDATE payment (status=COMPLETED)
+53. Payment Service → Booking Service: PUT /bookings/{id}/status (CONFIRMED, paymentId)
+54. Booking Service → PostgreSQL: UPDATE booking (status=CONFIRMED, paymentId)
+
+Phase 5: Seat Confirmation
+---------------------------
+55. Booking Service → Seat Service: POST /seats/book (for each selected seat)
+56. Seat Service → PostgreSQL (seat_db): UPDATE seat (status=BOOKED, bookingId)
+57. PostgreSQL → Seat Service: Confirm seat booking
+58. Seat Service → Booking Service: Return seat confirmation
+
+Phase 6: Notification
+----------------------
+59. Booking Service → Booking Service: Generate e-ticket PDF
+60. Booking Service → RabbitMQ: Publish booking confirmation event
+61. RabbitMQ → Notification Service: Consume booking event
+62. Notification Service → Notification Service: Prepare email with ticket attachment
+63. Notification Service → SMTP Server: Send confirmation email with e-ticket
+64. Notification Service → PostgreSQL (notification_db): INSERT notification record
+65. Booking Service → API Gateway: Return confirmed booking
+66. API Gateway → Frontend: Return success response
+67. Frontend → User: Display booking confirmation with PNR
+
+================================================================================
+SEQUENCE DIAGRAM 4: WEB CHECK-IN
+================================================================================
+
+Actor: User
+Systems: Frontend → API Gateway → Booking Service → Flight Service → Seat Service → PostgreSQL
+
+Flow:
+1. User → Frontend: Navigate to web check-in page
+2. User → Frontend: Enter PNR and last name
+3. Frontend → API Gateway: GET /bookings/pnr/{pnr}
+4. API Gateway → Booking Service: Forward PNR lookup
+5. Booking Service → PostgreSQL (booking_db): Query booking by PNR
+6. PostgreSQL → Booking Service: Return booking details
+7. Booking Service → Booking Service: Validate booking status (must be CONFIRMED)
+8. Booking Service → Flight Service: GET /flights/{flightId}
+9. Flight Service → PostgreSQL: Query flight details
+10. PostgreSQL → Flight Service: Return flight with departure time
+11. Flight Service → Booking Service: Return flight details
+12. Booking Service → Booking Service: Check check-in window (24h to 1h before departure)
+13. Booking Service → API Gateway: Return booking if eligible
+14. API Gateway → Frontend: Return booking details
+15. Frontend → User: Display check-in form with current seat
+16. User → Frontend: Optionally change seat
+17. Frontend → API Gateway: GET /seats/flight/{flightId}
+18. API Gateway → Seat Service: Request available seats
+19. Seat Service → PostgreSQL: Query available seats
+20. PostgreSQL → Seat Service: Return seat map
+21. Seat Service → API Gateway: Return available seats
+22. API Gateway → Frontend: Display seat selection
+23. User → Frontend: Select new seat (optional)
+24. User → Frontend: Confirm check-in
+25. Frontend → API Gateway: PUT /bookings/{id}/check-in?seatNumber={seat}
+26. API Gateway → Booking Service: Forward check-in request
+27. Booking Service → Seat Service: DELETE /seats/release/{flightId}/{oldSeat} (if changed)
+28. Seat Service → PostgreSQL: UPDATE old seat (status=AVAILABLE)
+29. Booking Service → Seat Service: POST /seats/book (if seat changed)
+30. Seat Service → PostgreSQL: UPDATE new seat (status=BOOKED)
+31. Booking Service → PostgreSQL: UPDATE booking (checkedIn=true, checkedInAt=now)
+32. PostgreSQL → Booking Service: Confirm check-in
+33. Booking Service → API Gateway: Return updated booking
+34. API Gateway → Frontend: Return check-in confirmation
+35. Frontend → User: Display boarding pass download option
+
+================================================================================
+SEQUENCE DIAGRAM 5: BOARDING PASS GENERATION
+================================================================================
+
+Actor: User
+Systems: Frontend → API Gateway → Booking Service → Flight Service → Passenger Service → PostgreSQL
+
+Flow:
+1. User → Frontend: Click "Download Boarding Pass"
+2. Frontend → API Gateway: GET /bookings/{id}/boarding-pass
+3. API Gateway → Booking Service: Forward boarding pass request
+4. Booking Service → PostgreSQL (booking_db): Query booking by ID
+5. PostgreSQL → Booking Service: Return booking details
+6. Booking Service → Booking Service: Validate booking is checked-in
+7. Booking Service → Flight Service: GET /flights/{flightId}
+8. Flight Service → PostgreSQL: Query flight details
+9. PostgreSQL → Flight Service: Return flight data
+10. Flight Service → Booking Service: Return flight details
+11. Booking Service → Passenger Service: GET /passengers/booking/{bookingId}
+12. Passenger Service → PostgreSQL (passenger_db): Query passengers
+13. PostgreSQL → Passenger Service: Return passenger list
+14. Passenger Service → Booking Service: Return passenger details
+15. Booking Service → Booking Service: Generate PDF with QR code (PNR + seat)
+16. Booking Service → API Gateway: Return PDF byte array
+17. API Gateway → Frontend: Return PDF file
+18. Frontend → User: Download boarding pass PDF
+
+================================================================================
+SEQUENCE DIAGRAM 6: BOOKING CANCELLATION & REFUND
+================================================================================
+
+Actor: User
+Systems: Frontend → API Gateway → Booking Service → Seat Service → Payment Service → 
+         Notification Service → PostgreSQL
+
+Flow:
+1. User → Frontend: Navigate to "My Bookings"
+2. Frontend → API Gateway: GET /bookings/user/{userId}
+3. API Gateway → Booking Service: Forward user bookings request
+4. Booking Service → PostgreSQL (booking_db): Query bookings by userId
+5. PostgreSQL → Booking Service: Return booking list
+6. Booking Service → API Gateway: Return bookings
+7. API Gateway → Frontend: Return user bookings
+8. Frontend → User: Display bookings list
+9. User → Frontend: Click "Cancel Booking"
+10. Frontend → User: Show cancellation confirmation dialog
+11. User → Frontend: Confirm cancellation
+12. Frontend → API Gateway: DELETE /bookings/{id}
+13. API Gateway → Booking Service: Forward cancellation request
+14. Booking Service → PostgreSQL: Query booking details
+15. PostgreSQL → Booking Service: Return booking
+16. Booking Service → Booking Service: Validate cancellation allowed (not COMPLETED/CANCELLED)
+
+Phase 1: Seat Release
+----------------------
+17. Booking Service → Seat Service: DELETE /seats/release/{flightId}/{seatNumber} (for each seat)
+18. Seat Service → PostgreSQL (seat_db): UPDATE seat (status=AVAILABLE, bookingId=null)
+19. PostgreSQL → Seat Service: Confirm seat released
+20. Seat Service → Booking Service: Return release confirmation
+
+Phase 2: Booking Status Update
+-------------------------------
+21. Booking Service → PostgreSQL: UPDATE booking (status=CANCELLED)
+22. PostgreSQL → Booking Service: Confirm status update
+
+Phase 3: Refund Processing
+---------------------------
+23. Booking Service → Payment Service: POST /payments/{paymentId}/refund
+24. Payment Service → PostgreSQL (payment_db): Query payment details
+25. PostgreSQL → Payment Service: Return payment info
+26. Payment Service → Razorpay API: Initiate refund
+27. Razorpay API → Payment Service: Confirm refund initiated
+28. Payment Service → PostgreSQL: INSERT refund record (status=PROCESSING)
+29. PostgreSQL → Payment Service: Return refund ID
+30. Payment Service → Booking Service: Return refund confirmation
+
+Phase 4: Notification
+----------------------
+31. Booking Service → Notification Service: POST /notifications (cancellation notice)
+32. Notification Service → PostgreSQL (notification_db): INSERT notification
+33. Notification Service → SMTP Server: Send cancellation email
+34. Booking Service → API Gateway: Return cancellation success
+35. API Gateway → Frontend: Return success response
+36. Frontend → User: Display cancellation confirmation
+
+================================================================================
+SEQUENCE DIAGRAM 7: CHECK-IN REMINDER (SCHEDULED)
+================================================================================
+
+Actor: System Scheduler
+Systems: Booking Service → Flight Service → Auth Service → Notification Service → PostgreSQL
+
+Flow:
+1. Scheduler → Booking Service: Trigger scheduled job (every 1 hour)
+2. Booking Service → PostgreSQL (booking_db): Query CONFIRMED bookings
+3. PostgreSQL → Booking Service: Return confirmed bookings list
+4. Booking Service → Booking Service: Filter bookings not checked-in and reminder not sent
+5. For each eligible booking:
+   6. Booking Service → Flight Service: GET /flights/{flightId}
+   7. Flight Service → PostgreSQL: Query flight departure time
+   8. PostgreSQL → Flight Service: Return flight details
+   9. Flight Service → Booking Service: Return departure time
+   10. Booking Service → Booking Service: Check if within 24h check-in window
+   11. If within window:
+       12. Booking Service → Auth Service: GET /auth/users/{userId}
+       13. Auth Service → PostgreSQL (auth_db): Query user contact info
+       14. PostgreSQL → Auth Service: Return email and phone
+       15. Auth Service → Booking Service: Return user details
+       16. Booking Service → Notification Service: POST /notifications (EMAIL)
+       17. Notification Service → SMTP Server: Send check-in reminder email
+       18. Booking Service → Notification Service: POST /notifications (SMS)
+       19. Notification Service → SMS Gateway: Send check-in reminder SMS
+       20. Booking Service → Notification Service: POST /notifications (IN_APP)
+       21. Notification Service → PostgreSQL: INSERT in-app notification
+       22. Booking Service → PostgreSQL: UPDATE booking (checkInReminderSent=true)
+
+================================================================================
+SEQUENCE DIAGRAM 8: NO-SHOW MARKING (SCHEDULED)
+================================================================================
+
+Actor: System Scheduler
+Systems: Booking Service → Flight Service → PostgreSQL
+
+Flow:
+1. Scheduler → Booking Service: Trigger scheduled job (every 30 minutes)
+2. Booking Service → PostgreSQL (booking_db): Query CONFIRMED bookings
+3. PostgreSQL → Booking Service: Return confirmed bookings
+4. For each booking:
+   5. Booking Service → Flight Service: GET /flights/{flightId}
+   6. Flight Service → PostgreSQL: Query flight departure time
+   7. PostgreSQL → Flight Service: Return flight details
+   8. Flight Service → Booking Service: Return departure time
+   9. Booking Service → Booking Service: Calculate gate closure (departure - 1 hour)
+   10. Booking Service → Booking Service: Check if current time > gate closure
+   11. Booking Service → Booking Service: Check if booking not checked-in
+   12. If no-show criteria met:
+       13. Booking Service → PostgreSQL: UPDATE booking (status=NO_SHOW)
+       14. PostgreSQL → Booking Service: Confirm status update
+15. Booking Service → Booking Service: Return count of no-shows marked
+
+================================================================================
+SEQUENCE DIAGRAM 9: FLIGHT BOOKING ANALYTICS (ADMIN)
+================================================================================
+
+Actor: Admin User
+Systems: Frontend → API Gateway → Booking Service → PostgreSQL
+
+Flow:
+1. Admin → Frontend: Navigate to flight analytics dashboard
+2. Admin → Frontend: Select flight ID
+3. Frontend → API Gateway: GET /bookings/flight/{flightId}/analytics
+4. API Gateway → Booking Service: Forward analytics request
+5. Booking Service → PostgreSQL (booking_db): Query confirmed bookings count
+6. PostgreSQL → Booking Service: Return booking count
+7. Booking Service → PostgreSQL: Query sum of confirmed booking revenue
+8. PostgreSQL → Booking Service: Return total revenue
+9. Booking Service → Booking Service: Build analytics response
+10. Booking Service → API Gateway: Return analytics data
+11. API Gateway → Frontend: Return analytics
+12. Frontend → Admin: Display booking count and revenue metrics
+
+================================================================================
+SEQUENCE DIAGRAM 10: ADMIN STAFF USER CREATION
+================================================================================
+
+Actor: Admin
+Systems: Frontend → API Gateway → Admin User Service → Auth Service → 
+         Notification Service → PostgreSQL → RabbitMQ
+
+Flow:
+1. Admin → Frontend: Navigate to staff management
+2. Admin → Frontend: Click "Add Staff User"
+3. Admin → Frontend: Enter staff details (name, email, role, airline)
+4. Frontend → API Gateway: POST /admin/staff
+5. API Gateway → Admin User Service: Forward staff creation request
+6. Admin User Service → Admin User Service: Validate input data
+7. Admin User Service → Admin User Service: Generate temporary password
+8. Admin User Service → Auth Service: POST /auth/register (staff user)
+9. Auth Service → PostgreSQL (auth_db): INSERT user with AIRLINE_STAFF role
+10. PostgreSQL → Auth Service: Return user ID
+11. Auth Service → Admin User Service: Return created user
+12. Admin User Service → PostgreSQL (admin_db): INSERT staff record with airline mapping
+13. PostgreSQL → Admin User Service: Return staff ID
+14. Admin User Service → RabbitMQ: Publish staff welcome event
+15. RabbitMQ → Notification Service: Consume staff welcome event
+16. Notification Service → SMTP Server: Send welcome email with temp password
+17. Admin User Service → API Gateway: Return staff details
+18. API Gateway → Frontend: Return success response
+19. Frontend → Admin: Display staff creation confirmation
+
+================================================================================
+KEY PATTERNS & DESIGN DECISIONS
+================================================================================
+
+1. API Gateway Pattern:
+   - All client requests route through API Gateway (port 8080)
+   - Gateway handles routing, load balancing, and authentication
+
+2. Service Discovery:
+   - Eureka Server manages service registration and discovery
+   - Services register on startup and discover each other dynamically
+
+3. Database Per Service:
+   - Each microservice has its own PostgreSQL database
+   - Ensures loose coupling and independent scalability
+
+4. Synchronous Communication:
+   - REST APIs with WebClient for inter-service communication
+   - Used for request-response patterns (booking, payment, etc.)
+
+5. Asynchronous Communication:
+   - RabbitMQ for event-driven notifications
+   - Decouples notification sending from business logic
+   - Ensures booking confirmation even if email fails
+
+6. Transaction Management:
+   - @Transactional annotations for data consistency
+   - Compensating transactions for cancellations (seat release, refund)
+
+7. Scheduled Jobs:
+   - Check-in reminders (hourly)
+   - No-show marking (every 30 minutes)
+   - Uses Spring @Scheduled annotations
+
+8. PDF Generation:
+   - E-tickets and boarding passes generated on-demand
+   - Includes QR codes for PNR and seat information
+
+9. Payment Integration:
+   - Razorpay payment gateway integration
+   - Two-phase commit: initiate → verify → confirm booking
+
+10. Error Handling:
+    - Graceful degradation (notifications fail but booking succeeds)
+    - Validation at multiple layers (frontend, gateway, service)
+
+================================================================================
+END OF SEQUENCE DIAGRAMS
+================================================================================

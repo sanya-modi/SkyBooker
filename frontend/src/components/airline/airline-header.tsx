@@ -16,7 +16,7 @@ export function AirlineHeader() {
 
   const handleLogout = () => {
     logout()
-    navigate('/login')
+    navigate('/')
   }
 
   const navItems = [

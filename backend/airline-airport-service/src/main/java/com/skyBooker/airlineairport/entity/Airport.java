@@ -1,4 +1,4 @@
-package com.skyBooker.airlineairport.entity;
+package com.skybooker.airlineairport.entity;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
