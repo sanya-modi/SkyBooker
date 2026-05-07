@@ -22,6 +22,7 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
+import java.lang.reflect.Method;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -146,6 +147,23 @@ class FlightServiceImplAdditionalTest {
     }
 
     @Test
+    void getFlightsForAirlineStaffWithBlankEmailThrows() {
+        assertThatThrownBy(() -> service.getFlightsForUser("   ", "AIRLINE_STAFF", null))
+                .isInstanceOf(FlightException.class)
+                .hasMessage("Airline staff user is not mapped to an airline");
+    }
+
+    @Test
+    void getFlightsForUserFallsBackToAllFlights() {
+        when(flightRepository.findAll()).thenReturn(List.of(sampleFlight()));
+        when(restTemplate.getForEntity(anyString(), eq(Object.class))).thenReturn(ResponseEntity.ok().build());
+
+        List<FlightResponse> flights = service.getFlightsForUser(null, "PASSENGER", null);
+
+        assertThat(flights).hasSize(1);
+    }
+
+    @Test
     void getFlightPassengersBuildsManifestUsingPassengerAndUserInfo() {
         Flight flight = sampleFlight();
         when(flightRepository.findById(1L)).thenReturn(Optional.of(flight));
@@ -179,6 +197,80 @@ class FlightServiceImplAdditionalTest {
         assertThat(manifest.get(0).getSeat()).isEqualTo("12A");
         assertThat(manifest.get(0).getName()).isEqualTo("John Doe");
         assertThat(manifest.get(0).getBookedByName()).isEqualTo("Jane Doe");
+    }
+
+    @Test
+    void getFlightPassengersPrefersPassengerContactDetailsAndHandlesMissingSeat() {
+        Flight flight = sampleFlight();
+        when(flightRepository.findById(1L)).thenReturn(Optional.of(flight));
+
+        RemoteBookingResponse booking = new RemoteBookingResponse();
+        booking.setId(10L);
+        booking.setUserId(50L);
+        booking.setSelectedSeats(List.of());
+        doReturn(new ResponseEntity<>(List.of(booking), HttpStatus.OK))
+                .when(restTemplate).exchange(eq("http://booking/bookings/flight/1/confirmed"), eq(HttpMethod.GET), eq(null), any(ParameterizedTypeReference.class));
+
+        RemotePassengerResponse passenger = new RemotePassengerResponse();
+        passenger.setId(100L);
+        passenger.setFirstName("John");
+        passenger.setLastName("Doe");
+        passenger.setEmail("passenger@test.com");
+        passenger.setPhoneNumber("9999999999");
+        passenger.setPassportNumber("A1234567");
+        doReturn(new ResponseEntity<>(List.of(passenger), HttpStatus.OK))
+                .when(restTemplate).exchange(eq("http://passenger/passengers/booking/10"), eq(HttpMethod.GET), eq(null), any(ParameterizedTypeReference.class));
+
+        when(restTemplate.getForObject("http://auth/auth/users/50", RemoteUserResponse.class))
+                .thenThrow(new RestClientException("not found"));
+
+        List<FlightPassengerManifestResponse> manifest = service.getFlightPassengers(1L);
+
+        assertThat(manifest).hasSize(1);
+        assertThat(manifest.get(0).getEmail()).isEqualTo("passenger@test.com");
+        assertThat(manifest.get(0).getPhone()).isEqualTo("9999999999");
+        assertThat(manifest.get(0).getSeat()).isNull();
+        assertThat(manifest.get(0).getBookedByName()).isNull();
+        assertThat(manifest.get(0).isBlocked()).isTrue();
+    }
+
+    @Test
+    void getFlightPassengersReturnsEmptyWhenNoBookingsExist() {
+        when(flightRepository.findById(1L)).thenReturn(Optional.of(sampleFlight()));
+        doReturn(new ResponseEntity<>(List.<RemoteBookingResponse>of(), HttpStatus.OK))
+                .when(restTemplate).exchange(eq("http://booking/bookings/flight/1/confirmed"), eq(HttpMethod.GET), eq(null), any(ParameterizedTypeReference.class));
+
+        List<FlightPassengerManifestResponse> manifest = service.getFlightPassengers(1L);
+
+        assertThat(manifest).isEmpty();
+    }
+
+    @Test
+    void getFlightPassengersReturnsEmptyWhenBookingsBodyIsNull() {
+        when(flightRepository.findById(1L)).thenReturn(Optional.of(sampleFlight()));
+        doReturn(ResponseEntity.<List<RemoteBookingResponse>>status(HttpStatus.OK).body(null))
+                .when(restTemplate).exchange(eq("http://booking/bookings/flight/1/confirmed"), eq(HttpMethod.GET), eq(null), any(ParameterizedTypeReference.class));
+
+        List<FlightPassengerManifestResponse> manifest = service.getFlightPassengers(1L);
+
+        assertThat(manifest).isEmpty();
+    }
+
+    @Test
+    void getFlightPassengersReturnsEmptyWhenPassengersBodyIsNull() {
+        when(flightRepository.findById(1L)).thenReturn(Optional.of(sampleFlight()));
+
+        RemoteBookingResponse booking = new RemoteBookingResponse();
+        booking.setId(10L);
+        booking.setUserId(50L);
+        doReturn(new ResponseEntity<>(List.of(booking), HttpStatus.OK))
+                .when(restTemplate).exchange(eq("http://booking/bookings/flight/1/confirmed"), eq(HttpMethod.GET), eq(null), any(ParameterizedTypeReference.class));
+        doReturn(ResponseEntity.<List<RemotePassengerResponse>>status(HttpStatus.OK).body(null))
+                .when(restTemplate).exchange(eq("http://passenger/passengers/booking/10"), eq(HttpMethod.GET), eq(null), any(ParameterizedTypeReference.class));
+
+        List<FlightPassengerManifestResponse> manifest = service.getFlightPassengers(1L);
+
+        assertThat(manifest).isEmpty();
     }
 
     @Test
@@ -238,6 +330,51 @@ class FlightServiceImplAdditionalTest {
     }
 
     @Test
+    void updateFlightStatusSkipsNotificationWhenBookingsBodyIsNull() {
+        Flight flight = sampleFlight();
+        when(flightRepository.findById(1L)).thenReturn(Optional.of(flight));
+        when(flightRepository.save(flight)).thenReturn(flight);
+        doReturn(ResponseEntity.<List<RemoteBookingResponse>>status(HttpStatus.OK).body(null))
+                .when(restTemplate).exchange(eq("http://booking/bookings/flight/1/confirmed"), eq(HttpMethod.GET), eq(null), any(ParameterizedTypeReference.class));
+
+        service.updateFlightStatus(1L, Flight.FlightStatus.CANCELLED);
+
+        verify(restTemplate, never()).postForEntity(eq("http://notification/notifications/flight-status"), any(), eq(Void.class));
+    }
+
+    @Test
+    void updateFlightStatusDeduplicatesRecipientsByEmail() {
+        Flight flight = sampleFlight();
+        when(flightRepository.findById(1L)).thenReturn(Optional.of(flight));
+        when(flightRepository.save(flight)).thenReturn(flight);
+
+        RemoteBookingResponse bookingOne = new RemoteBookingResponse();
+        bookingOne.setId(10L);
+        bookingOne.setUserId(50L);
+        RemoteBookingResponse bookingTwo = new RemoteBookingResponse();
+        bookingTwo.setId(11L);
+        bookingTwo.setUserId(51L);
+        doReturn(new ResponseEntity<>(List.of(bookingOne, bookingTwo), HttpStatus.OK))
+                .when(restTemplate).exchange(eq("http://booking/bookings/flight/1/confirmed"), eq(HttpMethod.GET), eq(null), any(ParameterizedTypeReference.class));
+
+        RemotePassengerResponse passengerOne = new RemotePassengerResponse();
+        passengerOne.setEmail("shared@test.com");
+        RemotePassengerResponse passengerTwo = new RemotePassengerResponse();
+        passengerTwo.setEmail("shared@test.com");
+        doReturn(new ResponseEntity<>(List.of(passengerOne), HttpStatus.OK))
+                .when(restTemplate).exchange(eq("http://passenger/passengers/booking/10"), eq(HttpMethod.GET), eq(null), any(ParameterizedTypeReference.class));
+        doReturn(new ResponseEntity<>(List.of(passengerTwo), HttpStatus.OK))
+                .when(restTemplate).exchange(eq("http://passenger/passengers/booking/11"), eq(HttpMethod.GET), eq(null), any(ParameterizedTypeReference.class));
+
+        service.updateFlightStatus(1L, Flight.FlightStatus.ON_TIME);
+
+        ArgumentCaptor<FlightStatusNotificationRequest> captor = ArgumentCaptor.forClass(FlightStatusNotificationRequest.class);
+        verify(restTemplate).postForEntity(eq("http://notification/notifications/flight-status"), captor.capture(), eq(Void.class));
+        assertThat(captor.getValue().getRecipients()).hasSize(1);
+        assertThat(captor.getValue().getRecipients().get(0).getEmail()).isEqualTo("shared@test.com");
+    }
+
+    @Test
     void saveSeatConfigForAirlineStaffReturnsResponseBody() {
         Flight flight = sampleFlight();
         when(flightRepository.findById(1L)).thenReturn(Optional.of(flight));
@@ -278,6 +415,27 @@ class FlightServiceImplAdditionalTest {
     }
 
     @Test
+    void getSeatConfigForNonAirlineStaffReturnsBodyWhenPresent() {
+        SeatClassConfigResponse config = new SeatClassConfigResponse();
+        doReturn(ResponseEntity.ok(List.of(config)))
+                .when(restTemplate).exchange(eq("http://seat/seats/flight/1/config"), eq(HttpMethod.GET), eq(null), any(ParameterizedTypeReference.class));
+
+        List<SeatClassConfigResponse> response = service.getSeatConfig(1L, null, "PASSENGER");
+
+        assertThat(response).hasSize(1);
+    }
+
+    @Test
+    void saveSeatConfigReturnsEmptyWhenBodyMissing() {
+        doReturn(ResponseEntity.<List<SeatClassConfigResponse>>status(HttpStatus.OK).body(null))
+                .when(restTemplate).exchange(eq("http://seat/seats/flight/1/config"), eq(HttpMethod.POST), any(), any(ParameterizedTypeReference.class));
+
+        List<SeatClassConfigResponse> response = service.saveSeatConfig(1L, new SeatConfigRequest(), null, "PASSENGER");
+
+        assertThat(response).isEmpty();
+    }
+
+    @Test
     void getPopularDestinationsMapsAirportsAndSkipsFailures() {
         when(flightRepository.findTopDestinationsByBookingCount(PageRequest.of(0, 6))).thenReturn(List.of(1L, 2L));
 
@@ -297,6 +455,15 @@ class FlightServiceImplAdditionalTest {
     }
 
     @Test
+    void getPopularDestinationsReturnsEmptyWhenNoTopAirports() {
+        when(flightRepository.findTopDestinationsByBookingCount(PageRequest.of(0, 6))).thenReturn(List.of());
+
+        List<PopularDestinationResponse> response = service.getPopularDestinations();
+
+        assertThat(response).isEmpty();
+    }
+
+    @Test
     void getFlightsByDestinationReturnsMatchingFlights() {
         RemoteAirportResponse airport = new RemoteAirportResponse();
         airport.setId(5L);
@@ -307,6 +474,96 @@ class FlightServiceImplAdditionalTest {
 
         assertThat(response).hasSize(1);
         assertThat(response.get(0).getArrivalAirportId()).isEqualTo(4L);
+    }
+
+    @Test
+    void getFlightsByDestinationReturnsEmptyWhenAirportMissing() {
+        when(restTemplate.getForObject("http://airline-airport/airports/iata/DEL", RemoteAirportResponse.class)).thenReturn(null);
+
+        List<FlightResponse> response = service.getFlightsByDestination("DEL");
+
+        assertThat(response).isEmpty();
+    }
+
+    @Test
+    void getOnTimeFlightsByAirlineIdReturnsMappedFlights() {
+        when(flightRepository.findByAirlineIdAndStatus(2L, Flight.FlightStatus.ON_TIME)).thenReturn(List.of(sampleFlight()));
+
+        List<FlightResponse> response = service.getOnTimeFlightsByAirlineId(2L);
+
+        assertThat(response).hasSize(1);
+        assertThat(response.get(0).getStatus()).isEqualTo("ON_TIME");
+    }
+
+    @Test
+    void updateFlightThrowsWhenFlightMissing() {
+        when(flightRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.updateFlight(99L, sampleRequest()))
+                .isInstanceOf(FlightException.class)
+                .hasMessage("Flight not found");
+    }
+
+    @Test
+    void deleteFlightThrowsWhenFlightMissing() {
+        when(flightRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.deleteFlight(99L))
+                .isInstanceOf(FlightException.class)
+                .hasMessage("Flight not found");
+    }
+
+    @Test
+    void updateAvailableSeatsThrowsWhenFlightMissing() {
+        when(flightRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.updateAvailableSeats(99L, 1))
+                .isInstanceOf(FlightException.class)
+                .hasMessage("Flight not found");
+    }
+
+    @Test
+    void setAvailableSeatsThrowsWhenFlightMissing() {
+        when(flightRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.setAvailableSeats(99L, 5))
+                .isInstanceOf(FlightException.class)
+                .hasMessage("Flight not found");
+    }
+
+    @Test
+    void helperMethodsCoverStatusAndNameBranches() throws Exception {
+        Method buildStatusMessage = FlightServiceImpl.class.getDeclaredMethod("buildStatusMessage", Flight.FlightStatus.class);
+        buildStatusMessage.setAccessible(true);
+        assertThat(buildStatusMessage.invoke(service, Flight.FlightStatus.CANCELLED)).asString().contains("cancelled");
+        assertThat(buildStatusMessage.invoke(service, Flight.FlightStatus.DEPARTED)).asString().contains("departed");
+        assertThat(buildStatusMessage.invoke(service, Flight.FlightStatus.ARRIVED)).asString().contains("arrived");
+        assertThat(buildStatusMessage.invoke(service, Flight.FlightStatus.ON_TIME)).asString().contains("on time");
+
+        Method buildUserName = FlightServiceImpl.class.getDeclaredMethod("buildUserName", RemoteUserResponse.class);
+        buildUserName.setAccessible(true);
+        assertThat(buildUserName.invoke(service, new Object[]{null})).isNull();
+
+        RemoteUserResponse blankNameUser = new RemoteUserResponse();
+        blankNameUser.setFirstName(" ");
+        blankNameUser.setLastName(" ");
+        blankNameUser.setEmail("fallback@test.com");
+        assertThat(buildUserName.invoke(service, blankNameUser)).isEqualTo("fallback@test.com");
+
+        RemoteUserResponse fullNameUser = new RemoteUserResponse();
+        fullNameUser.setFirstName(" Jane ");
+        fullNameUser.setLastName(" Doe ");
+        fullNameUser.setEmail("jane@test.com");
+        assertThat(buildUserName.invoke(service, fullNameUser)).isEqualTo("Jane Doe");
+    }
+
+    @Test
+    void createFlightThrowsWhenAirlineValidationFails() {
+        when(restTemplate.getForEntity(anyString(), eq(Object.class))).thenThrow(new RestClientException("inactive"));
+
+        assertThatThrownBy(() -> service.createFlight(sampleRequest()))
+                .isInstanceOf(FlightException.class)
+                .hasMessage("Airline or airport is inactive or not found");
     }
 
     @Test

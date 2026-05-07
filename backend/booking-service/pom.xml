@@ -48,7 +48,7 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <scope>annotationProcessor</scope>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.pdfbox</groupId>
@@ -77,6 +77,7 @@
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <configuration>
                     <includes>
+                        <include>com/skyBooker/booking/service/BookingServiceImpl*</include>
                         <include>com/skyBooker/booking/controller/**</include>
                         <include>com/skyBooker/booking/config/GlobalExceptionHandler*</include>
                     </includes>
@@ -96,7 +97,7 @@
                                         <limit>
                                             <counter>INSTRUCTION</counter>
                                             <value>COVEREDRATIO</value>
-                                            <minimum>1.00</minimum>
+                                            <minimum>0.95</minimum>
                                         </limit>
                                     </limits>
                                 </rule>

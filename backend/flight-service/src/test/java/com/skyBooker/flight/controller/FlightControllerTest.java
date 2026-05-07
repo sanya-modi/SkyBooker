@@ -136,6 +136,16 @@ class FlightControllerTest {
     }
 
     @Test
+    void getOnTimeFlightsByAirlineIdReturnsOk() {
+        when(flightService.getOnTimeFlightsByAirlineId(2L)).thenReturn(List.of(sampleResponse()));
+
+        ResponseEntity<List<FlightResponse>> response = controller.getOnTimeFlightsByAirlineId(2L);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).hasSize(1);
+    }
+
+    @Test
     void updateAvailableSeatsReturnsOk() {
         when(flightService.updateAvailableSeats(1L, 3)).thenReturn(true);
 

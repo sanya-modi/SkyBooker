@@ -30,6 +30,11 @@ public class PassengerServiceImpl implements PassengerService {
     @Override
     public Passenger createPassenger(Passenger passenger) {
         validatePassengerCategoryAge(passenger.getDateOfBirth(), passenger.getCategory());
+        
+        if (passengerRepository.findByPassportNumber(passenger.getPassportNumber()) != null) {
+            throw new IllegalArgumentException("Passport number already exists");
+        }
+        
         return passengerRepository.save(passenger);
     }
 
@@ -84,6 +89,10 @@ public class PassengerServiceImpl implements PassengerService {
             passenger.setGender(passengerData.getGender());
         }
         if (passengerData.getPassportNumber() != null) {
+            if (!passengerData.getPassportNumber().equals(passenger.getPassportNumber()) 
+                    && passengerRepository.findByPassportNumber(passengerData.getPassportNumber()) != null) {
+                throw new IllegalArgumentException("Passport number already exists");
+            }
             passenger.setPassportNumber(passengerData.getPassportNumber());
         }
         if (passengerData.getNationality() != null) {

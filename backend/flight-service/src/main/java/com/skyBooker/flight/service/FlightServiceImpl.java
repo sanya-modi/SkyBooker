@@ -202,11 +202,14 @@ public class FlightServiceImpl implements FlightService {
     public List<FlightPassengerManifestResponse> getFlightPassengers(Long flightId) {
         getFlightEntity(flightId);
 
-        List<RemoteBookingResponse> bookings = fetchConfirmedBookings(flightId);
+        List<RemoteBookingResponse> bookings = Objects.requireNonNullElse(fetchConfirmedBookings(flightId), Collections.emptyList());
         List<FlightPassengerManifestResponse> manifest = new ArrayList<>();
 
         for (RemoteBookingResponse booking : bookings) {
-            List<RemotePassengerResponse> passengers = fetchPassengersByBooking(booking.getId());
+            List<RemotePassengerResponse> passengers = Objects.requireNonNullElse(
+                    fetchPassengersByBooking(booking.getId()),
+                    Collections.emptyList()
+            );
             RemoteUserResponse user = fetchUser(booking.getUserId());
             List<String> selectedSeats = booking.getSelectedSeats() != null ? booking.getSelectedSeats() : Collections.emptyList();
 
@@ -422,7 +425,7 @@ public class FlightServiceImpl implements FlightService {
     }
 
     private void notifyPassengersAboutStatusChange(Flight flight) {
-        List<RemoteBookingResponse> bookings = fetchConfirmedBookings(flight.getId());
+        List<RemoteBookingResponse> bookings = Objects.requireNonNullElse(fetchConfirmedBookings(flight.getId()), Collections.emptyList());
         if (bookings.isEmpty()) {
             return;
         }
@@ -430,7 +433,10 @@ public class FlightServiceImpl implements FlightService {
         List<FlightStatusNotificationRequest.Recipient> recipients = bookings.stream()
                 .flatMap(booking -> {
                     RemoteUserResponse user = fetchUser(booking.getUserId());
-                    List<RemotePassengerResponse> passengers = fetchPassengersByBooking(booking.getId());
+                    List<RemotePassengerResponse> passengers = Objects.requireNonNullElse(
+                            fetchPassengersByBooking(booking.getId()),
+                            Collections.emptyList()
+                    );
                     List<FlightStatusNotificationRequest.Recipient> bookingRecipients = new ArrayList<>();
 
                     for (RemotePassengerResponse passenger : passengers) {

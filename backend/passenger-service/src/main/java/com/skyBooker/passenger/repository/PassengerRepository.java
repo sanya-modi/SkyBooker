@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface PassengerRepository extends JpaRepository<Passenger, Long> {
@@ -16,4 +17,6 @@ public interface PassengerRepository extends JpaRepository<Passenger, Long> {
 
     @Query("SELECT p FROM Passenger p WHERE p.passportNumber = :passportNumber")
     Passenger findByPassportNumber(@Param("passportNumber") String passportNumber);
+
+    Optional<Passenger> findByEmail(String email);
 }

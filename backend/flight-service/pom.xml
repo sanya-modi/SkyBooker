@@ -51,7 +51,7 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <scope>annotationProcessor</scope>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 
@@ -81,7 +81,7 @@
                                         <limit>
                                             <counter>INSTRUCTION</counter>
                                             <value>COVEREDRATIO</value>
-                                            <minimum>0.90</minimum>
+                                            <minimum>0.95</minimum>
                                         </limit>
                                     </limits>
                                 </rule>

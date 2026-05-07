@@ -34,7 +34,7 @@ public class Passenger {
     @Column(length = 20)
     private String phoneNumber;
 
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false, length = 20, unique = true)
     private String passportNumber;
 
     @Column(nullable = false)

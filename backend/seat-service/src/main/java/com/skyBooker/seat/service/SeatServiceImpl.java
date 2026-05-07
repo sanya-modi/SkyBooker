@@ -195,6 +195,7 @@ public class SeatServiceImpl implements SeatService {
     }
 
     @Scheduled(fixedDelayString = "${seat.hold.release.scheduler-ms:120000}")
+    @Transactional
     public void scheduledReleaseExpiredHolds() {
         releaseExpiredHolds();
     }
@@ -277,6 +278,7 @@ public class SeatServiceImpl implements SeatService {
         Optional.ofNullable(emittersByFlight.get(flightId)).ifPresent(emitters -> emitters.remove(emitter));
     }
 
+    @Transactional(readOnly = true)
     public void publishSeatUpdate(Long flightId, String eventType) {
         log.info("publishSeatUpdate called for flight {} with event type {}", flightId, eventType);
         List<Seat> allSeats = getAllSeatsByFlight(flightId);
