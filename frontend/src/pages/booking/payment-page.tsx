@@ -326,6 +326,9 @@ export function PaymentPage() {
         if (isPassengerSchemaMismatchError(passengerMessage)) {
           console.warn('Passenger persistence failed due to backend schema mismatch:', passengerMessage)
         }
+        if (passengerMessage.toLowerCase().includes('passport number already exists')) {
+          throw new Error('This passport number is already registered. Each passenger must have a unique passport number.')
+        }
         throw new Error(passengerMessage)
       }
 

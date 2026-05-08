@@ -8,10 +8,15 @@ import org.junit.jupiter.api.Test;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
+import org.springframework.core.MethodParameter;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.validation.BeanPropertyBindingResult;
+import org.springframework.validation.FieldError;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
@@ -107,6 +112,21 @@ class AuthConfigTest {
     }
 
     @Test
+    void googleOAuthProviderInitializesVerifierFromConfiguredClientId() throws Exception {
+        GoogleOAuthProvider provider = new GoogleOAuthProvider();
+        setField(provider, "googleClientId", "client-id-123");
+
+        Method getVerifier = GoogleOAuthProvider.class.getDeclaredMethod("getVerifier");
+        getVerifier.setAccessible(true);
+
+        Object verifier = getVerifier.invoke(provider);
+        Object sameVerifier = getVerifier.invoke(provider);
+
+        assertThat(verifier).isInstanceOf(GoogleIdTokenVerifier.class);
+        assertThat(sameVerifier).isSameAs(verifier);
+    }
+
+    @Test
     void googleOAuthProviderWrapsVerifierErrors() throws Exception {
         GoogleOAuthProvider provider = new GoogleOAuthProvider();
         GoogleIdTokenVerifier verifier = mock(GoogleIdTokenVerifier.class);
@@ -138,6 +158,19 @@ class AuthConfigTest {
         assertThat(validationError.getStatus()).isEqualTo(400);
         assertThat(validationError.getMessage()).contains("login.email: must be valid");
 
+        BeanPropertyBindingResult bindingResult = new BeanPropertyBindingResult(new DummyRequest(), "dummyRequest");
+        bindingResult.addError(new FieldError("dummyRequest", "email", "must be valid"));
+        bindingResult.addError(new FieldError("dummyRequest", "password", "must not be blank"));
+        MethodArgumentNotValidException methodArgumentNotValidException = new MethodArgumentNotValidException(
+                new MethodParameter(DummyController.class.getMethod("submit", DummyRequest.class), 0),
+                bindingResult
+        );
+        GlobalExceptionHandler.ErrorResponse methodValidationError = handler.handleValidationException(methodArgumentNotValidException).getBody();
+        assertThat(methodValidationError.getStatus()).isEqualTo(400);
+        assertThat(methodValidationError.getErrorCode()).isEqualTo("VALIDATION_ERROR");
+        assertThat(methodValidationError.getMessage()).contains("email: must be valid");
+        assertThat(methodValidationError.getMessage()).contains("password: must not be blank");
+
         GlobalExceptionHandler.ErrorResponse globalError = handler.handleGlobalException(new IllegalStateException("boom")).getBody();
         assertThat(globalError.getStatus()).isEqualTo(500);
         assertThat(globalError.getErrorCode()).isEqualTo("INTERNAL_ERROR");
@@ -148,5 +181,13 @@ class AuthConfigTest {
         Field field = target.getClass().getDeclaredField(name);
         field.setAccessible(true);
         field.set(target, value);
+    }
+
+    static class DummyController {
+        public void submit(DummyRequest request) {
+        }
+    }
+
+    static class DummyRequest {
     }
 }

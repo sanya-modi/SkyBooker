@@ -17,14 +17,28 @@ import com.skyBooker.auth.entity.User;
 import com.skyBooker.auth.exception.AuthException;
 import com.skyBooker.auth.validation.ValidationPatterns;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mockStatic;
+import org.springframework.boot.SpringApplication;
 
 class AuthModelCoverageTest {
+
+    @Test
+    void authServiceApplicationMainIsCovered() {
+        String[] args = {"--spring.main.web-application-type=none"};
+
+        try (MockedStatic<SpringApplication> springApplication = mockStatic(SpringApplication.class)) {
+            AuthServiceApplication.main(args);
+
+            springApplication.verify(() -> SpringApplication.run(AuthServiceApplication.class, args));
+        }
+    }
 
     @Test
     void authRequestCoversDataMethods() {
@@ -174,8 +188,15 @@ class AuthModelCoverageTest {
         setProperty(clazz, nested, "setIsActive", Boolean.class, true);
         setProperty(clazz, nested, "setCreatedAt", String.class, "2024-01-01");
         setProperty(clazz, nested, "setUpdatedAt", String.class, "2024-01-02");
+        assertThat(invokeGetter(clazz, nested, "getId")).isEqualTo(1L);
         assertThat(invokeGetter(clazz, nested, "getName")).isEqualTo("Sky Booker");
+        assertThat(invokeGetter(clazz, nested, "getIataCode")).isEqualTo("SB");
+        assertThat(invokeGetter(clazz, nested, "getDescription")).isEqualTo("desc");
+        assertThat(invokeGetter(clazz, nested, "getPhoneNumber")).isEqualTo("9876543210");
+        assertThat(invokeGetter(clazz, nested, "getEmail")).isEqualTo("airline@test.com");
         assertThat(invokeGetter(clazz, nested, "getIsActive")).isEqualTo(true);
+        assertThat(invokeGetter(clazz, nested, "getCreatedAt")).isEqualTo("2024-01-01");
+        assertThat(invokeGetter(clazz, nested, "getUpdatedAt")).isEqualTo("2024-01-02");
     }
 
     private void invokeLifecycle(Object target, String methodName) {

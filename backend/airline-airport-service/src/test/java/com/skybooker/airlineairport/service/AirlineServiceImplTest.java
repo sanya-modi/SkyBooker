@@ -127,6 +127,35 @@ class AirlineServiceImplTest {
     }
 
     @Test
+    void updateAirlineAllMutableFields() {
+        Airline existing = new Airline();
+        existing.setId(1L);
+        existing.setName("Old");
+        existing.setDescription("Old description");
+        existing.setPhoneNumber("1111111111");
+        existing.setEmail("old@test.com");
+        existing.setIsActive(true);
+
+        Airline update = new Airline();
+        update.setName("New");
+        update.setDescription("New description");
+        update.setPhoneNumber("9999999999");
+        update.setEmail("new@test.com");
+        update.setIsActive(false);
+
+        when(airlineRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(airlineRepository.save(existing)).thenReturn(existing);
+
+        Airline result = airlineService.updateAirline(1L, update);
+
+        assertThat(result.getName()).isEqualTo("New");
+        assertThat(result.getDescription()).isEqualTo("New description");
+        assertThat(result.getPhoneNumber()).isEqualTo("9999999999");
+        assertThat(result.getEmail()).isEqualTo("new@test.com");
+        assertThat(result.getIsActive()).isFalse();
+    }
+
+    @Test
     void deleteAirline() {
         Airline airline = new Airline();
         airline.setId(5L);

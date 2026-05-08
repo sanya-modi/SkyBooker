@@ -94,16 +94,6 @@
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
-                <configuration>
-                    <excludes>
-                        <exclude>com/skyBooker/auth/dto/**</exclude>
-                        <exclude>com/skyBooker/auth/entity/**</exclude>
-                        <exclude>com/skyBooker/auth/config/**</exclude>
-                        <exclude>com/skyBooker/auth/application/**</exclude>
-                        <exclude>com/skyBooker/auth/validation/**</exclude>
-                        <exclude>com/skyBooker/auth/service/AuthenticationServiceImpl$AirlineResponse*</exclude>
-                    </excludes>
-                </configuration>
                 <executions>
                     <execution>
                         <id>jacoco-check</id>
@@ -117,7 +107,7 @@
                                     <element>BUNDLE</element>
                                     <limits>
                                         <limit>
-                                            <counter>INSTRUCTION</counter>
+                                            <counter>LINE</counter>
                                             <value>COVEREDRATIO</value>
                                             <minimum>0.90</minimum>
                                         </limit>
