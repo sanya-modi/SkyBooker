@@ -284,6 +284,10 @@
   gap: 14px;
 }
 
+.landing-search-grid .btn {
+  width: 100%;
+}
+
 .landing-input {
   position: relative;
   min-height: 50px;
@@ -2119,8 +2123,12 @@ input:focus {
   }
 
   .landing-search {
+    position: relative;
+    left: auto;
     bottom: 22px;
+    transform: none;
     width: calc(100% - 24px);
+    margin-top: 12px;
     padding: 16px;
     border-radius: 20px;
   }
@@ -2131,8 +2139,76 @@ input:focus {
     gap: 12px;
   }
 
+  .landing-tabs {
+    width: 100%;
+  }
+
+  .landing-tabs button {
+    flex: 1 1 0;
+    min-width: 0;
+    padding-inline: 16px;
+  }
+
+  .direct-check {
+    font-size: 13px;
+  }
+
+  .landing-search-grid {
+    grid-template-columns: 1fr;
+  }
+
   .landing-input input {
     min-height: 58px;
+  }
+
+  .landing-hero {
+    padding: 96px 0 28px;
+  }
+
+  .landing-hero-copy {
+    margin-bottom: 24px;
+    padding: 0 18px;
+  }
+
+  .landing-hero-copy h1 {
+    font-size: clamp(34px, 11vw, 48px);
+    line-height: 1.02;
+  }
+
+  .landing-hero-copy p {
+    font-size: 15px;
+    line-height: 1.5;
+  }
+
+  .landing-airport-iata {
+    font-size: clamp(40px, 15vw, 56px);
+  }
+
+  .landing-airport-info strong {
+    font-size: 15px;
+  }
+
+  .landing-airport-info span {
+    max-width: 132px;
+    font-size: 11px;
+    white-space: normal;
+  }
+
+  .landing-airport-country {
+    font-size: 10px;
+  }
+
+  .landing-route-arrow {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .airport-dropdown {
+    max-height: 220px;
+  }
+
+  .search-error {
+    font-size: 13px;
   }
 
   .passenger-overview {
@@ -2718,13 +2794,73 @@ input:focus {
   background: rgba(255, 255, 255, .4);
 }
 
-@media (max-width: 760px) {
+@media (max-width: 1180px) {
+  .landing-hero-copy {
+    max-width: 860px;
+    margin-bottom: 136px;
+  }
+
+  .landing-search {
+    width: min(980px, calc(100% - 40px));
+    padding: 20px;
+  }
+
+  .landing-search-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 960px) {
+  .landing-hero {
+    min-height: auto;
+    padding: 112px 0 40px;
+    justify-content: flex-start;
+  }
+
+  .landing-hero-copy {
+    max-width: 720px;
+    margin-bottom: 36px;
+    padding: 0 20px;
+  }
+
   .landing-route-display {
-    gap: 16px;
+    gap: 18px;
+    margin-bottom: 24px;
   }
 
   .landing-airport-pin {
-    min-width: 100px;
+    min-width: 120px;
+  }
+
+  .landing-search {
+    position: relative;
+    left: auto;
+    bottom: auto;
+    transform: none;
+    width: min(720px, calc(100% - 32px));
+    margin-top: 8px;
+  }
+
+  .landing-filter-row {
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .landing-search-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .landing-route-display {
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+
+  .landing-airport-pin {
+    min-width: 112px;
   }
 
   .landing-route-line {

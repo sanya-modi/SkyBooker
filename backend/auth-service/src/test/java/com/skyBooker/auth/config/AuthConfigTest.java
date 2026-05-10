@@ -141,6 +141,20 @@ class AuthConfigTest {
     }
 
     @Test
+    void googleOAuthProviderWrapsPayloadVerifierErrors() throws Exception {
+        GoogleOAuthProvider provider = new GoogleOAuthProvider();
+        GoogleIdTokenVerifier verifier = mock(GoogleIdTokenVerifier.class);
+        when(verifier.verify("token")).thenThrow(new IllegalStateException("payload error"));
+        setField(provider, "verifier", verifier);
+
+        assertThatThrownBy(() -> provider.getTokenPayload("token"))
+                .isInstanceOf(AuthException.class)
+                .hasMessageContaining("Invalid Google token")
+                .extracting("errorCode")
+                .isEqualTo("INVALID_GOOGLE_TOKEN");
+    }
+
+    @Test
     void globalExceptionHandlerBuildsExpectedResponses() throws Exception {
         GlobalExceptionHandler handler = new GlobalExceptionHandler();
 

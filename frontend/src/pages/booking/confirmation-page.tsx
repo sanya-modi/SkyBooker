@@ -148,7 +148,7 @@ export function ConfirmationPage() {
               resetFlow()
               navigate('/')
             }}
-            className="flex items-center gap-2 px-6 py-3 bg-[#3b82f6] text-white rounded-lg font-bold hover:bg-[#2563eb] transition-all text-sm ml-auto"
+            className="flex items-center gap-2 px-6 py-3 bg-[#3b82f6] text-white rounded-lg font-bold hover:bg-[#2563eb] transition-all text-sm"
           >
             <Home size={18} />
             Back to Home

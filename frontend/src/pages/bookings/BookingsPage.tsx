@@ -55,9 +55,8 @@ export default function MyBookingsPage() {
     }
 
     if (!isLoggedIn) {
-      navigate('/login', {
+      navigate('/', {
         replace: true,
-        state: { from: `${location.pathname}${location.search}${location.hash}` },
       })
       return
     }
@@ -346,7 +345,7 @@ export default function MyBookingsPage() {
                 className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00236f] focus:border-transparent"
               />
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => setActiveTab('upcoming')}
                 className={`px-6 py-3 rounded-xl text-sm font-bold uppercase tracking-wider transition-all ${
@@ -448,7 +447,7 @@ export default function MyBookingsPage() {
                   <div className="p-6">
                     {/* Header Row */}
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-                      <div className="flex items-center gap-4">
+                      <div className="flex flex-wrap items-center gap-3">
                         <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${statusBadge.bg} ${statusBadge.text} ${statusBadge.border}`}>
                           <StatusIcon className="w-4 h-4" />
                           <span className="text-sm font-bold">{statusBadge.label}</span>
@@ -458,7 +457,7 @@ export default function MyBookingsPage() {
                           <span className="text-sm font-mono font-bold text-slate-800">{booking.pnr}</span>
                         </div>
                       </div>
-                      <div className="text-right">
+                      <div className="text-left md:text-right">
                         <p className="text-xs text-slate-500 mb-1">Total Fare</p>
                         <p className="text-2xl font-black text-[#00236f]">₹{booking.totalFare.toLocaleString()}</p>
                       </div>
@@ -466,7 +465,7 @@ export default function MyBookingsPage() {
 
                     {/* Flight Route */}
                     <div className="bg-gradient-to-r from-slate-50 to-blue-50 rounded-xl p-6 mb-6">
-                      <div className="flex items-center justify-between">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
                         <div className="flex-1">
                           <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">From</p>
                           <p className="text-3xl font-black text-[#00236f] mb-1">
@@ -480,7 +479,7 @@ export default function MyBookingsPage() {
                           </p>
                         </div>
 
-                        <div className="flex flex-col items-center px-6">
+                        <div className="flex flex-col items-center px-2 sm:px-6">
                           <Plane className="w-8 h-8 text-[#00236f] mb-2" />
                           <div className="w-24 h-0.5 bg-slate-300" />
                           <p className="text-xs font-bold text-slate-500 mt-2">
@@ -491,7 +490,7 @@ export default function MyBookingsPage() {
                           </span>
                         </div>
 
-                        <div className="flex-1 text-right">
+                        <div className="flex-1 text-left sm:text-right">
                           <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">To</p>
                           <p className="text-3xl font-black text-[#00236f] mb-1">
                             {booking.arrivalAirport?.iataCode || 'N/A'}
@@ -507,7 +506,7 @@ export default function MyBookingsPage() {
                     </div>
 
                     {/* Booking Details Grid */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
                       <div className="flex items-start gap-3">
                         <Calendar className="w-5 h-5 text-[#00236f] mt-0.5" />
                         <div>

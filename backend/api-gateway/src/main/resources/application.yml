@@ -32,6 +32,7 @@ spring:
           predicates:
             - Path=/flights/v3/api-docs
           filters:
+            - SetRequestHostHeader=localhost:8080
             - RewritePath=/flights/v3/api-docs, /v3/api-docs
 
         - id: seat-service-api-docs
@@ -39,6 +40,7 @@ spring:
           predicates:
             - Path=/seats/v3/api-docs
           filters:
+            - SetRequestHostHeader=localhost:8080
             - RewritePath=/seats/v3/api-docs, /v3/api-docs
 
         - id: booking-service-api-docs
@@ -46,6 +48,7 @@ spring:
           predicates:
             - Path=/bookings/v3/api-docs
           filters:
+            - SetRequestHostHeader=localhost:8080
             - RewritePath=/bookings/v3/api-docs, /v3/api-docs
 
         - id: passenger-service-api-docs
@@ -53,6 +56,7 @@ spring:
           predicates:
             - Path=/passengers/v3/api-docs
           filters:
+            - SetRequestHostHeader=localhost:8080
             - RewritePath=/passengers/v3/api-docs, /v3/api-docs
 
         - id: payment-service-api-docs
@@ -60,6 +64,7 @@ spring:
           predicates:
             - Path=/payments/v3/api-docs
           filters:
+            - SetRequestHostHeader=localhost:8080
             - RewritePath=/payments/v3/api-docs, /v3/api-docs
 
         - id: notification-service-api-docs
@@ -67,6 +72,7 @@ spring:
           predicates:
             - Path=/notifications/v3/api-docs
           filters:
+            - SetRequestHostHeader=localhost:8080
             - RewritePath=/notifications/v3/api-docs, /v3/api-docs
 
         - id: airline-airport-service-api-docs
@@ -74,7 +80,30 @@ spring:
           predicates:
             - Path=/airlines/v3/api-docs
           filters:
+            - SetRequestHostHeader=localhost:8080
             - RewritePath=/airlines/v3/api-docs, /v3/api-docs
+
+        - id: auth-service-api-docs
+          uri: lb://auth-service
+          predicates:
+            - Path=/auth/v3/api-docs
+          filters:
+            - SetRequestHostHeader=localhost:8080
+
+        - id: admin-user-service-api-docs
+          uri: lb://admin-user-service
+          predicates:
+            - Path=/admin/v3/api-docs
+          filters:
+            - SetRequestHostHeader=localhost:8080
+
+        - id: admin-service-api-docs
+          uri: lb://admin-service
+          predicates:
+            - Path=/admin-server/v3/api-docs
+          filters:
+            - SetRequestHostHeader=localhost:8080
+            - RewritePath=/admin-server/v3/api-docs, /v3/api-docs
 
         # ===== General service routes =====
         - id: auth-service
@@ -173,8 +202,9 @@ management:
 
 springdoc:
   api-docs:
-    path: /v3/api-docs
+    enabled: true
   swagger-ui:
+    enabled: true
     path: /swagger-ui.html
     urls:
       - name: auth-service
@@ -197,3 +227,5 @@ springdoc:
         url: /admin/v3/api-docs
       - name: admin-service
         url: /admin-server/v3/api-docs
+    oauth:
+      use-pkce-with-authorization-code-grant: true

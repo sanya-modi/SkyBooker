@@ -17,7 +17,7 @@ export function AdminHeader() {
   const handleLogout = () => {
     console.log('[AdminHeader] Signing out, redirecting to /')
     logout()
-    navigate('/')
+    navigate('/', { replace: true })
   }
 
   const navItems = [
@@ -35,12 +35,13 @@ export function AdminHeader() {
     <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-slate-200 shadow-sm">
       <div className="w-full px-0">
         <div className="flex items-center justify-between h-16">
-          <Link to="/admin/dashboard" className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-gradient-to-br from-sky-500 to-blue-600 rounded-xl flex items-center justify-center">
-              <Shield className="w-6 h-6 text-white" />
+          <Link to="/admin/dashboard" className="flex items-center gap-2 ml-4">
+            <div className="w-10 h-10 bg-gradient-to-br from-[#00236f] to-[#1e3a8a] rounded-xl flex items-center justify-center">
+              <Plane className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-black text-sky-600">SkyBooker</h1>
+              <h1 className="text-xl font-black text-[#00236f]">SkyBooker</h1>
+              <p className="text-xs text-slate-500 font-bold">Admin Portal</p>
             </div>
           </Link>
 
@@ -54,7 +55,7 @@ export function AdminHeader() {
                   to={item.href}
                   className={`flex items-center gap-2 px-3 py-2 rounded-lg font-bold text-xs transition-all ${
                     isActive
-                      ? 'bg-gradient-to-r from-sky-500 to-blue-600 text-white'
+                      ? 'bg-gradient-to-r from-[#00236f] to-[#1e3a8a] text-white'
                       : 'text-slate-600 hover:bg-slate-100'
                   }`}
                 >
@@ -76,11 +77,11 @@ export function AdminHeader() {
                 </p>
                 <p className="text-xs text-slate-500">Administrator</p>
               </div>
-              <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-sky-500 bg-slate-100 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-[#00236f] bg-slate-100 flex items-center justify-center">
                 {profile?.profilePhotoUrl ? (
                   <img src={profile.profilePhotoUrl} alt="Profile" className="w-full h-full object-cover" />
                 ) : (
-                  <span className="text-sm font-black text-sky-600">
+                  <span className="text-sm font-black text-[#00236f]">
                     {user?.firstName?.[0]}{user?.lastName?.[0]}
                   </span>
                 )}

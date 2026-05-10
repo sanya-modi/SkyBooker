@@ -276,50 +276,50 @@ export function ResultsPage() {
 
       {/* ── Hero ── */}
       <div ref={heroRef} className="bg-gradient-to-br from-[#00236f] via-[#1e3a8a] to-[#1d4ed8] pt-[60px]">
-        <div className="max-w-[1280px] mx-auto px-6 py-7">
+        <div className="max-w-[1320px] mx-auto px-4 sm:px-6 py-5 sm:py-6">
           <button
-            className="inline-flex items-center gap-2 text-white/80 hover:text-white text-sm font-semibold bg-white/10 hover:bg-white/20 px-4 py-2 rounded-full transition-all mb-5"
+            className="inline-flex items-center gap-2 text-white/80 hover:text-white text-xs sm:text-sm font-semibold bg-white/10 hover:bg-white/20 px-3.5 py-2 rounded-full transition-all mb-4"
             onClick={() => navigate('/')}
             type="button"
           >
             <ArrowLeft size={15} /> Modify search
           </button>
 
-          <div className="flex items-center gap-6 mb-4">
+          <div className="flex flex-wrap items-center gap-4 sm:gap-5 mb-3">
             <div>
               <p className="text-white/60 text-xs font-bold uppercase tracking-widest mb-0.5">From</p>
-              <h1 className="text-4xl md:text-5xl font-black text-white leading-none tracking-tight">
+              <h1 className="text-3xl sm:text-4xl md:text-[2.8rem] font-black text-white leading-none tracking-tight">
                 {origin?.city ?? '—'}
               </h1>
-              <span className="text-blue-300 font-bold text-sm tracking-widest">{origin?.iataCode}</span>
+              <span className="text-blue-300 font-bold text-xs sm:text-sm tracking-widest">{origin?.iataCode}</span>
             </div>
-            <div className="flex flex-col items-center gap-1 px-4">
-              <Plane size={24} className="text-white/60 rotate-0" />
-              <div className="w-16 h-px bg-white/30" />
+            <div className="flex flex-col items-center gap-1 px-2 sm:px-4">
+              <Plane size={20} className="text-white/60 rotate-0" />
+              <div className="w-10 sm:w-14 h-px bg-white/30" />
             </div>
             <div>
               <p className="text-white/60 text-xs font-bold uppercase tracking-widest mb-0.5">To</p>
-              <h1 className="text-4xl md:text-5xl font-black text-white leading-none tracking-tight">
+              <h1 className="text-3xl sm:text-4xl md:text-[2.8rem] font-black text-white leading-none tracking-tight">
                 {destination?.city ?? '—'}
               </h1>
-              <span className="text-blue-300 font-bold text-sm tracking-widest">{destination?.iataCode}</span>
+              <span className="text-blue-300 font-bold text-xs sm:text-sm tracking-widest">{destination?.iataCode}</span>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <span className="text-white/75 text-sm font-medium bg-white/10 px-3 py-1.5 rounded-full">
+            <span className="text-white/75 text-xs sm:text-sm font-medium bg-white/10 px-3 py-1.5 rounded-full">
               📅 {departureDate}
             </span>
             {tripType === 'roundtrip' && returnDate && (
-              <span className="text-white/75 text-sm font-medium bg-white/10 px-3 py-1.5 rounded-full">
+              <span className="text-white/75 text-xs sm:text-sm font-medium bg-white/10 px-3 py-1.5 rounded-full">
                 ↩ Return {returnDate}
               </span>
             )}
-            <span className="text-white/75 text-sm font-medium bg-white/10 px-3 py-1.5 rounded-full">
+            <span className="text-white/75 text-xs sm:text-sm font-medium bg-white/10 px-3 py-1.5 rounded-full">
               👤 {passengers} passenger{passengers > 1 ? 's' : ''}
             </span>
             {cheapestFare && (
-              <span className="text-emerald-300 text-sm font-bold bg-emerald-500/20 border border-emerald-400/30 px-3 py-1.5 rounded-full">
+              <span className="text-emerald-300 text-xs sm:text-sm font-bold bg-emerald-500/20 border border-emerald-400/30 px-3 py-1.5 rounded-full">
                 ✦ From ₹{cheapestFare.toLocaleString('en-IN')}
               </span>
             )}
@@ -328,28 +328,30 @@ export function ResultsPage() {
       </div>
 
       {/* ── Body ── */}
-      <div className="max-w-[1280px] mx-auto px-6 py-7 grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
+      <div className="max-w-[1320px] mx-auto px-4 sm:px-6 py-5 sm:py-6 grid grid-cols-1 xl:grid-cols-[232px_1fr] gap-4 xl:gap-5">
 
         {/* Sidebar */}
-        <FilterSidebar
-          airlines={airlines}
-          filters={filters}
-          flights={allFlights}
-          onChange={setFilters}
-        />
+        <div className="order-2 xl:order-1">
+          <FilterSidebar
+            airlines={airlines}
+            filters={filters}
+            flights={allFlights}
+            onChange={setFilters}
+          />
+        </div>
 
         {/* Results */}
-        <section className="flex flex-col gap-4 min-w-0">
+        <section className="order-1 xl:order-2 flex flex-col gap-3.5 min-w-0">
 
           {/* Sort bar */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 px-5 py-3.5 flex flex-wrap items-center gap-3">
+          <div className="bg-white rounded-xl shadow-sm border border-slate-100 px-4 py-3 flex flex-wrap items-center gap-2.5">
             <div className="flex items-center gap-1.5 text-slate-400 text-xs font-bold uppercase tracking-wider">
               <ArrowUpDown size={13} /> Sort
             </div>
             <div className="flex gap-2 flex-wrap flex-1">
               {SORT_OPTIONS.map((opt) => (
                 <button
-                  className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all border ${
+                  className={`px-3 py-1.5 rounded-full text-xs sm:text-sm font-semibold transition-all border ${
                     sortKey === opt.key
                       ? 'bg-[#1e3a8a] text-white border-[#1e3a8a] shadow-md shadow-blue-900/20'
                       : 'bg-white text-slate-600 border-slate-200 hover:border-[#1e3a8a] hover:text-[#1e3a8a]'
@@ -362,7 +364,7 @@ export function ResultsPage() {
                 </button>
               ))}
             </div>
-            <span className="text-slate-400 text-xs font-semibold ml-auto whitespace-nowrap">
+            <span className="text-slate-400 text-[11px] sm:text-xs font-semibold ml-auto whitespace-nowrap">
               {loading ? (
                 <span className="flex items-center gap-1.5"><RefreshCw size={12} className="animate-spin" /> Loading…</span>
               ) : (

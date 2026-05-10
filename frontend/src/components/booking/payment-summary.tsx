@@ -42,7 +42,7 @@ export function PaymentSummary({
   ]
 
   return (
-    <aside className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden sticky top-[76px]">
+    <aside className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden lg:sticky lg:top-[76px]">
       {/* Flight summary */}
       <div className="bg-gradient-to-br from-[#00236f] to-[#1e3a8a] px-5 py-5">
         <p className="text-blue-200 text-[10px] font-bold uppercase tracking-widest mb-3">Your Flight</p>

@@ -7,6 +7,7 @@ import { MobileDock } from '../../components/booking/mobile-dock'
 import { PopularDestinations } from '../../components/booking/popular-destinations'
 import { SearchForm } from '../../components/booking/search-form'
 import { TopNav } from '../../components/booking/top-nav'
+import { Footer } from '../../components/layout/footer'
 import { useBookingFlow, type SearchCriteria } from '../../context/booking-flow-context'
 import type { Airport } from '../../services/api'
 
@@ -80,6 +81,7 @@ export function LandingPage() {
 
         <PopularDestinations />
       </motion.section>
+      <Footer />
       <MobileDock active="explore" />
     </div>
   )

@@ -247,7 +247,7 @@ export default function NotificationsPage() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
           <div className="bg-white rounded-xl p-4 shadow-sm border-l-4 border-blue-500">
             <div className="flex items-center justify-between">
               <div>
@@ -299,7 +299,7 @@ export default function NotificationsPage() {
         <div className="bg-white rounded-2xl shadow-sm p-4 mb-6">
           <div className="flex flex-col md:flex-row gap-4">
             {/* Read/Unread Filter */}
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => setFilter('all')}
                 className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
@@ -351,7 +351,7 @@ export default function NotificationsPage() {
             {unreadCount > 0 && (
               <button
                 onClick={markAllAsRead}
-                className="ml-auto px-4 py-2 bg-green-50 text-green-700 rounded-lg text-sm font-bold hover:bg-green-100 transition-all flex items-center gap-2"
+                className="md:ml-auto px-4 py-2 bg-green-50 text-green-700 rounded-lg text-sm font-bold hover:bg-green-100 transition-all flex items-center gap-2"
               >
                 <Check className="w-4 h-4" />
                 Mark All Read
@@ -401,8 +401,8 @@ export default function NotificationsPage() {
                     !notification.isRead ? 'border-l-4 border-[#00236f]' : ''
                   }`}
                 >
-                  <div className="p-5">
-                    <div className="flex items-start gap-4">
+                    <div className="p-4 sm:p-5">
+                      <div className="flex items-start gap-3 sm:gap-4">
                       {/* Icon */}
                       <div className={`w-12 h-12 rounded-xl ${notifIcon.bg} flex items-center justify-center flex-shrink-0`}>
                         <NotifIcon className={`w-6 h-6 ${notifIcon.color}`} />
@@ -487,4 +487,3 @@ export default function NotificationsPage() {
     </div>
   )
 }
-

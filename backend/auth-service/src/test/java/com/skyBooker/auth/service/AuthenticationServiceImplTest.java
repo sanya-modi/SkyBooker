@@ -13,6 +13,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
@@ -133,6 +134,57 @@ class AuthenticationServiceImplTest {
         verify(userRepository).save(argThat(u -> u.getRole() == User.UserRole.PASSENGER));
     }
 
+    @Test
+    void registerAirlineStaffValidatesActiveAirline() {
+        RegistrationRequest req = new RegistrationRequest();
+        req.setFirstName("Air");
+        req.setLastName("Staff");
+        req.setEmail("staff@test.com");
+        req.setPassword("pass");
+        req.setPhoneNumber("999");
+        req.setRole(RegistrationRequest.UserRole.AIRLINE_STAFF);
+        req.setAirlineId(77L);
+
+        ReflectionTestUtils.setField(service, "airlineAirportServiceBaseUrl", "http://localhost:8082");
+        when(userRepository.findByEmail("staff@test.com")).thenReturn(Optional.empty());
+        when(passwordEncoder.encode("pass")).thenReturn("encoded");
+        when(jwtProvider.generateToken(any(), any())).thenReturn("token");
+        when(restTemplate.getForEntity("http://localhost:8082/airlines/77", airlineResponseClass()))
+                .thenReturn(responseEntity(airlineResponse("Sky Air", true)));
+        when(userRepository.save(any())).thenAnswer(i -> {
+            User u = i.getArgument(0);
+            u.setId(7L);
+            return u;
+        });
+
+        AuthResponse response = service.register(req);
+
+        assertThat(response.getUserId()).isEqualTo(7L);
+        verify(restTemplate).getForEntity("http://localhost:8082/airlines/77", airlineResponseClass());
+    }
+
+    @Test
+    void registerAirlineStaffThrowsWhenAirlineValidationFails() {
+        RegistrationRequest req = new RegistrationRequest();
+        req.setFirstName("Air");
+        req.setLastName("Staff");
+        req.setEmail("staff@test.com");
+        req.setPassword("pass");
+        req.setPhoneNumber("999");
+        req.setRole(RegistrationRequest.UserRole.AIRLINE_STAFF);
+        req.setAirlineId(88L);
+
+        ReflectionTestUtils.setField(service, "airlineAirportServiceBaseUrl", "http://localhost:8082");
+        when(userRepository.findByEmail("staff@test.com")).thenReturn(Optional.empty());
+        when(passwordEncoder.encode("pass")).thenReturn("encoded");
+        when(restTemplate.getForEntity("http://localhost:8082/airlines/88", airlineResponseClass()))
+                .thenThrow(new RuntimeException("downstream unavailable"));
+
+        assertThatThrownBy(() -> service.register(req))
+                .isInstanceOf(AuthException.class)
+                .hasMessageContaining("Unable to verify airline status");
+    }
+
     // ================= LOGIN =================
 
     @Test
@@ -194,6 +246,27 @@ class AuthenticationServiceImplTest {
         assertThatThrownBy(() -> service.login(request))
                 .isInstanceOf(AuthException.class)
                 .hasMessageContaining("Invalid password");
+    }
+
+    @Test
+    void loginThrowsWhenAssignedAirlineIsInactive() {
+        User user = new User();
+        user.setId(5L);
+        user.setEmail("staff@test.com");
+        user.setPassword("encoded");
+        user.setRole(User.UserRole.AIRLINE_STAFF);
+        user.setAirlineId(55L);
+        user.setIsActive(true);
+
+        ReflectionTestUtils.setField(service, "airlineAirportServiceBaseUrl", "http://localhost:8082");
+        when(userRepository.findByEmailWithAirline("staff@test.com")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("pass","encoded")).thenReturn(true);
+        when(restTemplate.getForEntity("http://localhost:8082/airlines/55", airlineResponseClass()))
+                .thenReturn(responseEntity(airlineResponse("Inactive Air", false)));
+
+        assertThatThrownBy(() -> service.login(new AuthRequest("staff@test.com","pass")))
+                .isInstanceOf(AuthException.class)
+                .hasMessageContaining("currently inactive");
     }
 
     // ================= USER =================
@@ -531,6 +604,36 @@ class AuthenticationServiceImplTest {
     }
 
     @Test
+    void loginWithGoogleAllowsAirlineStaffWhenValidationResponseBodyIsNull() {
+        GoogleTokenPayload payload = GoogleTokenPayload.builder()
+                .email("airline@test.com")
+                .name("Airline Staff")
+                .sub("google-airline")
+                .build();
+
+        User existingUser = new User();
+        existingUser.setId(9L);
+        existingUser.setEmail("airline@test.com");
+        existingUser.setAuthProvider(User.AuthProvider.GOOGLE);
+        existingUser.setRole(User.UserRole.AIRLINE_STAFF);
+        existingUser.setAirlineId(99L);
+        existingUser.setIsActive(true);
+        existingUser.setFirstName("Airline");
+
+        ReflectionTestUtils.setField(service, "airlineAirportServiceBaseUrl", "http://localhost:8082");
+        when(googleOAuthProvider.getTokenPayload("token")).thenReturn(payload);
+        when(userRepository.findByEmailWithAirline("airline@test.com")).thenReturn(Optional.of(existingUser));
+        when(restTemplate.getForEntity("http://localhost:8082/airlines/99", airlineResponseClass()))
+                .thenReturn(responseEntity(null));
+        when(jwtProvider.generateToken(any(), any())).thenReturn("jwt");
+
+        AuthResponse response = service.loginWithGoogle(new GoogleLoginRequest("token"));
+
+        assertThat(response.getUserId()).isEqualTo(9L);
+        verify(notificationPublisher).publishLoginEvent(any(), any(), any(), any());
+    }
+
+    @Test
     void getAllActiveUsersEmpty() {
         when(userRepository.findByIsActiveTrue()).thenReturn(List.of());
 
@@ -553,5 +656,32 @@ class AuthenticationServiceImplTest {
 
         assertThat(result.getFirstName()).isEqualTo("Updated");
         assertThat(result.getLastName()).isEqualTo("Original");
+    }
+
+    private Class<?> airlineResponseClass() {
+        try {
+            return Class.forName("com.skyBooker.auth.service.AuthenticationServiceImpl$AirlineResponse");
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private Object airlineResponse(String name, Boolean isActive) {
+        try {
+            Class<?> responseClass = airlineResponseClass();
+            var constructor = responseClass.getDeclaredConstructor();
+            constructor.setAccessible(true);
+            Object response = constructor.newInstance();
+            ReflectionTestUtils.setField(response, "name", name);
+            ReflectionTestUtils.setField(response, "isActive", isActive);
+            return response;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private ResponseEntity responseEntity(Object body) {
+        return ResponseEntity.ok(body);
     }
 }

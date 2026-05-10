@@ -241,7 +241,7 @@ export default function RefundsPage() {
                           Booking ID: #{refund.booking.id}
                         </p>
                       </div>
-                      <div className="text-right">
+                      <div className="text-left md:text-right">
                         <p className="text-xs text-slate-500 mb-1">Refund Amount</p>
                         <p className="text-3xl font-black text-green-600">
                           ₹{refund.refundAmount.toLocaleString()}
@@ -402,4 +402,3 @@ export default function RefundsPage() {
     </div>
   )
 }
-

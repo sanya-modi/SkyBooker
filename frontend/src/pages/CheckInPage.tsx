@@ -284,7 +284,7 @@ export default function CheckInPage() {
                 </div>
               </div>
               
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
                 <div>
                   <p className="text-xs text-slate-500 mb-1">PNR</p>
                   <p className="font-mono font-bold text-slate-800">{booking.pnr}</p>
@@ -358,7 +358,7 @@ export default function CheckInPage() {
                 </div>
               )}
 
-              <div className="mt-6 flex gap-3">
+              <div className="mt-6 flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={() => {
                     setStep('search')
@@ -405,7 +405,7 @@ export default function CheckInPage() {
             </p>
 
             <div className="bg-gradient-to-r from-slate-50 to-blue-50 rounded-xl p-6 mb-8">
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
                   <p className="text-xs text-slate-500 mb-1">PNR</p>
                   <p className="text-lg font-mono font-bold text-slate-800">{booking.pnr}</p>
@@ -457,5 +457,4 @@ export default function CheckInPage() {
     </div>
   )
 }
-
 

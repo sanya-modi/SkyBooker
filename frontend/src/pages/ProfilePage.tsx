@@ -94,7 +94,7 @@ export default function ProfilePage() {
           </div>
           
           <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-[0_10px_30px_rgba(0,0,0,0.02)]">
-            <div className="grid grid-cols-2 gap-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div className="col-span-2">
                 <p className="text-[10px] font-medium uppercase tracking-widest text-slate-400 mb-1">Passport Number</p>
                 <p className="text-slate-800 font-bold text-lg tracking-[0.2em]">A12930485</p>
@@ -141,5 +141,4 @@ export default function ProfilePage() {
     </div>
   )
 }
-
 

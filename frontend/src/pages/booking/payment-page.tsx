@@ -412,7 +412,7 @@ export function PaymentPage() {
       <TopNav />
 
       <div ref={headerRef} className="bg-gradient-to-br from-[#00236f] via-[#1e3a8a] to-[#1d4ed8] pt-[60px]">
-        <div className="max-w-[1280px] mx-auto px-6 py-6">
+        <div className="max-w-[1280px] mx-auto px-4 sm:px-6 py-6">
           <button
             className="inline-flex items-center gap-2 text-white/80 hover:text-white text-sm font-semibold bg-white/10 hover:bg-white/20 px-4 py-2 rounded-full transition-all mb-4"
             onClick={() => navigate(-1)}
@@ -439,7 +439,7 @@ export function PaymentPage() {
           </div>
         </div>
 
-        <div className="max-w-[1280px] mx-auto px-6">
+        <div className="max-w-[1280px] mx-auto px-4 sm:px-6">
           <div className="flex">
             {['Seat & Passenger', 'Payment', 'Confirmation'].map((step, i) => (
               <div
@@ -455,7 +455,7 @@ export function PaymentPage() {
         </div>
       </div>
 
-      <div ref={contentRef} className="max-w-[1280px] mx-auto px-6 py-7">
+      <div ref={contentRef} className="max-w-[1280px] mx-auto px-4 sm:px-6 py-7">
         {error && (
           <div className="mb-5 bg-red-50 border border-red-200 text-red-700 rounded-2xl px-5 py-4 text-sm font-semibold flex items-center gap-2">
             <span>⚠</span> {error}
@@ -489,7 +489,7 @@ export function PaymentPage() {
               </div>
 
               <div className="p-6">
-                <div className="grid grid-cols-2 gap-3 mb-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
                   {PAYMENT_METHODS.map((method) => {
                     const Icon = method.icon
                     const isSelected = selectedMethod === method.id
@@ -548,7 +548,7 @@ export function PaymentPage() {
                           className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-[#00236f] focus:ring-2 focus:ring-blue-100 outline-none transition-all"
                         />
                       </div>
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                           <label className="block text-sm font-semibold text-slate-700 mb-2">Expiry Date</label>
                           <input
@@ -646,7 +646,7 @@ export function PaymentPage() {
                           </div>
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {['Paytm', 'PhonePe', 'Google Pay', 'Amazon Pay'].map((wallet) => (
                           <button
                             key={wallet}
@@ -669,7 +669,7 @@ export function PaymentPage() {
                 </div>
                 <h3 className="font-bold text-slate-800">Your Payment is Secure</h3>
               </div>
-              <div className="grid grid-cols-3 gap-3 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                 <div className="flex items-center gap-2 text-slate-600">
                   <CheckCircle2 size={14} className="text-green-600" />
                   <span>256-bit SSL</span>

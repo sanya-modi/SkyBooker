@@ -368,7 +368,7 @@ export function BookingPage() {
 
       {/* ── hero ── */}
       <div ref={headerRef} className="bg-gradient-to-br from-[#00236f] via-[#1e3a8a] to-[#1d4ed8] pt-[60px]">
-        <div className="max-w-[1280px] mx-auto px-6 py-6">
+        <div className="max-w-[1280px] mx-auto px-4 sm:px-6 py-6">
           <button
             className="inline-flex items-center gap-2 text-white/80 hover:text-white text-sm font-semibold bg-white/10 hover:bg-white/20 px-4 py-2 rounded-full transition-all mb-4"
             onClick={() => navigate(-1)}
@@ -405,7 +405,7 @@ export function BookingPage() {
         </div>
 
         {/* progress */}
-        <div className="max-w-[1280px] mx-auto px-6">
+        <div className="max-w-[1280px] mx-auto px-4 sm:px-6">
           <div className="flex">
             {['Seat & Passenger', 'Payment', 'Confirmation'].map((step, i) => (
               <div
@@ -422,7 +422,7 @@ export function BookingPage() {
       </div>
 
       {/* ── content ── */}
-      <div ref={contentRef} className="max-w-[1280px] mx-auto px-6 py-7">
+      <div ref={contentRef} className="max-w-[1280px] mx-auto px-4 sm:px-6 py-7">
         {error && (
           <div className="mb-5 bg-red-50 border border-red-200 text-red-700 rounded-2xl px-5 py-4 text-sm font-semibold flex items-center gap-2">
             <span>⚠</span> {error}

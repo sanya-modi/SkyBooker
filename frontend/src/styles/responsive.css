@@ -1,0 +1,418 @@
+/* Responsive enhancements for SkyBooker */
+
+/* ============================================
+   FLIGHT RESULT CARD - RESPONSIVE
+============================================ */
+@media (max-width: 1024px) {
+  .frc-card {
+    border-radius: 16px;
+  }
+
+  .frc-main {
+    grid-template-columns: 1fr;
+    gap: 14px;
+    padding: 16px 18px;
+  }
+
+  .frc-logo {
+    width: 44px;
+    height: 44px;
+    font-size: 12px;
+  }
+
+  .frc-time strong {
+    font-size: 20px;
+  }
+
+  .frc-route {
+    width: 100%;
+  }
+
+  .frc-fares {
+    grid-template-columns: 1fr;
+  }
+
+  .frc-fare-col {
+    border-right: 0;
+    border-bottom: 1px solid #f1f5f9;
+    padding: 14px 18px;
+  }
+
+  .frc-fare-col:last-of-type {
+    border-bottom: 0;
+  }
+
+  .frc-fare-price {
+    font-size: 20px;
+  }
+
+  .frc-select-btn {
+    padding: 9px 16px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 640px) {
+  .frc-main {
+    padding: 14px 16px;
+    gap: 12px;
+  }
+
+  .frc-airline strong {
+    font-size: 14px;
+  }
+
+  .frc-time strong {
+    font-size: 18px;
+  }
+
+  .frc-fare-col {
+    padding: 12px 16px;
+  }
+}
+
+/* ============================================
+   FILTER SIDEBAR - RESPONSIVE
+============================================ */
+@media (max-width: 1279px) {
+  .fsb-root {
+    position: static;
+    margin-bottom: 16px;
+  }
+}
+
+@media (max-width: 640px) {
+  .fsb-header {
+    padding: 14px 18px;
+    font-size: 13px;
+  }
+
+  .fsb-section {
+    padding: 16px 18px;
+  }
+
+  .fsb-time-grid {
+    gap: 6px;
+  }
+
+  .fsb-time-btn {
+    padding: 8px 6px;
+  }
+}
+
+/* ============================================
+   RESULTS PAGE - RESPONSIVE
+============================================ */
+@media (max-width: 640px) {
+  .rp-hero-inner,
+  .max-w-\[1320px\] {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .rp-route-display {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .rp-route-city strong {
+    font-size: 22px;
+  }
+
+  .rp-sort-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .rp-sort-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .rp-sort-btn {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+}
+
+/* ============================================
+   POPULAR DESTINATIONS - RESPONSIVE
+============================================ */
+@media (max-width: 1024px) and (min-width: 641px) {
+  .landing-card-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+}
+
+@media (max-width: 640px) {
+  .landing-card-grid {
+    gap: 16px;
+  }
+}
+
+/* ============================================
+   SEARCH FORM - RESPONSIVE
+============================================ */
+@media (max-width: 960px) {
+  .landing-search-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .landing-search-grid .btn {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 640px) {
+  .landing-search {
+    padding: 16px;
+    border-radius: 18px;
+  }
+
+  .landing-search-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .landing-input {
+    min-height: 50px;
+  }
+
+  .landing-input input {
+    height: 50px;
+    font-size: 14px;
+    padding-left: 42px;
+  }
+
+  .landing-input svg {
+    left: 12px;
+  }
+
+  .landing-filter-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .landing-tabs {
+    width: 100%;
+  }
+
+  .landing-tabs button {
+    flex: 1;
+    padding: 9px 16px;
+    font-size: 11px;
+  }
+}
+
+/* ============================================
+   TOP NAVIGATION - RESPONSIVE
+============================================ */
+@media (max-width: 768px) {
+  .top-nav {
+    height: 64px;
+    padding: 0 16px;
+  }
+
+  .brand {
+    font-size: 18px;
+  }
+
+  .brand-mark {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+/* ============================================
+   LANDING PAGE HERO - RESPONSIVE
+============================================ */
+@media (max-width: 960px) {
+  .landing-hero {
+    min-height: 85vh;
+  }
+
+  .landing-hero-copy {
+    margin-bottom: 100px;
+  }
+
+  .landing-hero-copy h1 {
+    font-size: clamp(36px, 8vw, 64px);
+  }
+
+  .landing-hero-copy p {
+    font-size: clamp(15px, 2vw, 19px);
+  }
+}
+
+@media (max-width: 640px) {
+  .landing-hero {
+    min-height: auto;
+    padding: 100px 0 32px;
+  }
+
+  .landing-hero-copy {
+    margin-bottom: 24px;
+    padding: 0 16px;
+  }
+
+  .landing-hero-copy h1 {
+    font-size: clamp(32px, 10vw, 48px);
+    line-height: 1.05;
+  }
+
+  .landing-hero-copy p {
+    font-size: 15px;
+    line-height: 1.5;
+  }
+
+  .landing-search {
+    position: relative;
+    left: auto;
+    bottom: auto;
+    transform: none;
+    width: calc(100% - 24px);
+    margin: 0 auto 24px;
+  }
+}
+
+/* ============================================
+   ROUTE DISPLAY - RESPONSIVE
+============================================ */
+@media (max-width: 640px) {
+  .landing-route-display {
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .landing-airport-pin {
+    min-width: 100px;
+  }
+
+  .landing-airport-iata {
+    font-size: clamp(44px, 12vw, 64px);
+  }
+
+  .landing-airport-info strong {
+    font-size: 16px;
+  }
+
+  .landing-airport-info span {
+    font-size: 11px;
+    max-width: 140px;
+  }
+
+  .landing-route-arrow {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .landing-route-line {
+    width: 32px;
+  }
+}
+
+/* ============================================
+   GENERAL MOBILE IMPROVEMENTS
+============================================ */
+@media (max-width: 640px) {
+  /* Reduce padding on containers */
+  .py-8 {
+    padding-top: 1.5rem;
+    padding-bottom: 1.5rem;
+  }
+
+  .py-6 {
+    padding-top: 1.25rem;
+    padding-bottom: 1.25rem;
+  }
+
+  /* Improve touch targets */
+  button {
+    min-height: 44px;
+  }
+
+  /* Better spacing for mobile */
+  .gap-6 {
+    gap: 1rem;
+  }
+
+  .gap-4 {
+    gap: 0.75rem;
+  }
+
+  /* Responsive text sizes */
+  h1 {
+    font-size: clamp(1.75rem, 5vw, 2.5rem);
+  }
+
+  h2 {
+    font-size: clamp(1.5rem, 4vw, 2rem);
+  }
+
+  h3 {
+    font-size: clamp(1.25rem, 3vw, 1.75rem);
+  }
+}
+
+/* ============================================
+   TABLET OPTIMIZATIONS
+============================================ */
+@media (max-width: 1024px) and (min-width: 641px) {
+  .landing-search-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .landing-search-grid .btn {
+    grid-column: 1 / -1;
+  }
+
+  .frc-fares {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .frc-fare-col:nth-child(3) {
+    grid-column: 1 / -1;
+  }
+}
+
+/* ============================================
+   LANDSCAPE MOBILE
+============================================ */
+@media (max-width: 960px) and (orientation: landscape) {
+  .landing-hero {
+    min-height: auto;
+    padding: 80px 0 24px;
+  }
+
+  .landing-hero-copy {
+    margin-bottom: 60px;
+  }
+}
+
+/* ============================================
+   ACCESSIBILITY IMPROVEMENTS
+============================================ */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .frc-card,
+  .fsb-root {
+    border-width: 2px;
+  }
+
+  button {
+    border-width: 2px;
+  }
+}

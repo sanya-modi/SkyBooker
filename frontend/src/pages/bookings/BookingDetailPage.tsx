@@ -242,19 +242,19 @@ export default function BookingDetailPage() {
                 <span className="text-sm font-bold">{statusBadge.label}</span>
               </div>
               <h1 className="text-3xl font-black mb-2">Booking Details</h1>
-              <div className="flex items-center gap-4">
+              <div className="flex flex-wrap items-center gap-3 sm:gap-4">
                 <div className="flex items-center gap-2">
                   <FileText className="w-5 h-5 opacity-80" />
                   <span className="text-lg font-mono font-bold">PNR: {booking.pnr}</span>
                 </div>
-                <div className="h-6 w-px bg-white/30" />
+                <div className="hidden sm:block h-6 w-px bg-white/30" />
                 <div className="flex items-center gap-2">
                   <Plane className="w-5 h-5 opacity-80" />
                   <span className="font-semibold">{booking.flight?.flightNumber}</span>
                 </div>
               </div>
             </div>
-            <div className="text-right">
+            <div className="text-left md:text-right">
               <p className="text-sm opacity-80 mb-1">Total Fare</p>
               <p className="text-4xl font-black">₹{booking.totalFare.toLocaleString()}</p>
             </div>
@@ -272,7 +272,7 @@ export default function BookingDetailPage() {
               </h2>
 
               <div className="bg-gradient-to-r from-slate-50 to-blue-50 rounded-xl p-6 mb-6">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
                   <div className="flex-1">
                     <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Departure</p>
                     <p className="text-4xl font-black text-[#00236f] mb-2">
@@ -301,9 +301,9 @@ export default function BookingDetailPage() {
                     </span>
                   </div>
 
-                  <div className="flex flex-col items-center px-6">
+                  <div className="flex w-full md:w-auto flex-col items-center px-0 md:px-6">
                     <Plane className="w-10 h-10 text-[#00236f] mb-3 rotate-90" />
-                    <div className="w-32 h-0.5 bg-slate-300 mb-3" />
+                    <div className="w-24 sm:w-32 h-0.5 bg-slate-300 mb-3" />
                     <p className="text-sm font-bold text-slate-600">
                       {booking.airline?.name}
                     </p>
@@ -312,7 +312,7 @@ export default function BookingDetailPage() {
                     </p>
                   </div>
 
-                  <div className="flex-1 text-right">
+                  <div className="flex-1 text-left md:text-right">
                     <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Arrival</p>
                     <p className="text-4xl font-black text-[#00236f] mb-2">
                       {booking.arrivalAirport?.iataCode}
@@ -323,13 +323,13 @@ export default function BookingDetailPage() {
                     <p className="text-sm text-slate-600 mb-3">
                       {booking.arrivalAirport?.name}
                     </p>
-                    <div className="flex items-center justify-end gap-2 text-[#00236f]">
+                    <div className="flex items-center md:justify-end gap-2 text-[#00236f]">
                       <Calendar className="w-4 h-4" />
                       <span className="text-sm font-bold">
                         {booking.flight && formatDate(booking.flight.arrivalTime)}
                       </span>
                     </div>
-                    <div className="flex items-center justify-end gap-2 text-[#00236f] mt-1">
+                    <div className="flex items-center md:justify-end gap-2 text-[#00236f] mt-1">
                       <Clock className="w-4 h-4" />
                       <span className="text-lg font-bold">
                         {booking.flight && formatTime(booking.flight.arrivalTime)}
@@ -339,7 +339,7 @@ export default function BookingDetailPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="bg-slate-50 rounded-lg p-4">
                   <div className="flex items-center gap-2 text-slate-600 mb-2">
                     <Users className="w-5 h-5" />
@@ -375,7 +375,7 @@ export default function BookingDetailPage() {
                           Seat {booking.selectedSeats[index] ?? '—'}
                         </span>
                       </div>
-                      <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                         <div>
                           <p className="text-slate-500 mb-1">Name</p>
                           <p className="font-bold text-slate-800">

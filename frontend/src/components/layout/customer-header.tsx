@@ -1,7 +1,7 @@
 "use client"
 
 import { Link } from "react-router-dom"
-import { ArrowLeft, Bell, Globe, CreditCard, Lock, LogOut } from "lucide-react"
+import { ArrowLeft, Bell, Globe, CreditCard, Lock, LogOut, Plane } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/context/auth-context"
 import { SupportModal } from "@/components/layout/SupportModal"
@@ -35,7 +35,7 @@ export function CustomerHeader({
   const handleLogout = () => {
     console.log('[CustomerHeader] Signing out, redirecting to /')
     logout()
-    navigate('/')
+    navigate('/', { replace: true })
   }
 
   return (
@@ -55,8 +55,13 @@ export function CustomerHeader({
               <ArrowLeft className="w-5 h-5" />
             </button>
           )}
-          <Link to="/" className="text-xl md:text-2xl font-bold tracking-tighter text-[#00236f]">
-            {title}
+          <Link to="/" className="flex items-center gap-2">
+            <div className="w-10 h-10 bg-gradient-to-br from-[#00236f] to-[#1e3a8a] rounded-xl flex items-center justify-center">
+              <Plane className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-black text-[#00236f]">SkyBooker</h1>
+            </div>
           </Link>
           {showSecure && (
             <>

@@ -41,6 +41,10 @@ export function BottomNav({ variant = 'customer' }: BottomNavProps) {
   const location = useLocation()
   const pathname = location.pathname
   
+  if (variant === 'customer') {
+    return null
+  }
+
   const navItems = variant === 'admin' 
     ? adminNavItems 
     : variant === 'staff' 

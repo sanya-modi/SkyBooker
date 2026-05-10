@@ -1,0 +1,859 @@
+================================================================================
+                    AUTH-SERVICE DETAILED EXPLANATION
+                         SkyBooker Application
+================================================================================
+
+TABLE OF CONTENTS:
+1. Overview
+2. Architecture & Components
+3. Entity Layer (Database Model)
+4. Repository Layer (Data Access)
+5. DTO Layer (Data Transfer Objects)
+6. Service Layer (Business Logic)
+7. Controller Layer (API Endpoints)
+8. Configuration Layer
+9. Exception Handling
+10. Security Implementation
+11. Key Features & Flows
+12. Integration with Other Services
+
+================================================================================
+1. OVERVIEW
+================================================================================
+
+The Auth-Service is a microservice responsible for:
+- User registration and authentication
+- JWT token generation
+- Google OAuth integration
+- Password management (forgot/reset)
+- User profile management
+- Role-based access control (PASSENGER, ADMIN, AIRLINE_STAFF)
+
+Technology Stack:
+- Spring Boot (Framework)
+- Spring Security (Authentication & Authorization)
+- JWT (Token-based authentication)
+- JPA/Hibernate (Database ORM)
+- RabbitMQ (Event messaging)
+- Google OAuth 2.0 (Social login)
+- BCrypt (Password encryption)
+
+================================================================================
+2. ARCHITECTURE & COMPONENTS
+================================================================================
+
+The service follows a layered architecture:
+
+┌─────────────────────────────────────────────────────────────┐
+│                    CLIENT (Frontend/API)                     │
+└──────────────────────────┬──────────────────────────────────┘
+                           │
+┌──────────────────────────▼──────────────────────────────────┐
+│              CONTROLLER LAYER (AuthController)               │
+│  - Receives HTTP requests                                    │
+│  - Validates input                                           │
+│  - Returns HTTP responses                                    │
+└──────────────────────────┬──────────────────────────────────┘
+                           │
+┌──────────────────────────▼──────────────────────────────────┐
+│         SERVICE LAYER (AuthenticationServiceImpl)            │
+│  - Business logic                                            │
+│  - Password encryption                                       │
+│  - JWT generation                                            │
+│  - Google OAuth verification                                 │
+│  - Event publishing                                          │
+└──────────────────────────┬──────────────────────────────────┘
+                           │
+┌──────────────────────────▼──────────────────────────────────┐
+│         REPOSITORY LAYER (UserRepository)                    │
+│  - Database queries                                          │
+│  - CRUD operations                                           │
+└──────────────────────────┬──────────────────────────────────┘
+                           │
+┌──────────────────────────▼──────────────────────────────────┐
+│                    DATABASE (MySQL/PostgreSQL)               │
+└─────────────────────────────────────────────────────────────┘
+
+================================================================================
+3. ENTITY LAYER (DATABASE MODEL)
+================================================================================
+
+3.1 USER ENTITY (User.java)
+----------------------------
+Represents a user in the system.
+
+Fields:
+-------
+- id (Long): Primary key, auto-generated
+- firstName (String): User's first name (2-50 chars, required)
+- lastName (String): User's last name (2-50 chars, required)
+- email (String): Unique email address (required)
+- password (String): Encrypted password (nullable for Google users)
+- phoneNumber (String): 10-digit phone number
+- passportNumber (String): Passport identifier
+- nationality (String): User's nationality
+- profilePhotoUrl (String): URL to profile picture
+- airlineId (Long): Foreign key to airline (for AIRLINE_STAFF)
+- googleId (String): Google account identifier (for OAuth users)
+- authProvider (Enum): LOCAL or GOOGLE
+- role (Enum): PASSENGER, ADMIN, or AIRLINE_STAFF
+- isActive (Boolean): Account status (true = active)
+- createdAt (LocalDateTime): Account creation timestamp
+- updatedAt (LocalDateTime): Last update timestamp
+- resetToken (String): Password reset token
+- resetTokenExpiry (LocalDateTime): Token expiration time
+
+Enums:
+------
+1. UserRole: PASSENGER, ADMIN, AIRLINE_STAFF
+2. AuthProvider: LOCAL (email/password), GOOGLE (OAuth)
+
+Lifecycle Hooks:
+----------------
+- @PrePersist: Sets createdAt and updatedAt when creating
+- @PreUpdate: Updates updatedAt when modifying
+
+Database Constraints:
+---------------------
+- Email must be unique
+- Table name: "users"
+
+================================================================================
+4. REPOSITORY LAYER (DATA ACCESS)
+================================================================================
+
+4.1 USER REPOSITORY (UserRepository.java)
+------------------------------------------
+Interface extending JpaRepository for database operations.
+
+Methods:
+--------
+1. existsByEmail(String email)
+   - Checks if email already exists
+   - Returns: boolean
+
+2. findByEmail(String email)
+   - Finds user by email
+   - Returns: Optional<User>
+
+3. findByEmailWithAirline(String email)
+   - Finds user with airline data (JOIN FETCH)
+   - Returns: Optional<User>
+   - Uses: @Query with LEFT JOIN FETCH for performance
+
+4. findByIdAndIsActiveTrue(Long id)
+   - Finds active user by ID
+   - Returns: Optional<User>
+
+5. findByEmailAndIsActiveTrue(String email)
+   - Finds active user by email
+   - Returns: Optional<User>
+
+6. findByIsActiveTrue()
+   - Gets all active users
+   - Returns: List<User>
+
+7. findByResetToken(String resetToken)
+   - Finds user by password reset token
+   - Returns: Optional<User>
+
+================================================================================
+5. DTO LAYER (DATA TRANSFER OBJECTS)
+================================================================================
+
+DTOs are used to transfer data between layers and to/from clients.
+
+5.1 AuthRequest (Login Request)
+--------------------------------
+Fields:
+- email (String): User's email (validated)
+- password (String): User's password (validated)
+
+Validations:
+- Email: @NotBlank, @Email, @Pattern (email format)
+- Password: @NotBlank, @Pattern (8-15 chars, upper, lower, digit, special)
+
+5.2 AuthResponse (Login/Register Response)
+-------------------------------------------
+Fields:
+- userId (Long): User's ID
+- email (String): User's email
+- token (String): JWT token
+- role (String): User's role
+
+5.3 RegistrationRequest
+------------------------
+Fields:
+- firstName (String): 2-50 alphabetic characters
+- lastName (String): 2-50 alphabetic characters
+- email (String): Valid email format
+- password (String): 8-15 chars with complexity
+- phoneNumber (String): Exactly 10 digits
+- role (UserRole): PASSENGER, ADMIN, or AIRLINE_STAFF
+- passportNumber (String): Optional
+- nationality (String): Optional
+- airlineId (Long): Required for AIRLINE_STAFF
+
+5.4 GoogleLoginRequest
+-----------------------
+Fields:
+- idToken (String): Google ID token from OAuth
+
+5.5 UpdateUserRequest
+----------------------
+Fields (all optional):
+- firstName, lastName, phoneNumber, passportNumber
+- nationality, profilePhotoUrl, isActive
+
+5.6 ForgotPasswordRequest
+--------------------------
+Fields:
+- email (String): User's email
+
+5.7 ResetPasswordRequest
+-------------------------
+Fields:
+- token (String): Reset token from email
+- newPassword (String): New password
+
+5.8 UserResponse
+-----------------
+Fields:
+- id, firstName, lastName, email, phoneNumber
+- passportNumber, nationality, profilePhotoUrl
+- airlineId, authProvider, role, isActive
+
+================================================================================
+6. SERVICE LAYER (BUSINESS LOGIC)
+================================================================================
+
+6.1 AuthenticationService (Interface)
+--------------------------------------
+Defines contract for authentication operations.
+
+6.2 AuthenticationServiceImpl (Implementation)
+-----------------------------------------------
+
+KEY METHODS:
+
+A. REGISTER (User Registration)
+--------------------------------
+Method: register(RegistrationRequest request)
+
+Flow:
+1. Validate request is not null
+2. Check if email already exists
+   - If exists and inactive: throw "account deactivated" error
+   - If exists and active: throw "email exists" error
+3. Create new User object
+4. Set all fields from request
+5. Encode password using BCrypt
+6. Set authProvider = LOCAL
+7. Map role from DTO to Entity enum
+8. Set isActive = true
+9. If role is AIRLINE_STAFF: validate airline is active
+10. Save user to database
+11. Publish signup event to RabbitMQ
+12. Generate JWT token
+13. Return AuthResponse with token
+
+Code Explanation:
+- passwordEncoder.encode(): Encrypts password using BCrypt
+- jwtProvider.generateToken(): Creates JWT with email and role
+- notificationPublisher.publishSignupEvent(): Sends event to notification service
+
+B. LOGIN (User Authentication)
+-------------------------------
+Method: login(AuthRequest request)
+
+Flow:
+1. Find user by email (with airline data)
+2. Check if user exists (throw error if not)
+3. Check if user is active (throw error if inactive)
+4. Verify password using BCrypt
+   - passwordEncoder.matches(plainPassword, hashedPassword)
+5. If role is AIRLINE_STAFF: validate airline is active
+6. Publish login event to RabbitMQ
+7. Generate JWT token
+8. Return AuthResponse with token
+
+Security:
+- Passwords are never stored in plain text
+- BCrypt automatically handles salt generation
+- JWT token expires after configured time (default: 24 hours)
+
+C. GOOGLE LOGIN (OAuth Authentication)
+---------------------------------------
+Method: loginWithGoogle(GoogleLoginRequest request)
+
+Flow:
+1. Verify Google ID token using GoogleOAuthProvider
+2. Extract user info (email, name, picture, sub)
+3. Check if user exists in database
+4. If NEW USER:
+   - Create User object
+   - Parse name into firstName/lastName
+   - Set googleId from token
+   - Set authProvider = GOOGLE
+   - Set role = PASSENGER (default)
+   - Save to database
+   - Publish signup event
+5. If EXISTING USER with LOCAL auth:
+   - Update authProvider to GOOGLE
+   - Set googleId
+6. Check if user is active
+7. If AIRLINE_STAFF: validate airline
+8. Publish login event
+9. Generate JWT token
+10. Return AuthResponse
+
+Key Points:
+- Google users don't have passwords in our database
+- Google handles authentication
+- We only verify the token and extract user info
+
+D. GET USER OPERATIONS
+-----------------------
+1. getUserById(Long userId)
+   - Finds active user by ID
+   - Throws error if not found
+
+2. getUserByEmail(String email)
+   - Finds active user by email
+   - Throws error if not found
+
+3. getAllActiveUsers()
+   - Returns list of all active users
+   - Used by admin panel
+
+E. UPDATE USER
+--------------
+Method: updateUser(Long userId, UpdateUserRequest user)
+
+Flow:
+1. Find existing user by ID
+2. Update only non-null fields from request
+3. Save updated user
+4. Return updated user
+
+Fields that can be updated:
+- firstName, lastName, phoneNumber
+- passportNumber, nationality
+- profilePhotoUrl, isActive
+
+F. DELETE USER (Soft Delete)
+-----------------------------
+Method: deleteUser(Long userId)
+
+Flow:
+1. Find user by ID
+2. Set isActive = false
+3. Save user
+
+Note: This is a SOFT DELETE - data is not removed from database
+
+G. FORGOT PASSWORD
+------------------
+Method: forgotPassword(String email)
+
+Flow:
+1. Find user by email
+2. If user not found or inactive: return silently (security)
+3. If user is GOOGLE auth: throw error (can't reset Google password)
+4. Generate random UUID token
+5. Set resetToken in user
+6. Set resetTokenExpiry = now + 15 minutes
+7. Save user
+8. Publish password reset event (sends email with token)
+
+Security:
+- Token expires in 15 minutes
+- One-time use token
+- No information leaked if email doesn't exist
+
+H. RESET PASSWORD
+-----------------
+Method: resetPassword(String token, String newPassword)
+
+Flow:
+1. Find user by resetToken
+2. If not found: throw "invalid token" error
+3. Check if token expired
+4. If expired: throw "token expired" error
+5. Encode new password
+6. Clear resetToken and resetTokenExpiry
+7. Save user
+8. Publish password reset success event
+
+I. VALIDATE AIRLINE ACTIVE
+---------------------------
+Method: validateAirlineActive(Long airlineId)
+
+Flow:
+1. Call airline-airport-service REST API
+2. Get airline details
+3. Check if airline is active
+4. If inactive: throw error with airline name
+5. If API call fails: throw validation error
+
+Purpose:
+- Ensures AIRLINE_STAFF can only login if their airline is active
+- Prevents staff from inactive airlines accessing the system
+
+================================================================================
+7. CONTROLLER LAYER (API ENDPOINTS)
+================================================================================
+
+7.1 AuthController
+------------------
+Base URL: /auth
+
+ENDPOINTS:
+
+1. POST /auth/register
+   - Request: RegistrationRequest (JSON)
+   - Response: AuthResponse (201 Created)
+   - Purpose: Register new user
+
+2. POST /auth/login
+   - Request: AuthRequest (JSON)
+   - Response: AuthResponse (200 OK)
+   - Purpose: Login with email/password
+
+3. POST /auth/login/google
+   - Request: GoogleLoginRequest (JSON)
+   - Response: AuthResponse (200 OK)
+   - Purpose: Login with Google OAuth
+
+4. GET /auth/users
+   - Response: List<UserResponse> (200 OK)
+   - Purpose: Get all active users
+
+5. GET /auth/users/{userId}
+   - Path Variable: userId (Long)
+   - Response: UserResponse (200 OK)
+   - Purpose: Get user by ID
+
+6. GET /auth/users/email/{email}
+   - Path Variable: email (String)
+   - Response: UserResponse (200 OK)
+   - Purpose: Get user by email
+
+7. PUT /auth/users/{userId}
+   - Path Variable: userId (Long)
+   - Request: UpdateUserRequest (JSON)
+   - Response: UserResponse (200 OK)
+   - Purpose: Update user profile
+
+8. DELETE /auth/users/{userId}
+   - Path Variable: userId (Long)
+   - Response: 204 No Content
+   - Purpose: Soft delete user
+
+9. POST /auth/forgot-password
+   - Request: ForgotPasswordRequest (JSON)
+   - Response: 200 OK
+   - Purpose: Request password reset
+
+10. POST /auth/reset-password
+    - Request: ResetPasswordRequest (JSON)
+    - Response: 200 OK
+    - Purpose: Reset password with token
+
+Validation:
+- All requests are validated using @Valid annotation
+- Path variables validated with @Positive, @Email, @Pattern
+- Invalid data returns 400 Bad Request
+
+================================================================================
+8. CONFIGURATION LAYER
+================================================================================
+
+8.1 SecurityConfig
+------------------
+Purpose: Configure Spring Security
+
+Configuration:
+- CORS: Disabled
+- CSRF: Disabled (stateless API)
+- Form Login: Disabled
+- HTTP Basic: Disabled
+- Session: STATELESS (no server-side sessions)
+- All /auth/** endpoints: Permit all (no authentication required)
+
+Beans:
+1. SecurityFilterChain: Defines security rules
+2. PasswordEncoder: BCryptPasswordEncoder for password hashing
+3. RestTemplate: For HTTP calls to other services
+
+Why Stateless?
+- JWT tokens contain all necessary information
+- No need to store session on server
+- Scalable for microservices
+
+8.2 JwtProvider
+---------------
+Purpose: Generate JWT tokens
+
+Configuration:
+- Secret Key: From application.yml (default provided)
+- Expiration: 86400000 ms (24 hours)
+
+Method: generateToken(String email, String role)
+- Creates JWT with:
+  - Subject: user's email
+  - Claim: user's role
+  - Issued At: current timestamp
+  - Expiration: current time + 24 hours
+  - Signature: HMAC-SHA256 with secret key
+
+JWT Structure:
+Header.Payload.Signature
+
+Example Token:
+eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyQGV4YW1wbGUuY29tIiwicm9sZSI6IlBBU1NFTkdFUiIsImlhdCI6MTYxNjIzOTAyMiwiZXhwIjoxNjE2MzI1NDIyfQ.signature
+
+8.3 GoogleOAuthProvider
+------------------------
+Purpose: Verify Google OAuth tokens
+
+Components:
+- GoogleIdTokenVerifier: Google's library for token verification
+- NetHttpTransport: HTTP client
+- GsonFactory: JSON parser
+
+Method: verifyGoogleToken(String idTokenString)
+- Verifies token signature
+- Checks token audience (client ID)
+- Returns email if valid
+
+Method: getTokenPayload(String idTokenString)
+- Verifies token
+- Extracts user information:
+  - email: User's email
+  - name: Full name
+  - picture: Profile photo URL
+  - sub: Google user ID
+- Returns GoogleTokenPayload object
+
+Security:
+- Token signature verified using Google's public keys
+- Prevents token forgery
+- Ensures token is for our application
+
+8.4 RabbitMQConfig
+------------------
+Purpose: Configure message queue for events
+
+Beans:
+1. Jackson2JsonMessageConverter
+   - Converts Java objects to JSON for messaging
+
+2. RabbitTemplate
+   - Sends messages to RabbitMQ
+   - Uses JSON converter
+
+8.5 GlobalExceptionHandler
+---------------------------
+Purpose: Handle exceptions globally
+
+Handles:
+- AuthException: Custom authentication errors
+- Validation errors
+- General exceptions
+
+Returns consistent error response format
+
+================================================================================
+9. EXCEPTION HANDLING
+================================================================================
+
+9.1 AuthException
+-----------------
+Custom exception for authentication errors.
+
+Fields:
+- message (String): Error description
+- errorCode (String): Error code for client
+
+Common Error Codes:
+- INVALID_REQUEST: Bad request data
+- EMAIL_EXISTS: Email already registered
+- USER_INACTIVE: Account deactivated
+- USER_NOT_FOUND: User doesn't exist
+- INVALID_PASSWORD: Wrong password
+- INVALID_GOOGLE_TOKEN: Invalid OAuth token
+- AIRLINE_INACTIVE: Airline is not active
+- INVALID_AUTH_PROVIDER: Wrong login method
+- INVALID_TOKEN: Invalid reset token
+- TOKEN_EXPIRED: Reset token expired
+
+Usage:
+throw new AuthException("User not found", "USER_NOT_FOUND");
+
+================================================================================
+10. SECURITY IMPLEMENTATION
+================================================================================
+
+10.1 Password Security
+----------------------
+- Algorithm: BCrypt
+- Automatic salt generation
+- Configurable strength (default: 10 rounds)
+- One-way hashing (cannot be decrypted)
+
+Example:
+Plain: "MyPassword123!"
+Hashed: "$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy"
+
+10.2 JWT Security
+-----------------
+- Signed with HMAC-SHA256
+- Contains user email and role
+- Expires after 24 hours
+- Stateless (no server storage)
+
+Token Validation (done by API Gateway):
+1. Verify signature
+2. Check expiration
+3. Extract user info
+
+10.3 OAuth Security
+-------------------
+- Google handles authentication
+- We only verify token signature
+- Token audience checked (prevents token reuse)
+- No password stored for OAuth users
+
+10.4 Password Reset Security
+-----------------------------
+- Random UUID token (impossible to guess)
+- 15-minute expiration
+- One-time use
+- Token cleared after use
+
+================================================================================
+11. KEY FEATURES & FLOWS
+================================================================================
+
+11.1 COMPLETE REGISTRATION FLOW
+--------------------------------
+1. User fills registration form
+2. Frontend sends POST /auth/register
+3. Controller validates input
+4. Service checks email uniqueness
+5. Service encrypts password
+6. Service saves user to database
+7. Service publishes signup event to RabbitMQ
+8. Notification service sends welcome email
+9. Service generates JWT token
+10. Response sent to frontend with token
+11. Frontend stores token in localStorage
+12. User is logged in
+
+11.2 COMPLETE LOGIN FLOW
+-------------------------
+1. User enters email/password
+2. Frontend sends POST /auth/login
+3. Controller validates input
+4. Service finds user by email
+5. Service verifies password with BCrypt
+6. Service checks user is active
+7. Service validates airline (if AIRLINE_STAFF)
+8. Service publishes login event
+9. Notification service sends login notification
+10. Service generates JWT token
+11. Response sent with token
+12. Frontend stores token
+13. User is logged in
+
+11.3 GOOGLE LOGIN FLOW
+-----------------------
+1. User clicks "Continue with Google"
+2. Google OAuth popup opens
+3. User authenticates with Google
+4. Google returns ID token to frontend
+5. Frontend sends POST /auth/login/google with token
+6. Service verifies token with Google
+7. Service extracts user info
+8. If new user: create account
+9. If existing: update auth provider
+10. Service generates JWT token
+11. Response sent with token
+12. User is logged in
+
+11.4 PASSWORD RESET FLOW
+-------------------------
+1. User clicks "Forgot Password"
+2. User enters email
+3. Frontend sends POST /auth/forgot-password
+4. Service generates reset token
+5. Service saves token with 15-min expiry
+6. Service publishes password reset event
+7. Notification service sends email with token
+8. User clicks link in email
+9. Frontend shows reset password form
+10. User enters new password
+11. Frontend sends POST /auth/reset-password
+12. Service validates token
+13. Service checks expiration
+14. Service updates password
+15. Service clears token
+16. Service publishes success event
+17. Notification service sends confirmation email
+18. User can login with new password
+
+================================================================================
+12. INTEGRATION WITH OTHER SERVICES
+================================================================================
+
+12.1 Notification Service (via RabbitMQ)
+-----------------------------------------
+Events Published:
+1. notification.signup
+   - When: User registers
+   - Data: email, firstName, lastName
+
+2. notification.login
+   - When: User logs in
+   - Data: email, firstName, loginTime, ipAddress, device
+
+3. notification.password.reset
+   - When: User requests password reset
+   - Data: email, firstName, resetToken
+
+4. notification.password.reset.success
+   - When: Password reset successful
+   - Data: email, firstName
+
+Exchange: notification.exchange
+Routing Keys: notification.{event-type}
+
+12.2 Airline-Airport Service (via REST)
+----------------------------------------
+Endpoint: GET /airlines/{airlineId}
+
+Purpose: Validate airline is active
+
+Called When:
+- AIRLINE_STAFF registers
+- AIRLINE_STAFF logs in
+
+Response:
+{
+  "id": 1,
+  "name": "Emirates",
+  "iataCode": "EK",
+  "isActive": true,
+  ...
+}
+
+Error Handling:
+- If airline inactive: throw error
+- If API fails: throw validation error
+
+12.3 API Gateway Integration
+-----------------------------
+- All requests go through API Gateway
+- Gateway validates JWT tokens
+- Gateway routes to auth-service
+- Gateway handles CORS
+
+12.4 Service Discovery (Eureka)
+--------------------------------
+- Auth-service registers with Eureka
+- Other services discover auth-service
+- Enables load balancing
+- Enables failover
+
+Annotation: @EnableDiscoveryClient
+
+================================================================================
+SUMMARY OF KEY CONCEPTS
+================================================================================
+
+1. AUTHENTICATION vs AUTHORIZATION
+   - Authentication: Verifying who you are (login)
+   - Authorization: Verifying what you can do (roles)
+
+2. JWT (JSON Web Token)
+   - Self-contained token
+   - Contains user info
+   - Signed to prevent tampering
+   - Stateless (no server storage)
+
+3. BCrypt Password Hashing
+   - One-way encryption
+   - Automatic salt
+   - Slow by design (prevents brute force)
+
+4. OAuth 2.0
+   - Delegated authentication
+   - User authenticates with Google
+   - We verify token
+   - No password stored
+
+5. Soft Delete
+   - Set isActive = false
+   - Data preserved
+   - User cannot login
+   - Can be reactivated
+
+6. Event-Driven Architecture
+   - Services communicate via events
+   - Loose coupling
+   - Asynchronous processing
+   - RabbitMQ as message broker
+
+7. Microservices Pattern
+   - Each service has specific responsibility
+   - Independent deployment
+   - Service discovery
+   - REST API communication
+
+================================================================================
+EVALUATION TALKING POINTS
+================================================================================
+
+When explaining this service, emphasize:
+
+1. SECURITY FIRST
+   - BCrypt for passwords
+   - JWT for stateless auth
+   - Token expiration
+   - Soft delete for data preservation
+
+2. SCALABILITY
+   - Stateless design
+   - Microservices architecture
+   - Service discovery
+   - Load balancing ready
+
+3. USER EXPERIENCE
+   - Multiple login options (email, Google)
+   - Password reset functionality
+   - Email notifications
+   - Profile management
+
+4. CODE QUALITY
+   - Layered architecture
+   - Separation of concerns
+   - Validation at multiple levels
+   - Exception handling
+   - Logging
+
+5. INTEGRATION
+   - RabbitMQ for async events
+   - REST for sync communication
+   - Service discovery
+   - API Gateway pattern
+
+6. BUSINESS LOGIC
+   - Role-based access
+   - Airline validation for staff
+   - Account activation/deactivation
+   - Audit trail (createdAt, updatedAt)
+
+================================================================================
+END OF DOCUMENT
+================================================================================

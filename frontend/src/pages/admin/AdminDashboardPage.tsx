@@ -29,6 +29,7 @@ export default function AdminDashboard() {
     totalRevenue: 0
   })
   const [loading, setLoading] = useState(true)
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [analyticsData, setAnalyticsData] = useState<Map<number, FlightAnalyticsEvent>>(new Map())
   const [flightIds, setFlightIds] = useState<number[]>([])
 
@@ -40,7 +41,10 @@ export default function AdminDashboard() {
     }
 
     loadDashboardData()
-    const intervalId = window.setInterval(loadDashboardData, 30000)
+    const intervalId = window.setInterval(() => {
+      console.log('[AdminDashboard] Auto-refreshing dashboard data...')
+      loadDashboardData()
+    }, 10000) // Refresh every 10 seconds
 
     return () => window.clearInterval(intervalId)
   }, [isLoggedIn, isAuthReady, navigate])
@@ -99,18 +103,40 @@ export default function AdminDashboard() {
   const loadDashboardData = async () => {
     try {
       setLoading(true)
+      console.log('[AdminDashboard] Loading dashboard data...')
+      
       const [users, flights, airports, airlines] = await Promise.all([
-        adminApi.getAllUsers(),
-        flightApi.getAll(),
-        airportApi.getAll(true),
-        airlineApi.getAll(true)
+        adminApi.getAllUsers().catch(err => {
+          console.error('[AdminDashboard] Error loading users:', err)
+          return []
+        }),
+        flightApi.getAll().catch(err => {
+          console.error('[AdminDashboard] Error loading flights:', err)
+          return []
+        }),
+        airportApi.getAll(true).catch(err => {
+          console.error('[AdminDashboard] Error loading airports:', err)
+          return []
+        }),
+        airlineApi.getAll(true).catch(err => {
+          console.error('[AdminDashboard] Error loading airlines:', err)
+          return []
+        })
       ])
+
+      console.log('[AdminDashboard] Loaded:', {
+        users: users.length,
+        flights: flights.length,
+        airports: airports.length,
+        airlines: airlines.length
+      })
 
       const bookingAnalytics = await Promise.all(
         flights.map(async (flight) => {
           try {
             return await bookingApi.getFlightAnalytics(flight.id)
-          } catch {
+          } catch (err) {
+            console.error(`[AdminDashboard] Error loading analytics for flight ${flight.id}:`, err)
             return null
           }
         }),
@@ -130,7 +156,6 @@ export default function AdminDashboard() {
       })
       setAnalyticsData(initialAnalytics)
 
-      // Store flight IDs for SSE subscriptions
       setFlightIds(flights.map(f => f.id))
 
       const totalBookings = Array.from(initialAnalytics.values()).reduce((sum, analytics) => sum + analytics.bookedSeats, 0)
@@ -139,11 +164,14 @@ export default function AdminDashboard() {
         .reduce((sum, flight) => sum + (initialAnalytics.get(flight.id)?.bookedSeats ?? 0), 0)
       const totalRevenue = Array.from(initialAnalytics.values()).reduce((sum, analytics) => sum + Number(analytics.revenue), 0)
 
-      console.log('[AdminDashboard] Initial data loaded:', {
+      console.log('[AdminDashboard] Stats calculated:', {
+        totalUsers: users.length,
         totalFlights: flights.length,
+        totalAirports: airports.length,
+        totalAirlines: airlines.length,
         totalBookings,
-        totalRevenue,
-        flightsWithBookings: flights.filter(f => f.totalSeats - f.availableSeats > 0).length
+        activeBookings,
+        totalRevenue
       })
 
       setStats({
@@ -155,8 +183,9 @@ export default function AdminDashboard() {
         activeBookings,
         totalRevenue
       })
+      setLastUpdated(new Date())
     } catch (err) {
-      console.error('Error loading dashboard:', err)
+      console.error('[AdminDashboard] Error loading dashboard:', err)
     } finally {
       setLoading(false)
     }
@@ -234,8 +263,23 @@ export default function AdminDashboard() {
 
       <main className="max-w-7xl mx-auto px-4 md:px-6 py-8 pt-24">
         <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-black text-sky-600 mb-2">Admin Dashboard</h1>
-          <p className="text-slate-600">Manage the entire SkyBooker ecosystem</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl md:text-4xl font-black text-[#00236f] mb-2">Admin Dashboard</h1>
+              <p className="text-slate-600">Manage the entire SkyBooker ecosystem</p>
+            </div>
+            {lastUpdated && (
+              <div className="text-right">
+                <div className="flex items-center gap-2 text-sm text-slate-500">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                  <span>Live</span>
+                </div>
+                <p className="text-xs text-slate-400 mt-1">
+                  Updated {lastUpdated.toLocaleTimeString()}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
 
         {loading ? (

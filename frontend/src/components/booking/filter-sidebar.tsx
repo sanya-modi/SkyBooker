@@ -102,22 +102,22 @@ export function FilterSidebar({
   return (
     <aside
       ref={sidebarRef}
-      className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden self-start sticky top-[76px]"
+      className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden self-start xl:sticky xl:top-[76px]"
     >
       {/* Header */}
-      <div className="bg-gradient-to-r from-[#00236f] to-[#1e3a8a] px-5 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-2 text-white font-bold text-sm">
-          <SlidersHorizontal size={15} />
+      <div className="bg-gradient-to-r from-[#00236f] to-[#1e3a8a] px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-1.5 text-white font-bold text-xs sm:text-sm">
+          <SlidersHorizontal size={14} />
           Filters
           {activeFilterCount > 0 && (
-            <span className="bg-white/20 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+            <span className="bg-white/20 text-white text-[11px] font-bold px-2 py-0.5 rounded-full">
               {activeFilterCount}
             </span>
           )}
         </div>
         {activeFilterCount > 0 && (
           <button
-            className="flex items-center gap-1 text-white/70 hover:text-white text-xs font-semibold transition-colors"
+            className="flex items-center gap-1 text-white/70 hover:text-white text-[11px] font-semibold transition-colors"
             onClick={resetAll}
             type="button"
           >
@@ -127,8 +127,8 @@ export function FilterSidebar({
       </div>
 
       {/* Price Range */}
-      <div className="px-5 py-4 border-b border-slate-100">
-        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Price Range</p>
+      <div className="px-4 py-3.5 border-b border-slate-100">
+        <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2.5">Price Range</p>
         <input
           className="w-full h-1.5 rounded-full appearance-none cursor-pointer accent-[#1e3a8a]"
           max={globalMax}
@@ -147,8 +147,8 @@ export function FilterSidebar({
       </div>
 
       {/* Stops */}
-      <div className="px-5 py-4 border-b border-slate-100">
-        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Stops</p>
+      <div className="px-4 py-3.5 border-b border-slate-100">
+        <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2.5">Stops</p>
         <div className="flex flex-col gap-2">
           {[
             { label: 'Any', value: false, count: flights.length },
@@ -156,7 +156,7 @@ export function FilterSidebar({
           ].map((opt) => (
             <label
               key={opt.label}
-              className={`flex items-center justify-between px-3 py-2.5 rounded-xl border cursor-pointer transition-all ${
+              className={`flex items-center justify-between px-2.5 py-2 rounded-lg border cursor-pointer transition-all ${
                 filters.directOnly === opt.value
                   ? 'border-[#1e3a8a] bg-blue-50'
                   : 'border-slate-200 hover:border-slate-300'
@@ -170,11 +170,11 @@ export function FilterSidebar({
                     <div className="w-2 h-2 rounded-full bg-[#1e3a8a]" />
                   )}
                 </div>
-                <span className={`text-sm font-semibold ${filters.directOnly === opt.value ? 'text-[#1e3a8a]' : 'text-slate-600'}`}>
+                <span className={`text-xs font-semibold ${filters.directOnly === opt.value ? 'text-[#1e3a8a]' : 'text-slate-600'}`}>
                   {opt.label}
                 </span>
               </div>
-              <span className="text-xs text-slate-400 font-medium">{opt.count}</span>
+              <span className="text-[11px] text-slate-400 font-medium">{opt.count}</span>
               <input
                 checked={filters.directOnly === opt.value}
                 className="sr-only"
@@ -187,14 +187,14 @@ export function FilterSidebar({
       </div>
 
       {/* Departure Time */}
-      <div className="px-5 py-4 border-b border-slate-100">
-        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Departure Time</p>
+      <div className="px-4 py-3.5 border-b border-slate-100">
+        <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2.5">Departure Time</p>
         <div className="grid grid-cols-2 gap-2">
           {DEPARTURE_SLOTS.map((slot) => {
             const active = filters.timeSlots.includes(slot.idx)
             return (
               <button
-                className={`flex flex-col items-center gap-0.5 py-2.5 px-2 rounded-xl border text-center transition-all ${
+                className={`flex flex-col items-center gap-0.5 py-2 px-1.5 rounded-lg border text-center transition-all ${
                   active
                     ? 'border-[#1e3a8a] bg-blue-50 shadow-sm'
                     : 'border-slate-200 hover:border-slate-300 bg-white'
@@ -203,11 +203,11 @@ export function FilterSidebar({
                 onClick={() => toggleTimeSlot(slot.idx)}
                 type="button"
               >
-                <span className="text-lg leading-none">{slot.icon}</span>
-                <span className={`text-[11px] font-bold leading-tight ${active ? 'text-[#1e3a8a]' : 'text-slate-600'}`}>
+                <span className="text-base leading-none">{slot.icon}</span>
+                <span className={`text-[10px] font-bold leading-tight ${active ? 'text-[#1e3a8a]' : 'text-slate-600'}`}>
                   {slot.label}
                 </span>
-                <span className="text-[10px] text-slate-400">{slot.sub}</span>
+                <span className="text-[9px] text-slate-400">{slot.sub}</span>
               </button>
             )
           })}
@@ -215,8 +215,8 @@ export function FilterSidebar({
       </div>
 
       {/* Airlines */}
-      <div className="px-5 py-4">
-        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Airlines</p>
+      <div className="px-4 py-3.5">
+        <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2.5">Airlines</p>
         <div className="flex flex-col gap-1.5">
           {airlines.map((airline) => {
             const checked = isAirlineChecked(airline.id)
@@ -228,7 +228,7 @@ export function FilterSidebar({
 
             return (
               <label
-                className={`flex min-h-[56px] items-center gap-2.5 px-2.5 py-2 rounded-lg border cursor-pointer transition-all ${
+                className={`flex min-h-[50px] items-center gap-2 px-2 py-1.5 rounded-lg border cursor-pointer transition-all ${
                   checked ? 'border-[#1e3a8a] bg-blue-50' : 'border-slate-200 hover:border-slate-300 bg-white'
                 }`}
                 key={airline.id}
@@ -242,7 +242,7 @@ export function FilterSidebar({
                   {airline.iataCode}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <p className={`text-[11px] font-semibold leading-tight truncate ${checked ? 'text-[#1e3a8a]' : 'text-slate-700'}`}>
+                  <p className={`text-[10px] font-semibold leading-tight truncate ${checked ? 'text-[#1e3a8a]' : 'text-slate-700'}`}>
                     {airline.name}
                   </p>
                   {minFare && (

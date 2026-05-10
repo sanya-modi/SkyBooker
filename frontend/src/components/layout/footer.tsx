@@ -29,12 +29,12 @@ export function Footer() {
       whileInView={{ opacity: 1 }}
       viewport={{ once: true }}
       transition={{ duration: 0.6 }}
-      className="bg-muted dark:bg-slate-950 w-full py-12 px-8"
+      className="bg-muted dark:bg-slate-950 w-full px-4 py-10 sm:px-6 lg:px-8 lg:py-12"
     >
-      <div className="max-w-screen-2xl mx-auto">
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-8 mb-12">
+      <div className="max-w-7xl mx-auto px-4">
+        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-6 mb-10 lg:mb-12">
           {/* Brand */}
-          <div className="col-span-2">
+          <div className="sm:col-span-2 lg:col-start-2">
             <div className="flex items-center gap-2 mb-4">
               <Icon name="cloud" filled className="text-primary" />
               <span className="text-lg font-black text-primary">SkyBooker</span>
@@ -103,19 +103,8 @@ export function Footer() {
         </div>
 
         {/* Bottom Bar */}
-        <div className="pt-8 border-t border-border text-muted-foreground text-sm flex flex-col md:flex-row justify-between items-center gap-4">
-          <span>&copy; 2024 SkyBooker. The Ethereal Horizon.</span>
-          <div className="flex gap-6">
-            <button className="hover:text-primary transition-colors">
-              <Icon name="public" size="xl" />
-            </button>
-            <button className="hover:text-primary transition-colors">
-              <Icon name="camera" size="xl" />
-            </button>
-            <button className="hover:text-primary transition-colors">
-              <Icon name="social_leaderboard" size="xl" />
-            </button>
-          </div>
+        <div className="pt-6 border-t border-border text-muted-foreground text-sm flex justify-center items-center">
+          <span>&copy; 2026 SkyBooker. The Ethereal Horizon.</span>
         </div>
       </div>
     </motion.footer>

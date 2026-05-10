@@ -23,10 +23,10 @@ export function getSeatPrice(seats: SeatResult[], seatNumber: string): number {
   const rowNumber = Number.parseInt(seat.seatNumber, 10)
   const classPrice = SEAT_PRICES[effectiveClass] ?? 0
   const positionPrice = seatColumn === 'A' || seatColumn === 'F'
-    ? 2000
+    ? 3000
     : seatColumn === 'B' || seatColumn === 'E'
-    ? 1000
-    : 500
+    ? 2000
+    : 1000
   const legroomPrice = rowNumber === 1 || rowNumber === 10 || rowNumber === 20 ? 1000 : 0
 
   return classPrice + positionPrice + legroomPrice

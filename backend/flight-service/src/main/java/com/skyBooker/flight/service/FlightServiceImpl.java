@@ -332,14 +332,10 @@ public class FlightServiceImpl implements FlightService {
                                 RemoteAirportResponse.class
                         );
                         if (airport != null) {
-                            String imageUrl = String.format(
-    "https://source.unsplash.com/800x600/?%s,travel,city",
-    airport.getCity().replace(" ", "+")
-);
                             return new PopularDestinationResponse(
                                     airport.getCity(),
                                     airport.getIataCode(),
-                                    imageUrl
+                                    ""
                             );
                         }
                     } catch (Exception e) {
@@ -350,6 +346,8 @@ public class FlightServiceImpl implements FlightService {
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
+
+
 
     @Override
     @Transactional(readOnly = true)
