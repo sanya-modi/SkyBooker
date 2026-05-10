@@ -3,9 +3,9 @@ import { BaggageCard } from "./baggage-card"
 import { UtensilsCrossed, Luggage } from "lucide-react"
 
 const MEALS = [
-  { id: 'veg', name: 'Veg Delight', description: 'Fresh vegetarian meal with seasonal vegetables', price: 350, image: '/meal-veg.jpg' },
-  { id: 'nonveg', name: 'Chicken Special', description: 'Grilled chicken with rice and salad', price: 450, image: '/meal-nonveg.jpg' },
-  { id: 'premium', name: 'Premium Platter', description: 'Gourmet meal with dessert and beverage', price: 650, image: '/meal-premium.jpg' },
+  { id: 'veg', name: 'Veg Delight', description: 'Fresh vegetarian meal with seasonal vegetables', price: 350, image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400&h=300&fit=crop' },
+  { id: 'nonveg', name: 'Chicken Special', description: 'Grilled chicken with rice and salad', price: 450, image: 'https://images.unsplash.com/photo-1598103442097-8b74394b95c6?w=400&h=300&fit=crop' },
+  { id: 'premium', name: 'Premium Platter', description: 'Gourmet meal with dessert and beverage', price: 650, image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=300&fit=crop' },
 ]
 
 const BAGGAGE = [

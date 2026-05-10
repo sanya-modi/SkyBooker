@@ -144,6 +144,20 @@ export function Navbar() {
               Support
             </button>
             <div className="pt-3 border-t space-y-2">
+              <Link to="/admin" onClick={() => setMobileMenuOpen(false)}>
+                <Button variant="ghost" className="w-full justify-start">
+                  <Icon name="admin_panel_settings" className="mr-2" />
+                  Admin Portal
+                </Button>
+              </Link>
+              <Link to="/airline" onClick={() => setMobileMenuOpen(false)}>
+                <Button variant="ghost" className="w-full justify-start">
+                  <Icon name="flight" className="mr-2" />
+                  Airline Portal
+                </Button>
+              </Link>
+            </div>
+            <div className="pt-3 border-t space-y-2">
               <Link to="/auth/signin" className="block">
                 <Button variant="outline" className="w-full">
                   Sign In

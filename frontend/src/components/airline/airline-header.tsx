@@ -13,6 +13,7 @@ export function AirlineHeader() {
   const { user, profile, logout } = useAuth()
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const handleLogout = () => {
     logout()
@@ -66,6 +67,18 @@ export function AirlineHeader() {
 
           {/* User Menu */}
           <div className="flex items-center gap-4 relative">
+            <button
+              className="lg:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-lg"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {mobileMenuOpen ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                )}
+              </svg>
+            </button>
             <button 
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
               className="flex items-center gap-3 hover:bg-slate-50 p-2 rounded-xl transition-colors"
@@ -108,6 +121,33 @@ export function AirlineHeader() {
           </div>
         </div>
       </div>
+
+      {mobileMenuOpen && (
+        <div className="lg:hidden border-t bg-white">
+          <div className="px-4 py-4 space-y-2">
+            {navItems.map((item) => {
+              const Icon = item.icon
+              const isActive = pathname.startsWith(item.href)
+              return (
+                <Link
+                  key={item.href}
+                  to={item.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm transition-all ${
+                    isActive
+                      ? 'bg-gradient-to-r from-[#00236f] to-[#1e3a8a] text-white'
+                    : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  {item.label}
+                </Link>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
       <StaffProfileModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </header>
   )
