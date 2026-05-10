@@ -31,6 +31,10 @@ export interface PassengerFormData {
   passportNumber: string
   email: string
   phoneNumber: string
+  mealPreference?: string
+  mealPrice?: number
+  baggagePreference?: string
+  baggagePrice?: number
 }
 
 interface BookingFlowContextValue {
@@ -42,8 +46,6 @@ interface BookingFlowContextValue {
   passengers: PassengerFormData[]
   passenger: PassengerFormData
   confirmedBooking: BookingResult | null
-  selectedMealId: string
-  selectedBaggageId: string
   setSearchCriteria: (value: SearchCriteria | null) => void
   setSelectedFlight: (value: EnrichedFlightResult | null) => void
   setPreferredSeatClass: (value: SeatClassPreference | null) => void
@@ -52,8 +54,6 @@ interface BookingFlowContextValue {
   updatePassenger: (value: PassengerFormData) => void
   updatePassengerAt: (index: number, value: PassengerFormData) => void
   setConfirmedBooking: (value: BookingResult | null) => void
-  setSelectedMealId: (value: string) => void
-  setSelectedBaggageId: (value: string) => void
   resetFlow: () => void
 }
 
@@ -79,9 +79,7 @@ export function BookingFlowProvider({ children }: PropsWithChildren) {
   const [selectedSeatIds, setSelectedSeatIds] = useState<string[]>([])
   const [passengers, setPassengers] = useState<PassengerFormData[]>([defaultPassenger])
   const [confirmedBooking, setConfirmedBooking] = useState<BookingResult | null>(null)
-  const [selectedMealId, setSelectedMealId] = useState('')
-  const [selectedBaggageId, setSelectedBaggageId] = useState('')
-
+  
   const selectedSeatId = selectedSeatIds[0] ?? ''
   const passenger = passengers[0] ?? defaultPassenger
 
@@ -116,8 +114,6 @@ export function BookingFlowProvider({ children }: PropsWithChildren) {
         passengers?: PassengerFormData[]
         passenger?: PassengerFormData
         confirmedBooking: BookingResult | null
-        selectedMealId?: string
-        selectedBaggageId?: string
       }
 
       setSearchCriteria(parsed.searchCriteria)
@@ -130,8 +126,6 @@ export function BookingFlowProvider({ children }: PropsWithChildren) {
           : [parsed.passenger ? { ...defaultPassenger, ...parsed.passenger } : { ...defaultPassenger }],
       )
       setConfirmedBooking(parsed.confirmedBooking)
-      setSelectedMealId(parsed.selectedMealId ?? '')
-      setSelectedBaggageId(parsed.selectedBaggageId ?? '')
     } catch {
       sessionStorage.removeItem(STORAGE_KEY)
     }
@@ -158,11 +152,9 @@ export function BookingFlowProvider({ children }: PropsWithChildren) {
         passengers,
         passenger,
         confirmedBooking,
-        selectedMealId,
-        selectedBaggageId,
       }),
     )
-  }, [confirmedBooking, passenger, passengers, preferredSeatClass, searchCriteria, selectedFlight, selectedSeatId, selectedSeatIds, selectedMealId, selectedBaggageId])
+  }, [confirmedBooking, passenger, passengers, preferredSeatClass, searchCriteria, selectedFlight, selectedSeatId, selectedSeatIds])
 
   const value = useMemo<BookingFlowContextValue>(
     () => ({
@@ -174,8 +166,6 @@ export function BookingFlowProvider({ children }: PropsWithChildren) {
       passengers,
       passenger,
       confirmedBooking,
-      selectedMealId,
-      selectedBaggageId,
       setSearchCriteria,
       setSelectedFlight,
       setPreferredSeatClass,
@@ -184,8 +174,6 @@ export function BookingFlowProvider({ children }: PropsWithChildren) {
       updatePassenger,
       updatePassengerAt,
       setConfirmedBooking,
-      setSelectedMealId,
-      setSelectedBaggageId,
       resetFlow: () => {
         setSearchCriteria(null)
         setSelectedFlight(null)
@@ -193,11 +181,9 @@ export function BookingFlowProvider({ children }: PropsWithChildren) {
         setSelectedSeatIds([])
         setPassengers([{ ...defaultPassenger }])
         setConfirmedBooking(null)
-        setSelectedMealId('')
-        setSelectedBaggageId('')
       },
     }),
-    [confirmedBooking, passenger, passengers, preferredSeatClass, searchCriteria, selectedFlight, selectedSeatId, selectedSeatIds, selectedMealId, selectedBaggageId],
+    [confirmedBooking, passenger, passengers, preferredSeatClass, searchCriteria, selectedFlight, selectedSeatId, selectedSeatIds],
   )
 
   return <BookingFlowContext.Provider value={value}>{children}</BookingFlowContext.Provider>

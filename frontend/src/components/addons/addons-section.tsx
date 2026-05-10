@@ -19,9 +19,10 @@ interface AddOnsSectionProps {
   selectedBaggageId: string
   onMealSelect: (id: string) => void
   onBaggageSelect: (id: string) => void
+  passengerName?: string
 }
 
-export function AddOnsSection({ selectedMealId, selectedBaggageId, onMealSelect, onBaggageSelect }: AddOnsSectionProps) {
+export function AddOnsSection({ selectedMealId, selectedBaggageId, onMealSelect, onBaggageSelect, passengerName }: AddOnsSectionProps) {
   const handleMealSelect = (id: string) => {
     onMealSelect(selectedMealId === id ? '' : id)
   }
@@ -33,8 +34,10 @@ export function AddOnsSection({ selectedMealId, selectedBaggageId, onMealSelect,
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
       <div className="bg-gradient-to-r from-[#00236f] to-[#1e3a8a] px-6 py-5">
-        <h2 className="text-white font-black text-xl tracking-tight mb-1">Enhance Your Journey 💰</h2>
-        <p className="text-blue-200 text-sm">Add meals and extra baggage to your booking</p>
+        <h2 className="text-white font-black text-xl tracking-tight mb-1">
+          {passengerName ? `Add-ons for ${passengerName}` : 'Enhance Your Journey'} 💰
+        </h2>
+        <p className="text-blue-200 text-sm">Add meals and extra baggage{passengerName ? ' for this passenger' : ' to your booking'}</p>
       </div>
 
       <div className="p-6 space-y-6">

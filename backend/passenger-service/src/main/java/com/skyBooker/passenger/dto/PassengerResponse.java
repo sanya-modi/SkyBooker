@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -24,6 +25,10 @@ public class PassengerResponse {
     private Passenger.Gender gender;
     private String nationality;
     private String specialRequests;
+    private String mealPreference;
+    private BigDecimal mealPrice;
+    private String baggagePreference;
+    private BigDecimal baggagePrice;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

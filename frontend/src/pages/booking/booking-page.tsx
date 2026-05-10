@@ -114,7 +114,7 @@ export function BookingPage() {
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const { isLoggedIn, user } = useAuth()
-  const { passengers, searchCriteria, selectedFlight, selectedSeatIds, selectedMealId, selectedBaggageId, setSelectedFlight, setSelectedSeatIds, setSelectedMealId, setSelectedBaggageId, updatePassengerAt } = useBookingFlow()
+  const { passengers, searchCriteria, selectedFlight, selectedSeatIds, setSelectedFlight, setSelectedSeatIds, updatePassengerAt } = useBookingFlow()
 
   const [flight, setFlight] = useState<EnrichedFlightResult | null>(selectedFlight)
   const [seats, setSeats] = useState<SeatResult[]>([])
@@ -267,8 +267,8 @@ export function BookingPage() {
   const selectedPassengers = passengers.slice(0, selectedSeatIds.length)
   const taxes = useMemo(() => Math.round(Number(flight?.baseFare ?? 0) * 0.12), [flight])
   const seatCharge = useMemo(() => selectedSeatIds.reduce((sum, seatNumber) => sum + getSeatPrice(seats, seatNumber), 0), [seats, selectedSeatIds])
-  const mealCharge = useMemo(() => MEALS.find(m => m.id === selectedMealId)?.price ?? 0, [selectedMealId])
-  const baggageCharge = useMemo(() => BAGGAGE.find(b => b.id === selectedBaggageId)?.price ?? 0, [selectedBaggageId])
+  const mealCharge = useMemo(() => selectedPassengers.reduce((sum, p) => sum + (p.mealPrice ?? 0), 0), [selectedPassengers])
+  const baggageCharge = useMemo(() => selectedPassengers.reduce((sum, p) => sum + (p.baggagePrice ?? 0), 0), [selectedPassengers])
   const total = Number(flight?.baseFare ?? 0) + taxes + seatCharge + mealCharge + baggageCharge
 
   const passengerErrors = useMemo(() => {
@@ -446,12 +446,6 @@ export function BookingPage() {
                 />
               )
             }
-            <AddOnsSection
-              selectedMealId={selectedMealId}
-              selectedBaggageId={selectedBaggageId}
-              onMealSelect={setSelectedMealId}
-              onBaggageSelect={setSelectedBaggageId}
-            />
             {selectedSeatIds.map((seatNumber, index) => {
               const passenger = selectedPassengers[index] ?? {
                 firstName: '',
@@ -465,17 +459,40 @@ export function BookingPage() {
               }
 
               return (
-                <PassengerForm
-                  errors={showPassengerErrors ? passengerErrors[index] : undefined}
-                  key={seatNumber}
-                  onChange={(next) => {
-                    setError('')
-                    updatePassengerAt(index, { ...next, email: next.email || user?.email || '' })
-                  }}
-                  seatLabel={seatNumber}
-                  title={`Passenger ${index + 1}`}
-                  value={{ ...passenger, email: passenger.email || user?.email || '' }}
-                />
+                <div key={seatNumber} className="flex flex-col gap-5">
+                  <PassengerForm
+                    errors={showPassengerErrors ? passengerErrors[index] : undefined}
+                    onChange={(next) => {
+                      setError('')
+                      updatePassengerAt(index, { ...next, email: next.email || user?.email || '' })
+                    }}
+                    seatLabel={seatNumber}
+                    title={`Passenger ${index + 1}`}
+                    value={{ ...passenger, email: passenger.email || user?.email || '' }}
+                    passengerIndex={index}
+                  />
+                  <AddOnsSection
+                    selectedMealId={passenger.mealPreference || ''}
+                    selectedBaggageId={passenger.baggagePreference || ''}
+                    onMealSelect={(mealId) => {
+                      const meal = MEALS.find(m => m.id === mealId)
+                      updatePassengerAt(index, {
+                        ...passenger,
+                        mealPreference: mealId,
+                        mealPrice: meal?.price ?? 0
+                      })
+                    }}
+                    onBaggageSelect={(baggageId) => {
+                      const baggage = BAGGAGE.find(b => b.id === baggageId)
+                      updatePassengerAt(index, {
+                        ...passenger,
+                        baggagePreference: baggageId,
+                        baggagePrice: baggage?.price ?? 0
+                      })
+                    }}
+                    passengerName={`${passenger.firstName || 'Passenger'} ${passenger.lastName || (index + 1)}`}
+                  />
+                </div>
               )
             })}
           </div>

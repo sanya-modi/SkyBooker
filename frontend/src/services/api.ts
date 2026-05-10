@@ -526,6 +526,9 @@ export interface PassengerResult {
   nationality: string
   seatNumber?: string
   mealPreference?: string | null
+  mealPrice?: number | null
+  baggagePreference?: string | null
+  baggagePrice?: number | null
 }
 
 export interface PassengerCreateRequest {
@@ -540,6 +543,10 @@ export interface PassengerCreateRequest {
   gender: 'MALE' | 'FEMALE' | 'OTHER'
   nationality: string
   specialRequests?: string
+  mealPreference?: string
+  mealPrice?: number
+  baggagePreference?: string
+  baggagePrice?: number
 }
 
 export const paymentApi = {

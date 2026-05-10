@@ -1,0 +1,29 @@
+SkyBooker Use Case Diagram Explanation
+
+Overview:
+The Use Case Diagram defines the behavioral interactions between the system's actors (users) and the core platform features. It outlines "who can do what" within SkyBooker.
+
+Actors:
+1. Passenger
+2. Airline Staff
+3. Admin
+
+Use Cases by Actor:
+
+1. Passenger:
+   - Search Popular Destinations: Can query the system for flights grouped by popular destinations without needing an account.
+   - Book Flight: Initiates the seat reservation, ticketing, and payment workflows.
+   - Manage Profile: Updates personal details, travel documents, and contact preferences.
+
+2. Airline Staff:
+   - Manage Airline Flights: Can create, update, and manage the schedule of flights. *Crucially, this use case is isolated by the Airline Tenancy constraint*, meaning they can only act upon flights owned by their employer.
+   - Update Flight Status: Can trigger real-time operational status changes (e.g., SCHEDULED to DELAYED or CANCELLED), which subsequently fires off RabbitMQ events for passenger notification.
+   - Manage Staff Profile: Updates personal profile data with strict regex validations enforced on the frontend and backend.
+
+3. Admin:
+   - Toggle Airport/Airline Status: Can activate or deactivate master data records. Deactivating an airline cascades restrictions down to staff logins and flight visibility.
+   - System Dashboard Overview: Views global metrics, platform health, and manages platform-wide users.
+
+Key Takeaways:
+- Distinct workflows ensure that each user type has a tailored, secure, and isolated experience on the platform.
+- The most critical constraint is the multi-tenant barrier applied to Airline Staff, mapping their operational capabilities strictly to their organization's boundaries.

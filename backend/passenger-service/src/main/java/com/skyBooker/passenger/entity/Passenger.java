@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -53,6 +54,18 @@ public class Passenger {
 
     @Column(length = 50)
     private String specialRequests;
+
+    @Column(length = 50)
+    private String mealPreference;
+
+    @Column(precision = 10, scale = 2)
+    private BigDecimal mealPrice;
+
+    @Column(length = 50)
+    private String baggagePreference;
+
+    @Column(precision = 10, scale = 2)
+    private BigDecimal baggagePrice;
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;

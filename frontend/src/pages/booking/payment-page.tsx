@@ -152,7 +152,7 @@ export function PaymentPage() {
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const { isLoggedIn, user, profile, updateProfile } = useAuth()
-  const { passengers, selectedFlight, selectedSeatIds, selectedMealId, selectedBaggageId, passenger, setConfirmedBooking } = useBookingFlow()
+  const { passengers, selectedFlight, selectedSeatIds, passenger, setConfirmedBooking } = useBookingFlow()
   const [flight, setFlight] = useState<EnrichedFlightResult | null>(selectedFlight)
   const [seats, setSeats] = useState<SeatResult[]>([])
   const [submitting, setSubmitting] = useState(false)
@@ -213,8 +213,8 @@ export function PaymentPage() {
   const selectedSeatClass = selectedSeat ? getEffectiveSeatClass(selectedSeat) : undefined
   const taxes = useMemo(() => Math.round(Number(flight?.baseFare ?? 0) * 0.12), [flight])
   const seatCharge = useMemo(() => selectedSeatIds.reduce((sum, seatNumber) => sum + getSeatPrice(seats, seatNumber), 0), [seats, selectedSeatIds])
-  const mealCharge = useMemo(() => MEALS.find(m => m.id === selectedMealId)?.price ?? 0, [selectedMealId])
-  const baggageCharge = useMemo(() => BAGGAGE.find(b => b.id === selectedBaggageId)?.price ?? 0, [selectedBaggageId])
+  const mealCharge = useMemo(() => selectedPassengers.reduce((sum, p) => sum + (p.mealPrice ?? 0), 0), [selectedPassengers])
+  const baggageCharge = useMemo(() => selectedPassengers.reduce((sum, p) => sum + (p.baggagePrice ?? 0), 0), [selectedPassengers])
   const total = Number(flight?.baseFare ?? 0) + taxes + seatCharge + mealCharge + baggageCharge
   const passengerNationality = useMemo(() => getPassengerNationality(profile?.nationality), [profile?.nationality])
   const passengerErrors = useMemo(() => selectedPassengers.map(validatePassenger), [selectedPassengers])
@@ -318,6 +318,10 @@ export function PaymentPage() {
               category: entry.category as 'ADULT' | 'CHILD' | 'INFANT',
               gender: entry.gender as 'MALE' | 'FEMALE' | 'OTHER',
               nationality: passengerNationality,
+              mealPreference: entry.mealPreference,
+              mealPrice: entry.mealPrice,
+              baggagePreference: entry.baggagePreference, 
+              baggagePrice: entry.baggagePrice,
             }),
           ),
         )
@@ -706,3 +710,6 @@ export function PaymentPage() {
     </div>
   )
 }
+
+
+

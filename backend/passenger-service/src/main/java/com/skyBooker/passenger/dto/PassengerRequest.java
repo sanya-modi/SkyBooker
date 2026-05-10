@@ -55,4 +55,12 @@ public class PassengerRequest {
 
     @Pattern(regexp = PassengerValidationPatterns.SPECIAL_REQUESTS, message = "Special requests format is invalid")
     private String specialRequests;
+
+    private String mealPreference;
+
+    private java.math.BigDecimal mealPrice;
+
+    private String baggagePreference;
+
+    private java.math.BigDecimal baggagePrice;
 }
