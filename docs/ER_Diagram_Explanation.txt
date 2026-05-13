@@ -1,0 +1,33 @@
+SkyBooker Entity Relationship (ERD) Diagram Explanation
+
+Overview:
+The ER Diagram maps out the logical data structure of the SkyBooker platform. Because SkyBooker uses a microservices architecture, these entities do not reside in a single monolithic database. Instead, they represent the logical relationships across the Database-per-Service schemas.
+
+Core Entities & Relationships:
+
+1. USER (Stored in Auth/Admin DB):
+   - Represents the login credentials, roles, and basic identity.
+   - Relationship: An Airline "employs" Users (if their role is AIRLINE_STAFF). The User table holds an optional Foreign Key `airlineId` for this linkage. A User can also be linked to a PASSENGER profile 1-to-1.
+
+2. AIRLINE & AIRPORT (Stored in Airline DB):
+   - Represents master operational data.
+   - Attributes: Both entities rely heavily on an `isActive` boolean flag for platform-wide validation.
+   - Relationship: An Airline "operates" many FLIGHTS. An Airport acts as the "origin" or "destination" for many FLIGHTS.
+
+3. FLIGHT (Stored in Flight DB):
+   - The central transactional entity connecting master data to bookings.
+   - Attributes: Status, scheduling times, and pricing.
+   - Relationship: A Flight "has" many BOOKINGS. It holds Foreign Keys to the Airline and the Origin/Destination Airports.
+
+4. BOOKING (Stored in Booking DB):
+   - Represents a specific reservation on a Flight.
+   - Attributes: Transaction status, seat allocations.
+   - Relationship: Created by a PASSENGER and tied to a specific FLIGHT.
+
+5. PASSENGER (Stored in Passenger DB):
+   - Extended profile data for travelers.
+   - Relationship: A Passenger "creates" many BOOKINGS over time.
+
+Key Takeaways:
+- Logical vs Physical: While the ERD shows Foreign Keys (e.g., Flight pointing to Airline), these are enforced via application-level Feign Client calls rather than physical database constraints, adhering to distributed system best practices.
+- Centrality of Flight: The Flight entity bridges the administrative side (Airlines/Airports) with the consumer side (Passengers/Bookings).

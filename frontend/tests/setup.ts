@@ -1,17 +1,30 @@
 import '@testing-library/jest-dom'
-import { cleanup } from '@testing-library/react'
+import { vi } from 'vitest'
 
-afterEach(() => {
-  cleanup()
-  localStorage.clear()
-  sessionStorage.clear()
-})
+global.localStorage = {
+  getItem: vi.fn(),
+  setItem: vi.fn(),
+  removeItem: vi.fn(),
+  clear: vi.fn(),
+  length: 0,
+  key: vi.fn(),
+}
 
-global.ResizeObserver = vi.fn().mockImplementation(() => ({
-  observe: vi.fn(),
-  unobserve: vi.fn(),
-  disconnect: vi.fn(),
-}))
+global.EventSource = vi.fn(() => ({
+  addEventListener: vi.fn(),
+  removeEventListener: vi.fn(),
+  close: vi.fn(),
+  onerror: null,
+  onmessage: null,
+  onopen: null,
+  readyState: 0,
+  url: '',
+  withCredentials: false,
+  CONNECTING: 0,
+  OPEN: 1,
+  CLOSED: 2,
+  dispatchEvent: vi.fn(),
+})) as any
 
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
@@ -25,4 +38,14 @@ Object.defineProperty(window, 'matchMedia', {
     removeEventListener: vi.fn(),
     dispatchEvent: vi.fn(),
   })),
+})
+
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom')
+  return {
+    ...actual,
+    useNavigate: () => vi.fn(),
+    useLocation: () => ({ pathname: '/', search: '', hash: '', state: null }),
+    useParams: () => ({}),
+  }
 })

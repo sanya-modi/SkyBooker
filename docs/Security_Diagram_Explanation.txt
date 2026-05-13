@@ -1,0 +1,25 @@
+SkyBooker Security & Multi-Tenancy Architecture Explanation
+
+Overview:
+While traditional security diagrams focus purely on authentication, SkyBooker's security model goes further by enforcing strict Role-Based Access Control (RBAC) and Airline-level Multi-Tenancy. This ensures that data is completely isolated between different airline organizations.
+
+Components & Flow:
+1. API Gateway & Token Validation:
+   - The API Gateway intercepts all incoming requests and validates the stateless JSON Web Token (JWT).
+   - Once validated, the Gateway extracts the user's identity, role, and most importantly, their `airlineId` (if they are airline staff), and propagates these as trusted HTTP headers to downstream microservices.
+
+2. Authentication & Authorization:
+   - Auth Service: Handles initial login and issues the JWT. It verifies credentials against the `auth_db`.
+   - Roles: The system enforces three primary roles: ADMIN (global access), AIRLINE_STAFF (tenant-restricted access), and PASSENGER (personal access).
+
+3. Tenant Isolation (Multi-Tenancy):
+   - When an AIRLINE_STAFF member attempts to create, edit, or view a flight, the Flight Service extracts the `airlineId` from the propagated security context.
+   - The service enforces a hard database filter, guaranteeing that the staff member can only interact with rows in the `flight_db` that match their assigned `airlineId`.
+
+4. Active Status Platform Validation:
+   - Security extends to operational validity. If an Admin disables an Airline or an Airport (setting `isActive` = false), the backend actively blocks operations related to those entities.
+   - Flight searches filter out inactive airlines, and staff members of deactivated airlines are prevented from managing flights or logging into the system.
+
+Key Takeaways:
+- Zero-Trust Internal Routing: Services trust the API Gateway's header propagation, removing the need to re-parse JWTs at every microservice layer.
+- Strict Tenancy: Cross-tenant data leakage is structurally prevented at the repository and service levels.

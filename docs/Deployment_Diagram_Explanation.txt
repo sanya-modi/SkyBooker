@@ -1,0 +1,32 @@
+SkyBooker Deployment Diagram Explanation
+
+Overview:
+The deployment diagram illustrates the containerized infrastructure and networking topology for the SkyBooker platform. It shows how the frontend, microservices, and backing services are distributed and interact within the production environment.
+
+Components & Flow:
+1. Client Environments:
+   - Passengers, Airline Staff, and Admins access the platform via a React TSX Web Application running in a Web Browser. All external traffic is secured via HTTPS.
+
+2. API Gateway (Entry Point):
+   - All client traffic routes through the Spring Cloud API Gateway. It acts as the single point of entry, handling cross-origin requests (CORS), JWT token validation, and routing traffic to the appropriate backend domain service.
+
+3. Domain Microservices:
+   - These are independently deployable Spring Boot applications:
+     - Flight Service
+     - Booking Service
+     - Admin/User Service
+     - Airline/Airport Service
+     - Auth Service
+     - Notification Service
+     - Payment Service
+     - Passenger Service
+   - They run in their own containers and communicate internally.
+
+4. Infrastructure & Backing Services:
+   - Eureka Service Registry: Microservices register here on startup to enable dynamic discovery and load balancing.
+   - RabbitMQ Cluster: Acts as the message broker. The Flight and Booking services publish asynchronous events here, which are consumed by the Notification Service to send emails without blocking the main thread.
+   - Database Layer: Follows the "Database-per-Service" pattern. There are multiple independent MySQL databases (e.g., flight_db, booking_db, auth_db) ensuring strict data isolation between domains.
+
+Key Takeaways:
+- Decoupling: Services can scale independently. If the Flight Service experiences high load, it can be scaled up without affecting the Booking Service.
+- Fault Tolerance: Asynchronous communication via RabbitMQ ensures that if the SMTP server goes down, notifications are queued and not lost.

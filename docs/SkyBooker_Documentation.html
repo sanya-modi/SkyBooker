@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>SkyBooker — Enterprise Flight Booking Platform Documentation</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  :root {
+    --brand: #0284c7; /* Sky blue */
+    --brand-dark: #0369a1;
+    --brand-light: #e0f2fe;
+    --gold: #f59e0b;
+    --bg: #f8fafc;
+    --card: #ffffff;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --sidebar-w: 280px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg);
+         color: var(--text); display: flex; min-height: 100vh; }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: var(--sidebar-w); min-width: var(--sidebar-w);
+    background: #0b1120; color: #e2e8f0;
+    position: fixed; top: 0; left: 0; height: 100vh;
+    overflow-y: auto; z-index: 100;
+    display: flex; flex-direction: column;
+  }
+  .sidebar-brand {
+    padding: 24px 20px 16px;
+    font-size: 1.25rem; font-weight: 700;
+    color: #fff; border-bottom: 1px solid #1e293b;
+    letter-spacing: -.3px;
+  }
+  .sidebar-brand span { color: var(--gold); }
+  .sidebar-section { padding: 20px 16px 8px;
+    font-size: .75rem; font-weight: 800;
+    text-transform: uppercase; letter-spacing: 1.5px;
+    color: #94a3b8; }
+  .sidebar a {
+    display: flex; align-items: center; padding: 10px 16px 10px 20px;
+    color: #cbd5e1; text-decoration: none; font-size: .9rem;
+    border-left: 3px solid transparent;
+    transition: all .15s;
+  }
+  .sidebar a:hover, .sidebar a.active {
+    color: #fff; background: rgba(255,255,255,.06);
+    border-left-color: var(--gold);
+  }
+  .sidebar a .icon { margin-right: 12px; opacity: .8; font-size: 1.1rem; width: 20px; text-align: center; }
+
+  /* ── Main content ── */
+  .main { margin-left: var(--sidebar-w); flex: 1; padding: 0; }
+
+  /* ── Top header ── */
+  .page-header {
+    background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+    color: #fff; padding: 50px 48px 45px;
+  }
+  .page-header h1 { font-size: 2.5rem; font-weight: 800; letter-spacing: -.5px; }
+  .page-header p { margin-top: 10px; color: #ffffff; opacity: 1; font-size: 1.15rem; font-weight: 500; }
+  .badge-row { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
+  .badge {
+    background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.3);
+    padding: 6px 14px; border-radius: 20px; font-size: .8rem; font-weight: 600;
+  }
+
+  /* ── Content sections ── */
+  .content { padding: 40px 48px 80px; }
+  .section { margin-bottom: 60px; scroll-margin-top: 80px; }
+  .section-title {
+    font-size: 1.75rem; font-weight: 700;
+    color: var(--brand); border-bottom: 3px solid var(--brand-light);
+    padding-bottom: 12px; margin-bottom: 24px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .section-title .icon-bg {
+    background: var(--brand); color: #fff;
+    width: 36px; height: 36px; border-radius: 8px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 1rem; flex-shrink: 0;
+  }
+  .subsection { margin-bottom: 40px; }
+  .subsection h3 {
+    font-size: 1.25rem; font-weight: 600;
+    color: #1e293b; margin-bottom: 16px;
+    padding-left: 14px; border-left: 4px solid var(--gold);
+  }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--card); border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.04);
+    padding: 28px; margin-bottom: 24px;
+    border: 1px solid var(--border);
+  }
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); gap: 16px; }
+  .info-card {
+    background: var(--card); border-radius: 10px;
+    border: 1px solid var(--border); padding: 20px;
+  }
+  .info-card .label { font-size: .75rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .5px;
+    color: var(--muted); margin-bottom: 8px; }
+  .info-card .value { font-size: 1.1rem; font-weight: 600; color: var(--text); }
+  .info-card .desc { font-size: .85rem; color: var(--muted); margin-top: 6px; line-height: 1.5; }
+
+  /* ── Tables ── */
+  .table-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 24px;}
+  table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  th { background: var(--brand); color: #fff; padding: 14px 16px;
+       text-align: left; font-weight: 600; }
+  td { padding: 12px 16px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5;}
+  tr:last-child td { border-bottom: none; }
+  tr:nth-child(even) { background: #f8fafc; }
+  td code { background: #f1f5f9; padding: 4px 8px; border-radius: 4px;
+             font-family: 'Consolas', monospace; font-size: .85rem; color: var(--brand-dark); font-weight: 600; }
+
+  /* ── Mermaid diagrams ── */
+  .diagram-box {
+    background: #fff; border: 1px solid var(--border);
+    border-radius: 12px; padding: 30px;
+    overflow-x: auto; margin-bottom: 24px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+  }
+  .diagram-box .diagram-title {
+    font-size: .9rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--muted); margin-bottom: 20px;
+  }
+  .mermaid { font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; }
+
+  /* ── Lists & Typography ── */
+  .styled-list { list-style: none; padding-left: 0; }
+  .styled-list li { position: relative; padding-left: 24px; margin-bottom: 12px; line-height: 1.6; color: #334155; }
+  .styled-list li::before { content: '→'; color: var(--brand); font-weight: 900; position: absolute; left: 0; top: 0; }
+  p { line-height: 1.7; color: #334155; margin-bottom: 16px; }
+
+  /* ── Tech pills ── */
+  .tech-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+  .tech-pill {
+    background: #f1f5f9; border: 1px solid #e2e8f0;
+    padding: 6px 16px; border-radius: 20px;
+    font-size: .85rem; color: #334155; font-weight: 600;
+  }
+</style>
+</head>
+<body>
+
+<!-- ── SIDEBAR ────────────────────────────────────────────────────────────── -->
+<nav class="sidebar">
+  <div class="sidebar-brand">✈️ <span>SkyBooker</span><br/>
+    <small style="font-size:.75rem;opacity:.7;font-weight:400;margin-top:4px;display:block;">Enterprise Flight Platform v2.0</small>
+  </div>
+
+  <div class="sidebar-section">OVERVIEW</div>
+  <a href="#synopsis" class="active"><span class="icon">📋</span>Project Synopsis</a>
+  <a href="#requirements"><span class="icon">📝</span>Detailed Requirements</a>
+  <a href="#tech-stack"><span class="icon">⚙️</span>Technology Stack</a>
+  <a href="#services"><span class="icon">🔧</span>Microservices Table</a>
+
+  <div class="sidebar-section">DIAGRAMS</div>
+  <a href="#architecture"><span class="icon">🏗️</span>System Architecture</a>
+  <a href="#erd"><span class="icon">🗄️</span>Entity Relationship (ERD)</a>
+  <a href="#class-diagrams"><span class="icon">📐</span>Class Diagrams</a>
+  <a href="#sequence-diagrams"><span class="icon">🔄</span>Sequence Diagrams</a>
+  <a href="#usecase"><span class="icon">👤</span>Use Case Diagram</a>
+  <a href="#component"><span class="icon">🔩</span>Component Diagram</a>
+  <a href="#deployment"><span class="icon">🚀</span>Deployment Diagram</a>
+  <a href="#state"><span class="icon">📊</span>State Diagrams</a>
+
+  <div class="sidebar-section">REFERENCE</div>
+  <a href="#api-endpoints"><span class="icon">🌐</span>API Endpoints</a>
+  <a href="#db-schemas"><span class="icon">💾</span>Database Schemas</a>
+  <a href="#nfr"><span class="icon">⚡</span>Non-Functional Req.</a>
+  <a href="#future"><span class="icon">🔮</span>Future Enhancements</a>
+</nav>
+
+<!-- ── MAIN ─────────────────────────────────────────────────────────────── -->
+<div class="main">
+
+<!-- Header -->
+<div class="page-header">
+  <h1>SkyBooker — Enterprise Flight Booking Platform</h1>
+  <p>Spring Boot 3.x · Microservices · React TSX · Swagger UI · RabbitMQ</p>
+  <div class="badge-row">
+    <span class="badge">Java 21</span>
+    <span class="badge">Spring Boot 3.x</span>
+    <span class="badge">React 18+</span>
+    <span class="badge">8 Microservices</span>
+    <span class="badge">Database-per-Service</span>
+    <span class="badge">Multi-Tenancy</span>
+    <span class="badge">RabbitMQ Events</span>
+    <span class="badge">Centralized Swagger</span>
+    <span class="badge">SMTP Notifications</span>
+    <span class="badge">Strict Coverage</span>
+  </div>
+</div>
+
+<div class="content">
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     1. PROJECT SYNOPSIS
+══════════════════════════════════════════════════════════════════════ -->
+<div class="section" id="synopsis">
+  <div class="section-title"><span class="icon-bg">📋</span> Project Synopsis</div>
+
+  <div class="card">
+    <p>
+      <strong>SkyBooker</strong> is a comprehensive microservices-based airline management and flight booking platform. It caters to multiple actor types: <strong>System Administrators</strong> who oversee operations, <strong>Airline Staff</strong> who manage their respective airline's flights, and <strong>Passengers</strong> who discover destinations, book tickets, and receive real-time notifications.
+    </p>
+    <p>
+      The architecture emphasizes strict multi-tenancy for airline staff, ensuring isolated data views per organization. It utilizes an API Gateway for routing and unified Swagger documentation, RabbitMQ for asynchronous event-driven notifications (like flight delays), and a suite of decoupled domain services for high availability and scalability.
+    </p>
+  </div>
+
+  <div class="card-grid">
+    <div class="info-card">
+      <div class="label">Architecture</div>
+      <div class="value">Microservices</div>
+      <div class="desc">8 interconnected Spring Boot components handling distinct business domains.</div>
+    </div>
+    <div class="info-card">
+      <div class="label">Multi-Tenancy</div>
+      <div class="value">Airline Isolation</div>
+      <div class="desc">Strict RBAC & data filtering binding staff directly to their airline organization.</div>
+    </div>
+    <div class="info-card">
+      <div class="label">Event-Driven</div>
+      <div class="value">RabbitMQ</div>
+      <div class="desc">Asynchronous notification dispatching for booking confirmations and flight updates.</div>
+    </div>
+    <div class="info-card">
+      <div class="label">Documentation</div>
+      <div class="value">Aggregated Swagger</div>
+      <div class="desc">Centralized API documentation served seamlessly through the API Gateway.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     2. DETAILED REQUIREMENTS
+══════════════════════════════════════════════════════════════════════ -->
+<div class="section" id="requirements">
+  <div class="section-title"><span class="icon-bg">📝</span> Detailed Requirements</div>
+
+  <div class="subsection">
+    <h3>Identity, Multi-Tenancy & Access Control</h3>
+    <div class="card">
+      <ul class="styled-list">
+        <li><strong>Role-Based Access Control (RBAC):</strong> Support for ADMIN, AIRLINE_STAFF, and PASSENGER roles. Admins manage master data (Airports, Airlines), Airline Staff manage flights, and Passengers book them.</li>
+        <li><strong>Airline Staff Multi-Tenancy:</strong> Strict data isolation ensures airline staff can only view, create, edit, or manage flights associated with their specific `airlineId`. The authentication context carries this tenancy ID transparently.</li>
+        <li><strong>Platform-Wide Validation:</strong> Active-status filtering enforces that flights can only be queried or managed if their parent Airline and origin/destination Airports are actively marked as `isActive`. Staff logins are disabled if their parent airline is deactivated.</li>
+        <li><strong>Unified API Gateway:</strong> Validates JWTs, injects user context, and provides an aggregated Swagger UI for cross-service API discovery.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="subsection">
+    <h3>Flights, Airports & Operations</h3>
+    <div class="card">
+      <ul class="styled-list">
+        <li><strong>Airport & Airline Management:</strong> Admins can toggle the active status of entities across the platform. Jackson JSON serialization ensures strict boolean mapping for `isActive` flags across all DTOs and entities.</li>
+        <li><strong>Dynamic Flight Discovery:</strong> A specialized `GET /flights/by-destination` API empowers a "Popular Destinations" UI flow, allowing passengers to filter flights effortlessly based on destination metrics.</li>
+        <li><strong>Airline Operations Dashboard:</strong> React-based frontend providing persistent session handling (via localStorage hydration) to ensure stable page refreshes for complex admin and staff dashboards.</li>
+        <li><strong>Profile Data Integrity:</strong> Jakarta validation applied to Staff Profiles, ensuring regex compliance for names, phone numbers, and profile photo URLs across both frontend forms and backend models.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="subsection">
+    <h3>Bookings & Event-Driven Notifications</h3>
+    <div class="card">
+      <ul class="styled-list">
+        <li><strong>Booking Lifecycle:</strong> Manages the complete transactional state from initial seat reservation through payment success or failure.</li>
+        <li><strong>RabbitMQ Event Bus:</strong> The Flight Service publishes status update events (e.g., DELAYED, CANCELLED) to RabbitMQ exchanges.</li>
+        <li><strong>Asynchronous Notifications:</strong> The Notification Service acts as a consumer, querying the Booking Service for impacted passengers and dispatching HTML email updates via SMTP seamlessly.</li>
+        <li><strong>Real-time UI Consistency:</strong> Frontend clients utilize periodic polling to sync local states with the backend flight updates gracefully.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     3. TECHNOLOGY STACK
+══════════════════════════════════════════════════════════════════════ -->
+<div class="section" id="tech-stack">
+  <div class="section-title"><span class="icon-bg">⚙️</span> Technology Stack</div>
+  <div class="card">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Category</th><th>Technology</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Backend Framework</strong></td><td>Spring Boot 3.x / Java 21</td><td>Microservice foundation.</td></tr>
+          <tr><td><strong>Frontend</strong></td><td>React 18+ (TSX)</td><td>Dynamic user interfaces, state management, AuthContext.</td></tr>
+          <tr><td><strong>API Gateway</strong></td><td>Spring Cloud Gateway</td><td>Routing, Swagger aggregation, CORS.</td></tr>
+          <tr><td><strong>Message Broker</strong></td><td>RabbitMQ</td><td>Event-driven architecture for notifications.</td></tr>
+          <tr><td><strong>Service Registry</strong></td><td>Netflix Eureka Server</td><td>Dynamic service discovery & load balancing.</td></tr>
+          <tr><td><strong>Databases</strong></td><td>MySQL 8.0</td><td>Database-per-service pattern (JPA/Hibernate).</td></tr>
+          <tr><td><strong>API Documentation</strong></td><td>Springdoc OpenAPI</td><td>Exposes `/v3/api-docs` across all individual services.</td></tr>
+          <tr><td><strong>Code Quality</strong></td><td>Jacoco & JUnit 5</td><td>Ensures comprehensive unit test coverage.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="tech-grid">
+      <span class="tech-pill blue">Spring Boot 3</span>
+      <span class="tech-pill purple">React TSX</span>
+      <span class="tech-pill red">RabbitMQ</span>
+      <span class="tech-pill teal">Springdoc Swagger</span>
+      <span class="tech-pill green">Eureka</span>
+      <span class="tech-pill amber">MySQL</span>
+      <span class="tech-pill blue">Jacoco</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     4. MICROSERVICES TABLE
+══════════════════════════════════════════════════════════════════════ -->
+<div class="section" id="services">
+  <div class="section-title"><span class="icon-bg">🔧</span> Microservices Table</div>
+  <div class="card">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Service Name</th><th>Database Schema</th><th>Core Responsibilities</th></tr></thead>
+        <tbody>
+          <tr><td><strong>api-gateway</strong></td><td>—</td><td>Route requests, JWT validation, Aggregates Swagger endpoints.</td></tr>
+          <tr><td><strong>auth-service</strong></td><td><code>auth_db</code></td><td>Registration, Login, Role assignment, Tenancy validation checks.</td></tr>
+          <tr><td><strong>admin-user-service</strong></td><td><code>admin_db</code></td><td>Admin dashboard features, user management workflows.</td></tr>
+          <tr><td><strong>airline-airport-service</strong></td><td><code>airline_db</code></td><td>Manages Airport and Airline entities, enforces `isActive` state validation.</td></tr>
+          <tr><td><strong>flight-service</strong></td><td><code>flight_db</code></td><td>Flight CRUD, multi-tenant airline filtering, Popular Destinations APIs.</td></tr>
+          <tr><td><strong>passenger-service</strong></td><td><code>passenger_db</code></td><td>Manages passenger profiles, travel documents, preferences.</td></tr>
+          <tr><td><strong>booking-service</strong></td><td><code>booking_db</code></td><td>Seat reservations, ticketing logic, maintains passenger contact info for flights.</td></tr>
+          <tr><td><strong>payment-service</strong></td><td><code>payment_db</code></td><td>Checkout flows, payment gateway integrations, transaction logging.</td></tr>
+          <tr><td><strong>notification-service</strong></td><td><code>notif_db</code></td><td>RabbitMQ consumer; dispatches SMTP emails based on flight/booking events.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     5. SYSTEM ARCHITECTURE
+══════════════════════════════════════════════════════════════════════ -->
+<div class="section" id="architecture">
+  <div class="section-title"><span class="icon-bg">🏗️</span> System Architecture</div>
+
+  <div class="diagram-box">
+    <div class="diagram-title">SkyBooker — High-Level Infrastructure</div>
+    <div class="mermaid">
+graph TB
+    Browser["🌐 React TSX Client"]
+
+    subgraph INFRA["Infrastructure & Discovery"]
+        Eureka[("Eureka\nRegistry")]
+        Rabbit[("RabbitMQ\nEvent Bus")]
+        MySQL[("MySQL 8.0\n(Per-Service Schema)")]
+    end
+
+    subgraph GW["API Gateway"]
+        ROUTING["① Route Requests\n② Swagger Aggregation"]
+    end
+
+    subgraph SERVICES["Core Microservices"]
+        AUTH["Auth Service"]
+        AIR["Airline/Airport Service"]
+        FLI["Flight Service"]
+        BOOK["Booking Service"]
+        ADM["Admin/User Service"]
+    end
+
+    subgraph NOTIF["Async Operations"]
+        NS["Notification Service\n(SMTP Sender)"]
+    end
+
+    Browser -->|"HTTP REST"| GW
+    GW -->|"Route"| AUTH
+    GW -->|"Route"| AIR
+    GW -->|"Route"| FLI
+    GW -->|"Route"| BOOK
+    GW -->|"Route"| ADM
+
+    FLI -.->|"Publish Event"| Rabbit
+    BOOK -.->|"Publish Event"| Rabbit
+    Rabbit -.->|"Consume Event"| NS
+    NS -.->|"Fetch Contacts"| BOOK
+
+    SERVICES -.->|"Persist"| MySQL
+    SERVICES -.->|"Register"| Eureka
+
+    style GW fill:#e0f2fe,stroke:#0284c7,color:#0f172a
+    style SERVICES fill:#f8fafc,stroke:#94a3b8,color:#0f172a
+    style NOTIF fill:#dcfce7,stroke:#166534,color:#0f172a
+    style INFRA fill:#f1f5f9,stroke:#64748b,color:#0f172a
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     6. ENTITY RELATIONSHIP (ERD)
+══════════════════════════════════════════════════════════════════════ -->
+<div class="section" id="erd">
+  <div class="section-title"><span class="icon-bg">🗄️</span> Entity Relationship Diagram (ERD)</div>
+
+  <div class="diagram-box">
+    <div class="diagram-title">SkyBooker Logical Data Model</div>
+    <div class="mermaid">
+erDiagram
+    USER {
+        string userId PK
+        string email
+        string role "ADMIN | AIRLINE_STAFF | PASSENGER"
+        string airlineId FK "Nullable"
+    }
+    AIRLINE {
+        string airlineId PK
+        string name
+        boolean isActive
+    }
+    AIRPORT {
+        string airportCode PK
+        string city
+        boolean isActive
+    }
+    FLIGHT {
+        string flightId PK
+        string airlineId FK
+        string originCode FK
+        string destinationCode FK
+        string status
+    }
+    BOOKING {
+        string bookingId PK
+        string flightId FK
+        string passengerId FK
+        string status
+    }
+    PASSENGER {
+        string passengerId PK
+        string userId FK
+        string name
+        string email
+    }
+
+    AIRLINE ||--o{ USER : "employs (if staff)"
+    AIRLINE ||--o{ FLIGHT : "operates"
+    AIRPORT ||--o{ FLIGHT : "acts as origin/dest"
+    FLIGHT ||--o{ BOOKING : "has"
+    PASSENGER ||--o{ BOOKING : "creates"
+    USER ||--o| PASSENGER : "is"
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     7. CLASS DIAGRAMS
+══════════════════════════════════════════════════════════════════════ -->
+<div class="section" id="class-diagrams">
+  <div class="section-title"><span class="icon-bg">📐</span> Class Diagrams</div>
+
+  <div class="diagram-box">
+    <div class="diagram-title">Flight Service Multi-Tenancy Flow</div>
+    <div class="mermaid">
+classDiagram
+    class FlightController {
+        -FlightService flightService
+        +getFlightsByAirline(airlineId) ResponseEntity
+        +createFlight(flightDto) ResponseEntity
+    }
+
+    class FlightServiceImpl {
+        -FlightRepository flightRepository
+        -AirlineServiceClient airlineClient
+        -RabbitTemplate rabbitTemplate
+        +createFlight(flightDto, staffContext) Flight
+    }
+
+    class AuthenticatedUserContext {
+        +String userId
+        +String airlineId
+        +String role
+    }
+
+    class AirlineServiceClient {
+        <<FeignClient>>
+        +checkAirlineActiveStatus(airlineId) boolean
+    }
+
+    FlightController --> FlightServiceImpl : delegates
+    FlightServiceImpl --> AuthenticatedUserContext : validates tenancy
+    FlightServiceImpl --> AirlineServiceClient : calls
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     8. SEQUENCE DIAGRAMS
+══════════════════════════════════════════════════════════════════════ -->
+<div class="section" id="sequence-diagrams">
+  <div class="section-title"><span class="icon-bg">🔄</span> Sequence Diagrams</div>
+
+  <div class="diagram-box">
+    <div class="diagram-title">Event-Driven Flight Status Notification</div>
+    <div class="mermaid">
+sequenceDiagram
+    participant Staff as Airline Staff
+    participant FS as Flight Service
+    participant RMQ as RabbitMQ
+    participant NS as Notification Service
+    participant BS as Booking Service
+    participant SMTP as SMTP Email
+
+    Staff->>FS: PUT /flights/{id}/status (DELAYED)
+    FS->>FS: Update Flight DB
+    FS->>RMQ: Publish FlightStatusEvent
+    FS-->>Staff: 200 OK Response
+    RMQ-->>NS: Consume Event (Async)
+    NS->>BS: Feign GET /bookings/flight/{id}/passengers
+    BS-->>NS: Passenger Contacts List
+    NS->>SMTP: Send Email to Passengers
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     9. USE CASE DIAGRAM
+══════════════════════════════════════════════════════════════════════ -->
+<div class="section" id="usecase">
+  <div class="section-title"><span class="icon-bg">👤</span> Use Case Diagram</div>
+
+  <div class="diagram-box">
+    <div class="diagram-title">Core Platform Workflows</div>
+    <div class="mermaid">
+flowchart LR
+    P[Passenger]
+    S[Airline Staff]
+    A[Admin]
+
+    P --> UC1((Search Popular Destinations))
+    P --> UC2((Book Flight))
+    P --> UC3((Manage Passenger Profile))
+
+    S --> UC4((Manage Airline Flights))
+    S --> UC5((Update Flight Status))
+    S --> UC6((Manage Staff Profile))
+
+    A --> UC7((Toggle Airport/Airline Status))
+    A --> UC8((System Dashboard Overview))
+
+    UC4 -.->|Isolated by| T[Airline Tenancy]
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     10. COMPONENT DIAGRAM
+══════════════════════════════════════════════════════════════════════ -->
+<div class="section" id="component">
+  <div class="section-title"><span class="icon-bg">🔩</span> Component Diagram</div>
+
+  <div class="diagram-box">
+    <div class="diagram-title">Frontend/Backend Architecture Component View</div>
+    <div class="mermaid">
+flowchart TB
+    UI[React TSX Frontend]
+    GW[API Gateway / Swagger Aggregator]
+    ER[Eureka Service Registry]
+    
+    UI -->|REST APIs| GW
+    GW -->|Route| AS[Auth Service]
+    GW -->|Route| FS[Flight Service]
+    GW -->|Route| MS[Misc Services...]
+    
+    FS -.->|Register| ER
+    AS -.->|Register| ER
+    MS -.->|Register| ER
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     11. DEPLOYMENT DIAGRAM
+══════════════════════════════════════════════════════════════════════ -->
+<div class="section" id="deployment">
+  <div class="section-title"><span class="icon-bg">🚀</span> Deployment Diagram</div>
+
+  <div class="diagram-box">
+    <div class="diagram-title">Containerized Deployment Strategy</div>
+    <div class="mermaid">
+flowchart TB
+    subgraph Client Environments
+        Browser[Web Browser / React]
+    end
+    
+    subgraph Docker Infrastructure
+        GW[API Gateway]
+        
+        subgraph Domain Microservices
+            S1[Flight Service]
+            S2[Booking Service]
+            S3[Admin Service]
+        end
+        
+        subgraph Messaging & Storage
+            R[RabbitMQ Cluster]
+            DB[(MySQL Schemas)]
+        end
+    end
+    
+    Browser -->|HTTPS| GW
+    GW --> S1
+    GW --> S2
+    GW --> S3
+    
+    S1 --> R
+    S1 --> DB
+    S2 --> DB
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     12. STATE DIAGRAMS
+══════════════════════════════════════════════════════════════════════ -->
+<div class="section" id="state">
+  <div class="section-title"><span class="icon-bg">📊</span> State Diagrams</div>
+
+  <div class="subsection">
+    <h3>Flight Operational Lifecycle</h3>
+    <div class="diagram-box">
+      <div class="mermaid">
+stateDiagram-v2
+    [*] --> SCHEDULED : Flight Created
+    SCHEDULED --> BOARDING : Staff Initiates
+    BOARDING --> DEPARTED : Takeoff
+    SCHEDULED --> DELAYED : Weather/Ops Issue
+    DELAYED --> DEPARTED : Resumed
+    SCHEDULED --> CANCELLED : Terminated
+    DEPARTED --> ARRIVED : Landing
+    ARRIVED --> [*]
+    CANCELLED --> [*]
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     13. API ENDPOINTS (REFERENCE)
+══════════════════════════════════════════════════════════════════════ -->
+<div class="section" id="api-endpoints">
+  <div class="section-title"><span class="icon-bg">🌐</span> Key API Endpoints</div>
+  <div class="card">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Method</th><th>Endpoint</th><th>Service</th><th>Access Role</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>GET</code></td><td><code>/v3/api-docs</code></td><td>API Gateway</td><td>Public</td><td>Aggregated Swagger UI schemas.</td></tr>
+          <tr><td><code>GET</code></td><td><code>/api/flights/by-destination</code></td><td>Flight Service</td><td>Public</td><td>Fetches popular destination flights.</td></tr>
+          <tr><td><code>POST</code></td><td><code>/api/flights</code></td><td>Flight Service</td><td>AIRLINE_STAFF</td><td>Creates a flight (auto-assigned to staff's airline).</td></tr>
+          <tr><td><code>PUT</code></td><td><code>/api/airports/{id}/status</code></td><td>Airline/Airport Service</td><td>ADMIN</td><td>Toggles airport active status.</td></tr>
+          <tr><td><code>POST</code></td><td><code>/api/bookings</code></td><td>Booking Service</td><td>PASSENGER</td><td>Initiates flight booking workflow.</td></tr>
+          <tr><td><code>GET</code></td><td><code>/api/admin/users/staff</code></td><td>Admin Service</td><td>ADMIN</td><td>Lists staff profiles with regex validations.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     14. DATABASE SCHEMAS
+══════════════════════════════════════════════════════════════════════ -->
+<div class="section" id="db-schemas">
+  <div class="section-title"><span class="icon-bg">💾</span> Database Strategy</div>
+  <div class="card">
+    <p>SkyBooker leverages the <strong>Database-per-Service</strong> pattern, ensuring complete domain isolation and preventing tight coupling between modules.</p>
+    <ul class="styled-list">
+      <li><strong>admin_db:</strong> System configurations, master user mappings.</li>
+      <li><strong>airline_db:</strong> `airlines` (id, name, isActive), `airports` (code, city, isActive).</li>
+      <li><strong>flight_db:</strong> `flights` (metadata, schedules, airline references).</li>
+      <li><strong>booking_db:</strong> `bookings`, `tickets`, `seat_allocations`.</li>
+      <li><strong>passenger_db:</strong> `passengers`, `travel_documents`.</li>
+      <li><strong>payment_db:</strong> `transactions`, `invoices`.</li>
+      <li><strong>notif_db:</strong> `email_logs`, `audit_events`.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     15. NON-FUNCTIONAL REQUIREMENTS
+══════════════════════════════════════════════════════════════════════ -->
+<div class="section" id="nfr">
+  <div class="section-title"><span class="icon-bg">⚡</span> Non-Functional Requirements</div>
+  <div class="card">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Requirement</th><th>Implementation Detail</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Security</strong></td><td>Strict context propagation. Airline Staff cannot modify flights outside their `airlineId`. Frontend prevents unauthenticated redirects via `isAuthReady` checks.</td></tr>
+          <tr><td><strong>Data Integrity</strong></td><td>Jackson annotations (`@JsonProperty`) explicitly handle boolean `isActive` parsing to avoid serialization bugs. Jakarta validations enforce profile integrity.</td></tr>
+          <tr><td><strong>Test Coverage</strong></td><td>Jacoco integration enforces maximum coverage. Dedicated coverage tests account for lombok-generated code, DTOs, edge cases, and custom exception handlers.</td></tr>
+          <tr><td><strong>Asynchronous Resiliency</strong></td><td>RabbitMQ unblocks main request threads. If SMTP goes down, RabbitMQ queues retain messages until the Notification Service recovers.</td></tr>
+          <tr><td><strong>Usability</strong></td><td>Fallback images integrated dynamically for destination cards. Clean Swagger UI integration ensures developer ease of use.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     16. FUTURE ENHANCEMENTS
+══════════════════════════════════════════════════════════════════════ -->
+<div class="section" id="future">
+  <div class="section-title"><span class="icon-bg">🔮</span> Future Enhancements</div>
+  <div class="card">
+    <ul class="styled-list">
+      <li><strong>Dynamic Pricing Engine:</strong> Implement yield management algorithms to adjust flight prices automatically based on seat availability and time-to-departure.</li>
+      <li><strong>Loyalty Program (SkyMiles):</strong> Add a new microservice to track frequent flyer points, enabling passengers to book using points.</li>
+      <li><strong>Mobile Boarding Passes:</strong> Generate Apple Wallet / Google Wallet pass files dynamically from the Booking Service.</li>
+      <li><strong>Redis Caching:</strong> Cache the "Popular Destinations" API response in Redis to reduce database strain on high-traffic landing pages.</li>
+      <li><strong>Distributed Tracing:</strong> Integrate Zipkin or Jaeger to map trace IDs across flight creation and RabbitMQ asynchronous flows.</li>
+    </ul>
+  </div>
+</div>
+
+</div>
+</div>
+
+<script>
+  mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'loose' });
+</script>
+</body>
+</html>
