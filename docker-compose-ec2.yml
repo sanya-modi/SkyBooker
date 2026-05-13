@@ -1,0 +1,306 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - skyBooker-network
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - skyBooker-network
+
+  eureka-server:
+    image: ${ECR_REGISTRY}/skybooker-eureka-server:latest
+    container_name: eureka-server
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8761/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "8761:8761"
+    environment:
+      SPRING_APPLICATION_NAME: eureka-server
+    networks:
+      - skyBooker-network
+
+  api-gateway:
+    image: ${ECR_REGISTRY}/skybooker-api-gateway:latest
+    container_name: api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      SPRING_APPLICATION_NAME: api-gateway
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - skyBooker-network
+
+  auth-service:
+    image: ${ECR_REGISTRY}/skybooker-auth-service:latest
+    container_name: auth-service
+    ports:
+      - "8081:8081"
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/auth_db
+      SPRING_APPLICATION_NAME: auth-service
+      AIRLINE_AIRPORT_SERVICE_URL: http://airline-airport-service:8088
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: guest
+      RABBITMQ_PASSWORD: guest
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - skyBooker-network
+
+  flight-service:
+    image: ${ECR_REGISTRY}/skybooker-flight-service:latest
+    container_name: flight-service
+    ports:
+      - "8082:8082"
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/flight_db
+      SPRING_APPLICATION_NAME: flight-service
+      SEAT_SERVICE_URL: http://seat-service:8083
+      BOOKING_SERVICE_URL: http://booking-service:8084
+      PASSENGER_SERVICE_URL: http://passenger-service:8085
+      AUTH_SERVICE_URL: http://auth-service:8081
+      NOTIFICATION_SERVICE_URL: http://notification-service:8087
+      AIRLINE_AIRPORT_SERVICE_URL: http://airline-airport-service:8088
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: guest
+      RABBITMQ_PASSWORD: guest
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - skyBooker-network
+
+  seat-service:
+    image: ${ECR_REGISTRY}/skybooker-seat-service:latest
+    container_name: seat-service
+    ports:
+      - "8083:8083"
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/seat_db
+      SPRING_APPLICATION_NAME: seat-service
+      FLIGHT_SERVICE_URL: http://flight-service:8082
+      BOOKING_SERVICE_URL: http://booking-service:8084
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - skyBooker-network
+
+  booking-service:
+    image: ${ECR_REGISTRY}/skybooker-booking-service:latest
+    container_name: booking-service
+    ports:
+      - "8084:8084"
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/booking_db
+      SPRING_APPLICATION_NAME: booking-service
+      FLIGHT_SERVICE_URL: http://flight-service:8082
+      SEAT_SERVICE_URL: http://seat-service:8083
+      PAYMENT_SERVICE_URL: http://payment-service:8086
+      NOTIFICATION_SERVICE_URL: http://notification-service:8087
+      AUTH_SERVICE_URL: http://auth-service:8081
+      PASSENGER_SERVICE_URL: http://passenger-service:8085
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: guest
+      RABBITMQ_PASSWORD: guest
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - skyBooker-network
+
+  passenger-service:
+    image: ${ECR_REGISTRY}/skybooker-passenger-service:latest
+    container_name: passenger-service
+    ports:
+      - "8085:8085"
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/passenger_db
+      SPRING_APPLICATION_NAME: passenger-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - skyBooker-network
+
+  payment-service:
+    image: ${ECR_REGISTRY}/skybooker-payment-service:latest
+    container_name: payment-service
+    ports:
+      - "8086:8086"
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/payment_db
+      SPRING_APPLICATION_NAME: payment-service
+      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID}
+      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET}
+      BOOKING_SERVICE_URL: http://booking-service:8084
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - skyBooker-network
+
+  notification-service:
+    image: ${ECR_REGISTRY}/skybooker-notification-service:latest
+    container_name: notification-service
+    ports:
+      - "8087:8087"
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/notification_db
+      SPRING_APPLICATION_NAME: notification-service
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: guest
+      RABBITMQ_PASSWORD: guest
+      MAIL_USERNAME: ${SMTP_USERNAME}
+      MAIL_PASSWORD: ${SMTP_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - skyBooker-network
+
+  airline-airport-service:
+    image: ${ECR_REGISTRY}/skybooker-airline-airport-service:latest
+    container_name: airline-airport-service
+    ports:
+      - "8088:8088"
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/airline_airport_db
+      SPRING_APPLICATION_NAME: airline-airport-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - skyBooker-network
+
+  admin-service:
+    image: ${ECR_REGISTRY}/skybooker-admin-service:latest
+    container_name: admin-service
+    ports:
+      - "8089:8089"
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/admin_db
+      SPRING_APPLICATION_NAME: admin-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - skyBooker-network
+
+  admin-user-service:
+    image: ${ECR_REGISTRY}/skybooker-admin-user-service:latest
+    container_name: admin-user-service
+    ports:
+      - "8090:8090"
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/admin_db
+      SPRING_APPLICATION_NAME: admin-user-service
+      AUTH_SERVICE_URL: http://auth-service:8081
+      NOTIFICATION_SERVICE_URL: http://api-gateway:8080
+      SERVER_PORT: 8090
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - skyBooker-network
+
+  frontend:
+    image: ${ECR_REGISTRY}/skybooker-frontend:latest
+    container_name: skybooker-frontend
+    ports:
+      - "3000:80"
+    environment:
+      VITE_API_URL: http://api-gateway:8080
+    depends_on:
+      - api-gateway
+    networks:
+      - skyBooker-network
+
+volumes:
+  postgres_data:
+  rabbitmq_data:
+
+networks:
+  skyBooker-network:
+    driver: bridge
