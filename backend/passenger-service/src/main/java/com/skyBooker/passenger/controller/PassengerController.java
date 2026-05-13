@@ -84,6 +84,10 @@ public class PassengerController {
         passenger.setGender(request.getGender());
         passenger.setNationality(request.getNationality());
         passenger.setSpecialRequests(request.getSpecialRequests());
+        passenger.setMealPreference(request.getMealPreference());
+        passenger.setMealPrice(request.getMealPrice());
+        passenger.setBaggagePreference(request.getBaggagePreference());
+        passenger.setBaggagePrice(request.getBaggagePrice());
         return passenger;
     }
 
@@ -101,6 +105,10 @@ public class PassengerController {
                 passenger.getGender(),
                 passenger.getNationality(),
                 passenger.getSpecialRequests(),
+                passenger.getMealPreference(),
+                passenger.getMealPrice(),
+                passenger.getBaggagePreference(),
+                passenger.getBaggagePrice(),
                 passenger.getCreatedAt(),
                 passenger.getUpdatedAt()
         );
