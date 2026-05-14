@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { BrowserRouter } from 'react-router-dom'
+import React from 'react'
 
 // Mock components
 const MockTopNav = () => <nav data-testid="top-nav">Top Nav</nav>

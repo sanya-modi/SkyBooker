@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import { PaymentSummary } from '../src/components/booking/payment-summary'
-import { FlightResultCard } from '../src/components/booking/flight-result-card'
+import { PaymentSummary } from '../../src/components/booking/payment-summary'
+import { FlightResultCard } from '../../src/components/booking/flight-result-card'
 
 vi.mock('gsap', () => ({
   gsap: {

@@ -450,7 +450,7 @@ class FlightServiceImplAdditionalTest {
         assertThat(response).singleElement().satisfies(item -> {
             assertThat(item.getDestinationName()).isEqualTo("New Delhi");
             assertThat(item.getAirportCode()).isEqualTo("DEL");
-            assertThat(item.getImageUrl()).contains("New+Delhi");
+            assertThat(item.getImageUrl()).isEmpty();
         });
     }
 

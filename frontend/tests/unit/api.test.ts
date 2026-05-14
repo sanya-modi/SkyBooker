@@ -360,15 +360,16 @@ describe('Authorization', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     localStorage.clear()
+    ;(localStorage.getItem as any).mockReturnValue(null)
   })
 
   it('includes token when available', async () => {
-    localStorage.setItem('skybooker_token', 'test-token')
+    ;(localStorage.getItem as any).mockReturnValue('test-token')
     mockResponse({})
     await authApi.getAllUsers()
-    expect(global.fetch).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({
-      headers: expect.objectContaining({ Authorization: 'Bearer test-token' })
-    }))
+    const calls = (global.fetch as any).mock.calls
+    const lastCall = calls[calls.length - 1]
+    expect(lastCall[1].headers).toHaveProperty('Authorization', 'Bearer test-token')
   })
 
   it('works without token', async () => {
