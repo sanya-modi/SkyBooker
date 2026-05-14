@@ -21,6 +21,7 @@ describe('AuthContext', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     localStorage.clear()
+    ;(localStorage.getItem as any).mockReturnValue(null)
     vi.mocked(api.authApi.getUserById).mockResolvedValue(mockUser)
   })
 
@@ -114,8 +115,11 @@ describe('AuthContext', () => {
   })
 
   it('restores from localStorage', async () => {
-    localStorage.setItem('skybooker_token', 'token')
-    localStorage.setItem('skybooker_user', JSON.stringify({ userId: 1, email: 'test@test.com', role: 'PASSENGER' }))
+    ;(localStorage.getItem as any).mockImplementation((key: string) => {
+      if (key === 'skybooker_token') return 'token'
+      if (key === 'skybooker_user') return JSON.stringify({ userId: 1, email: 'test@test.com', role: 'PASSENGER' })
+      return null
+    })
     
     const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider })
     
@@ -124,8 +128,11 @@ describe('AuthContext', () => {
   })
 
   it('handles invalid localStorage', () => {
-    localStorage.setItem('skybooker_token', 'token')
-    localStorage.setItem('skybooker_user', 'invalid')
+    ;(localStorage.getItem as any).mockImplementation((key: string) => {
+      if (key === 'skybooker_token') return 'token'
+      if (key === 'skybooker_user') return 'invalid'
+      return null
+    })
     
     const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider })
     expect(result.current.user).toBeNull()
