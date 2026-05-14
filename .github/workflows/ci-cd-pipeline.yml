@@ -7,7 +7,6 @@ on:
     branches: [main]
 
 env:
-  DOCKER_USERNAME: sanyamodi
   DOCKER_IMAGE_TAG: v1
 
 jobs:
@@ -122,10 +121,10 @@ jobs:
       - name: Build and Push Backend Image
         run: |
           cd backend
-          docker build -f ${{ matrix.service }}/Dockerfile -t ${{ env.DOCKER_USERNAME }}/backend-${{ matrix.service }}:${{ env.DOCKER_IMAGE_TAG }} .
-          docker tag ${{ env.DOCKER_USERNAME }}/backend-${{ matrix.service }}:${{ env.DOCKER_IMAGE_TAG }} ${{ env.DOCKER_USERNAME }}/backend-${{ matrix.service }}:latest
-          docker push ${{ env.DOCKER_USERNAME }}/backend-${{ matrix.service }}:${{ env.DOCKER_IMAGE_TAG }}
-          docker push ${{ env.DOCKER_USERNAME }}/backend-${{ matrix.service }}:latest
+          docker build -f ${{ matrix.service }}/Dockerfile -t ${{ secrets.DOCKER_USERNAME }}/backend-${{ matrix.service }}:${{ env.DOCKER_IMAGE_TAG }} .
+          docker tag ${{ secrets.DOCKER_USERNAME }}/backend-${{ matrix.service }}:${{ env.DOCKER_IMAGE_TAG }} ${{ secrets.DOCKER_USERNAME }}/backend-${{ matrix.service }}:latest
+          docker push ${{ secrets.DOCKER_USERNAME }}/backend-${{ matrix.service }}:${{ env.DOCKER_IMAGE_TAG }}
+          docker push ${{ secrets.DOCKER_USERNAME }}/backend-${{ matrix.service }}:latest
 
   build-frontend:
     name: Build & Push Frontend
@@ -146,10 +145,10 @@ jobs:
           cd frontend
           docker build \
             --build-arg VITE_GOOGLE_CLIENT_ID="${{ secrets.FRONTEND_VITE_GOOGLE_CLIENT_ID }}" \
-            -t ${{ env.DOCKER_USERNAME }}/skybooker-frontend:${{ env.DOCKER_IMAGE_TAG }} .
-          docker tag ${{ env.DOCKER_USERNAME }}/skybooker-frontend:${{ env.DOCKER_IMAGE_TAG }} ${{ env.DOCKER_USERNAME }}/skybooker-frontend:latest
-          docker push ${{ env.DOCKER_USERNAME }}/skybooker-frontend:${{ env.DOCKER_IMAGE_TAG }}
-          docker push ${{ env.DOCKER_USERNAME }}/skybooker-frontend:latest
+            -t ${{ secrets.DOCKER_USERNAME }}/skybooker-frontend:${{ env.DOCKER_IMAGE_TAG }} .
+          docker tag ${{ secrets.DOCKER_USERNAME }}/skybooker-frontend:${{ env.DOCKER_IMAGE_TAG }} ${{ secrets.DOCKER_USERNAME }}/skybooker-frontend:latest
+          docker push ${{ secrets.DOCKER_USERNAME }}/skybooker-frontend:${{ env.DOCKER_IMAGE_TAG }}
+          docker push ${{ secrets.DOCKER_USERNAME }}/skybooker-frontend:latest
 
   deploy-to-ec2:
     name: Deploy to AWS EC2
