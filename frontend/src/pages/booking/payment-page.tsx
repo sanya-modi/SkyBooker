@@ -352,7 +352,7 @@ export function PaymentPage() {
       )
 
       console.log('Razorpay order created:', orderData)
-      
+
       // Step 3: Initialize Razorpay
       const options = {
         key: orderData.keyId,

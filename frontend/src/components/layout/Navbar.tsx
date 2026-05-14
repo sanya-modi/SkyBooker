@@ -1,23 +1,19 @@
 import { motion } from 'framer-motion'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { Icon } from '@/components/ui/icon'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useState } from 'react'
 import { SupportModal } from '@/components/layout/SupportModal'
-import { useAuth } from '@/context/auth-context'
 
 export function Navbar() {
   const location = useLocation()
-  const navigate = useNavigate()
-  const { isLoggedIn } = useAuth()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [supportModalOpen, setSupportModalOpen] = useState(false)
 
-  const navLinks = [
     { href: '/', label: 'Explore' },
     { href: '/flights', label: 'Flights' },
-    { href: '/bookings', label: 'My Trips', requiresAuth: true },
+    { href: '/bookings', label: 'My Trips' },
   ]
 
   return (
@@ -38,37 +34,27 @@ export function Navbar() {
           </Link>
 
           <div className="hidden md:flex items-center gap-8">
-            {navLinks.map((link) => {
-              const handleClick = (e: React.MouseEvent) => {
-                if (link.requiresAuth && !isLoggedIn) {
-                  e.preventDefault()
-                  navigate('/login')
-                }
-              }
-              
-              return (
-                <Link
-                  key={link.href}
-                  to={link.href}
-                  onClick={handleClick}
-                  className={cn(
-                    'font-medium transition-all relative py-2',
-                    location.pathname === link.href
-                      ? 'text-sky-600'
-                      : 'text-gray-600 hover:text-sky-600'
-                  )}
-                >
-                  {link.label}
-                  {location.pathname === link.href && (
-                    <motion.div
-                      layoutId="navbar-indicator"
-                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-sky-600"
-                      transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-                    />
-                  )}
-                </Link>
-              )
-            })}
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                to={link.href}
+                className={cn(
+                  'font-medium transition-all relative py-2',
+                  location.pathname === link.href
+                    ? 'text-sky-600'
+                    : 'text-gray-600 hover:text-sky-600'
+                )}
+              >
+                {link.label}
+                {location.pathname === link.href && (
+                  <motion.div
+                    layoutId="navbar-indicator"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-sky-600"
+                    transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                  />
+                )}
+              </Link>
+            ))}
             <button
               onClick={() => setSupportModalOpen(true)}
               className="font-medium transition-all relative py-2 text-gray-600 hover:text-sky-600"
@@ -133,30 +119,21 @@ export function Navbar() {
           className="md:hidden border-t bg-white"
         >
           <div className="px-4 py-4 space-y-3">
-            {navLinks.map((link) => {
-              const handleClick = () => {
-                setMobileMenuOpen(false)
-                if (link.requiresAuth && !isLoggedIn) {
-                  navigate('/login')
-                }
-              }
-              
-              return (
-                <Link
-                  key={link.href}
-                  to={link.requiresAuth && !isLoggedIn ? '/login' : link.href}
-                  className={cn(
-                    'block px-4 py-2 rounded-lg font-medium',
-                    location.pathname === link.href
-                      ? 'bg-sky-50 text-sky-600'
-                      : 'text-gray-600'
-                  )}
-                  onClick={handleClick}
-                >
-                  {link.label}
-                </Link>
-              )
-            })}
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                to={link.href}
+                className={cn(
+                  'block px-4 py-2 rounded-lg font-medium',
+                  location.pathname === link.href
+                    ? 'bg-sky-50 text-sky-600'
+                    : 'text-gray-600'
+                )}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                {link.label}
+              </Link>
+            ))}
             <button
               className="block px-4 py-2 w-full text-left rounded-lg font-medium text-gray-600 hover:bg-sky-50"
               onClick={() => {

@@ -7,8 +7,8 @@ on:
     branches: [main]
 
 env:
-  AWS_REGION: us-east-1
-  ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
+  DOCKER_USERNAME: sanyamodi
+  DOCKER_IMAGE_TAG: v1
 
 jobs:
   backend-test:
@@ -75,7 +75,7 @@ jobs:
       - name: Run Vitest Tests
         run: |
           cd frontend
-          npm run test:coverage
+          npm run test:coverage -- --run --reporter=verbose --bail=1
 
       - name: Build Frontend
         run: |
@@ -113,24 +113,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build and Push Backend Image
         run: |
           cd backend
-          docker build -f ${{ matrix.service }}/Dockerfile -t ${{ env.ECR_REGISTRY }}/skybooker-${{ matrix.service }}:${{ github.sha }} .
-          docker tag ${{ env.ECR_REGISTRY }}/skybooker-${{ matrix.service }}:${{ github.sha }} ${{ env.ECR_REGISTRY }}/skybooker-${{ matrix.service }}:latest
-          docker push ${{ env.ECR_REGISTRY }}/skybooker-${{ matrix.service }}:${{ github.sha }}
-          docker push ${{ env.ECR_REGISTRY }}/skybooker-${{ matrix.service }}:latest
+          docker build -f ${{ matrix.service }}/Dockerfile -t ${{ env.DOCKER_USERNAME }}/backend-${{ matrix.service }}:${{ env.DOCKER_IMAGE_TAG }} .
+          docker tag ${{ env.DOCKER_USERNAME }}/backend-${{ matrix.service }}:${{ env.DOCKER_IMAGE_TAG }} ${{ env.DOCKER_USERNAME }}/backend-${{ matrix.service }}:latest
+          docker push ${{ env.DOCKER_USERNAME }}/backend-${{ matrix.service }}:${{ env.DOCKER_IMAGE_TAG }}
+          docker push ${{ env.DOCKER_USERNAME }}/backend-${{ matrix.service }}:latest
 
   build-frontend:
     name: Build & Push Frontend
@@ -140,23 +135,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Login to Amazon ECR
-        uses: aws-actions/amazon-ecr-login@v2
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build and Push Frontend Image
         run: |
           cd frontend
-          docker build -t ${{ env.ECR_REGISTRY }}/skybooker-frontend:${{ github.sha }} .
-          docker tag ${{ env.ECR_REGISTRY }}/skybooker-frontend:${{ github.sha }} ${{ env.ECR_REGISTRY }}/skybooker-frontend:latest
-          docker push ${{ env.ECR_REGISTRY }}/skybooker-frontend:${{ github.sha }}
-          docker push ${{ env.ECR_REGISTRY }}/skybooker-frontend:latest
+          docker build \
+            --build-arg VITE_GOOGLE_CLIENT_ID="${{ secrets.FRONTEND_VITE_GOOGLE_CLIENT_ID }}" \
+            -t ${{ env.DOCKER_USERNAME }}/skybooker-frontend:${{ env.DOCKER_IMAGE_TAG }} .
+          docker tag ${{ env.DOCKER_USERNAME }}/skybooker-frontend:${{ env.DOCKER_IMAGE_TAG }} ${{ env.DOCKER_USERNAME }}/skybooker-frontend:latest
+          docker push ${{ env.DOCKER_USERNAME }}/skybooker-frontend:${{ env.DOCKER_IMAGE_TAG }}
+          docker push ${{ env.DOCKER_USERNAME }}/skybooker-frontend:latest
 
   deploy-to-ec2:
     name: Deploy to AWS EC2
@@ -165,13 +158,6 @@ jobs:
     if: github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
 
       - name: Deploy to EC2
         env:
@@ -183,30 +169,13 @@ jobs:
           chmod 600 private_key.pem
           
           ssh -o StrictHostKeyChecking=no -i private_key.pem $EC2_USER@$EC2_HOST << 'EOF'
-            # Login to ECR
-            aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ env.ECR_REGISTRY }}
-            
-            # Pull latest images
-            docker pull ${{ env.ECR_REGISTRY }}/skybooker-eureka-server:latest
-            docker pull ${{ env.ECR_REGISTRY }}/skybooker-api-gateway:latest
-            docker pull ${{ env.ECR_REGISTRY }}/skybooker-auth-service:latest
-            docker pull ${{ env.ECR_REGISTRY }}/skybooker-flight-service:latest
-            docker pull ${{ env.ECR_REGISTRY }}/skybooker-seat-service:latest
-            docker pull ${{ env.ECR_REGISTRY }}/skybooker-booking-service:latest
-            docker pull ${{ env.ECR_REGISTRY }}/skybooker-passenger-service:latest
-            docker pull ${{ env.ECR_REGISTRY }}/skybooker-payment-service:latest
-            docker pull ${{ env.ECR_REGISTRY }}/skybooker-notification-service:latest
-            docker pull ${{ env.ECR_REGISTRY }}/skybooker-airline-airport-service:latest
-            docker pull ${{ env.ECR_REGISTRY }}/skybooker-admin-service:latest
-            docker pull ${{ env.ECR_REGISTRY }}/skybooker-admin-user-service:latest
-            docker pull ${{ env.ECR_REGISTRY }}/skybooker-frontend:latest
-            
-            # Stop and remove old containers
             cd /home/$EC2_USER/skybooker
-            docker-compose down
-            
-            # Start new containers
-            docker-compose up -d
+
+            # Pull the exact image tags referenced by docker-compose.yml
+            docker-compose pull
+
+            # Recreate containers with the freshly pulled images
+            docker-compose up -d --force-recreate --remove-orphans
             
             # Clean up old images
             docker image prune -af

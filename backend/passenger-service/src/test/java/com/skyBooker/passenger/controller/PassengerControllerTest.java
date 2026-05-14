@@ -146,7 +146,11 @@ class PassengerControllerTest {
                 Passenger.Category.ADULT,
                 Passenger.Gender.MALE,
                 "Indian",
-                "Wheelchair"
+                "Wheelchair",
+                null,
+                null,
+                null,
+                null
         );
     }
 
@@ -164,6 +168,10 @@ class PassengerControllerTest {
         passenger.setGender(Passenger.Gender.MALE);
         passenger.setNationality("Indian");
         passenger.setSpecialRequests("Wheelchair");
+        passenger.setMealPreference(null);
+        passenger.setMealPrice(null);
+        passenger.setBaggagePreference(null);
+        passenger.setBaggagePrice(null);
         passenger.setCreatedAt(LocalDateTime.now().minusDays(1));
         passenger.setUpdatedAt(LocalDateTime.now());
         return passenger;

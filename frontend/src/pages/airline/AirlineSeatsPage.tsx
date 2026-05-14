@@ -24,25 +24,31 @@ import {
 const SEAT_LETTERS = ["A", "B", "C", "D", "E", "F"] as const
 
 type RangeDraft = {
+  id: string
   startRow: string
   endRow: string
   seatClass: "ECONOMY" | "BUSINESS" | "FIRST"
 }
 
-const EMPTY_RANGE: RangeDraft = {
-  startRow: "",
-  endRow: "",
-  seatClass: "ECONOMY",
+function createRangeDraft(overrides: Partial<Omit<RangeDraft, "id">> = {}): RangeDraft {
+  return {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+    startRow: "",
+    endRow: "",
+    seatClass: "ECONOMY",
+    ...overrides,
+  }
 }
 
 function mapConfigRangesToDrafts(configs: SeatClassConfigRange[]): RangeDraft[] {
   return configs.length > 0
     ? configs.map((entry) => ({
+        id: `${entry.startRow}-${entry.endRow}-${entry.seatClass}`,
         startRow: String(entry.startRow),
         endRow: String(entry.endRow),
         seatClass: entry.seatClass,
       }))
-    : [{ ...EMPTY_RANGE }]
+    : [createRangeDraft()]
 }
 
 function resolveSeatClassFromDrafts(seatNumber: string, ranges: RangeDraft[]): "ECONOMY" | "BUSINESS" | "FIRST" {
@@ -66,12 +72,13 @@ export default function AirlineSeatsPage() {
   const [selectedFlight, setSelectedFlight] = useState<FlightResult | null>(null)
   const [seats, setSeats] = useState<SeatResult[]>([])
   const [passengers, setPassengers] = useState<FlightPassengerManifestItem[]>([])
-  const [ranges, setRanges] = useState<RangeDraft[]>([{ ...EMPTY_RANGE }])
+  const [ranges, setRanges] = useState<RangeDraft[]>([createRangeDraft()])
   const [loading, setLoading] = useState(true)
   const [seatsLoading, setSeatsLoading] = useState(false)
   const [savingConfig, setSavingConfig] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [message, setMessage] = useState("")
+  const [isEditingRanges, setIsEditingRanges] = useState(false)
 
   useEffect(() => {
     if (!isAuthReady) return
@@ -120,7 +127,7 @@ export default function AirlineSeatsPage() {
       try {
         const payload = JSON.parse((event as MessageEvent).data) as { seats: SeatResult[]; configs?: SeatClassConfigRange[] }
         applySeats(payload.seats)
-        if (payload.configs) {
+        if (payload.configs && !isEditingRanges) {
           setRanges(mapConfigRangesToDrafts(payload.configs))
         }
       } catch {
@@ -145,7 +152,7 @@ export default function AirlineSeatsPage() {
       stream.close()
       if (pollingId) window.clearInterval(pollingId)
     }
-  }, [selectedFlight])
+  }, [isEditingRanges, selectedFlight])
 
   async function loadData() {
     if (!profile?.airlineId) return
@@ -186,6 +193,7 @@ export default function AirlineSeatsPage() {
       setSeats(nextSeats)
       setPassengers(manifest)
       setRanges(mapConfigRangesToDrafts(config))
+      setIsEditingRanges(false)
     } catch (err) {
       console.error("Error loading seats:", err)
       setMessage(err instanceof Error ? err.message : "Failed to load seat map.")
@@ -215,6 +223,7 @@ export default function AirlineSeatsPage() {
       setMessage("")
       await flightApi.saveSeatConfig(selectedFlight.id, payload)
       setSeats(await seatApi.getAllByFlight(selectedFlight.id))
+      setIsEditingRanges(false)
       setMessage("Seat class configuration saved.")
     } catch (err) {
       console.error("Error saving config:", err)
@@ -381,7 +390,10 @@ export default function AirlineSeatsPage() {
                     </div>
                     <button
                       type="button"
-                      onClick={() => setRanges((current) => [...current, { ...EMPTY_RANGE }])}
+                      onClick={() => {
+                        setIsEditingRanges(true)
+                        setRanges((current) => [...current, createRangeDraft()])
+                      }}
                       className="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 font-bold hover:bg-slate-200 transition-all"
                     >
                       Add Range
@@ -390,18 +402,19 @@ export default function AirlineSeatsPage() {
 
                   <div className="space-y-3">
                     {ranges.map((range, index) => (
-                      <div key={`${index}-${range.startRow}-${range.endRow}-${range.seatClass}`} className="grid grid-cols-1 md:grid-cols-[1fr_1fr_1.2fr_auto] gap-3">
+                      <div key={range.id} className="grid grid-cols-1 md:grid-cols-[1fr_1fr_1.2fr_auto] gap-3">
                         <input
                           type="number"
                           min="1"
                           value={range.startRow}
-                          onChange={(e) =>
+                          onChange={(e) => {
+                            setIsEditingRanges(true)
                             setRanges((current) =>
                               current.map((entry, entryIndex) =>
                                 entryIndex === index ? { ...entry, startRow: e.target.value } : entry,
                               ),
                             )
-                          }
+                          }}
                           placeholder="Start row"
                           className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00236f] focus:border-transparent"
                         />
@@ -409,19 +422,21 @@ export default function AirlineSeatsPage() {
                           type="number"
                           min="1"
                           value={range.endRow}
-                          onChange={(e) =>
+                          onChange={(e) => {
+                            setIsEditingRanges(true)
                             setRanges((current) =>
                               current.map((entry, entryIndex) =>
                                 entryIndex === index ? { ...entry, endRow: e.target.value } : entry,
                               ),
                             )
-                          }
+                          }}
                           placeholder="End row"
                           className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00236f] focus:border-transparent"
                         />
                         <select
                           value={range.seatClass}
-                          onChange={(e) =>
+                          onChange={(e) => {
+                            setIsEditingRanges(true)
                             setRanges((current) =>
                               current.map((entry, entryIndex) =>
                                 entryIndex === index
@@ -429,7 +444,7 @@ export default function AirlineSeatsPage() {
                                   : entry,
                               ),
                             )
-                          }
+                          }}
                           className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00236f] focus:border-transparent"
                         >
                           <option value="FIRST">First Class</option>
@@ -438,11 +453,12 @@ export default function AirlineSeatsPage() {
                         </select>
                         <button
                           type="button"
-                          onClick={() =>
+                          onClick={() => {
+                            setIsEditingRanges(true)
                             setRanges((current) =>
-                              current.length === 1 ? [{ ...EMPTY_RANGE }] : current.filter((_, entryIndex) => entryIndex !== index),
+                              current.length === 1 ? [createRangeDraft()] : current.filter((_, entryIndex) => entryIndex !== index),
                             )
-                          }
+                          }}
                           className="px-4 py-3 rounded-xl bg-slate-100 text-slate-600 font-bold hover:bg-slate-200 transition-all"
                         >
                           Remove

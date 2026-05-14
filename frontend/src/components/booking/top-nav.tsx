@@ -33,7 +33,7 @@ export function TopNav() {
   const navLinks = [
     { href: '/', label: 'Explore' },
     { href: '/results', label: 'Flights' },
-    { href: '/bookings', label: 'My Trips', requiresAuth: true },
+    { href: '/bookings', label: 'My Trips' },
     ...(canSearchTicketByPnr ? [{ href: '/tickets', label: 'Find Ticket / PNR' }] : []),
   ]
 
@@ -59,38 +59,28 @@ export function TopNav() {
           </button>
 
           <nav className="hidden md:flex items-center gap-8">
-            {navLinks.map((link) => {
-              const handleClick = () => {
-                if (link.requiresAuth && !isLoggedIn) {
-                  navigate('/login')
-                } else {
-                  navigate(link.href)
-                }
-              }
-              
-              return (
-                <button
-                  key={link.href}
-                  onClick={handleClick}
-                  type="button"
-                  className={cn(
-                    'font-medium transition-all relative py-2',
-                    location.pathname === link.href
-                      ? 'text-sky-600'
-                      : 'text-gray-600 hover:text-sky-600'
-                  )}
-                >
-                  {link.label}
-                  {location.pathname === link.href && (
-                    <motion.div
-                      layoutId="navbar-indicator"
-                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-sky-600"
-                      transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-                    />
-                  )}
-                </button>
-              )
-            })}
+            {navLinks.map((link) => (
+              <button
+                key={link.href}
+                onClick={() => navigate(link.href)}
+                type="button"
+                className={cn(
+                  'font-medium transition-all relative py-2',
+                  location.pathname === link.href
+                    ? 'text-sky-600'
+                    : 'text-gray-600 hover:text-sky-600'
+                )}
+              >
+                {link.label}
+                {location.pathname === link.href && (
+                  <motion.div
+                    layoutId="navbar-indicator"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-sky-600"
+                    transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                  />
+                )}
+              </button>
+            ))}
             <button
               onClick={() => setSupportModalOpen(true)}
               type="button"
@@ -210,31 +200,23 @@ export function TopNav() {
           className="md:hidden border-t bg-white"
         >
           <div className="px-4 py-4 space-y-3">
-            {navLinks.map((link) => {
-              const handleClick = () => {
-                setMobileMenuOpen(false)
-                if (link.requiresAuth && !isLoggedIn) {
-                  navigate('/login')
-                } else {
+            {navLinks.map((link) => (
+              <button
+                key={link.href}
+                onClick={() => {
                   navigate(link.href)
-                }
-              }
-              
-              return (
-                <button
-                  key={link.href}
-                  onClick={handleClick}
-                  className={cn(
-                    'block w-full text-left px-4 py-2 rounded-lg font-medium',
-                    location.pathname === link.href
-                      ? 'bg-sky-50 text-sky-600'
-                      : 'text-gray-600'
-                  )}
-                >
-                  {link.label}
-                </button>
-              )
-            })}
+                  setMobileMenuOpen(false)
+                }}
+                className={cn(
+                  'block w-full text-left px-4 py-2 rounded-lg font-medium',
+                  location.pathname === link.href
+                    ? 'bg-sky-50 text-sky-600'
+                    : 'text-gray-600'
+                )}
+              >
+                {link.label}
+              </button>
+            ))}
             <button
               onClick={() => {
                 setMobileMenuOpen(false)

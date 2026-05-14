@@ -1,6 +1,11 @@
 # Build stage
-FROM node:22-alpine AS builder
+FROM node:22-bookworm-slim AS builder
 WORKDIR /app
+
+ARG VITE_API_URL
+ARG VITE_GOOGLE_CLIENT_ID
+ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
 
 COPY package*.json ./
 RUN npm install

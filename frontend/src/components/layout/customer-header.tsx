@@ -1,12 +1,13 @@
 "use client"
 
-import { Link, useNavigate } from "react-router-dom"
+import { Link } from "react-router-dom"
 import { ArrowLeft, Bell, Globe, CreditCard, Lock, LogOut, Plane } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/context/auth-context"
 import { SupportModal } from "@/components/layout/SupportModal"
 import { PassengerProfileModal } from "@/components/layout/PassengerProfileModal"
 import { useState } from "react"
+import { useNavigate } from "react-router-dom"
 
 interface CustomerHeaderProps {
   title?: string
@@ -78,10 +79,7 @@ export function CustomerHeader({
           <Link to="/flights" className="text-slate-600 font-medium hover:text-[#00236f] transition-colors">
             Explore
           </Link>
-          <Link 
-            to={isLoggedIn ? "/bookings" : "/auth/signin"} 
-            className="text-[#00236f] border-b-2 border-[#00236f]/40 pb-1 font-medium"
-          >
+          <Link to="/bookings" className="text-[#00236f] border-b-2 border-[#00236f]/40 pb-1 font-medium">
             Bookings
           </Link>
           {canSearchTicketByPnr ? (

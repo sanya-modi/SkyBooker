@@ -55,7 +55,7 @@ export default function MyBookingsPage() {
     }
 
     if (!isLoggedIn) {
-      navigate('/', {
+      navigate(`/login?redirect=${encodeURIComponent('/bookings')}`, {
         replace: true,
       })
       return

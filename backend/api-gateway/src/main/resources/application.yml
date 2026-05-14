@@ -12,6 +12,12 @@ spring:
             allowedOrigins:
               - "http://localhost:5173"
               - "http://localhost:3000"
+              - "http://skybooker.site"
+              - "http://www.skybooker.site"
+              - "https://skybooker.site"
+              - "https://www.skybooker.site"
+              - "http://3.219.251.65"
+              - "https://3.219.251.65"
             allowedMethods:
               - GET
               - POST
@@ -109,64 +115,64 @@ spring:
         - id: auth-service
           uri: lb://auth-service
           predicates:
-            - Path=/auth/**
+            - Path=/auth,/auth/**
 
         - id: flight-service
           uri: lb://flight-service
           predicates:
-            - Path=/flights/**
+            - Path=/flights,/flights/**
 
         - id: seat-service
           uri: lb://seat-service
           predicates:
-            - Path=/seats/**
+            - Path=/seats,/seats/**
 
         - id: booking-service
           uri: lb://booking-service
           predicates:
-            - Path=/bookings/**
+            - Path=/bookings,/bookings/**
 
         - id: ticket-service
           uri: lb://booking-service
           predicates:
-            - Path=/tickets/**
+            - Path=/tickets,/tickets/**
 
         - id: passenger-service
           uri: lb://passenger-service
           predicates:
-            - Path=/passengers/**
+            - Path=/passengers,/passengers/**
 
         - id: payment-service
           uri: lb://payment-service
           predicates:
-            - Path=/payments/**
+            - Path=/payments,/payments/**
 
         - id: notification-service
           uri: lb://notification-service
           predicates:
-            - Path=/notifications/**
+            - Path=/notifications,/notifications/**
 
         - id: airline-service
           uri: lb://airline-airport-service
           predicates:
-            - Path=/airlines/**
+            - Path=/airlines,/airlines/**
 
         - id: airport-service
           uri: lb://airline-airport-service
           predicates:
-            - Path=/airports/**
+            - Path=/airports,/airports/**
 
         - id: admin-user-service
           uri: lb://admin-user-service
           predicates:
-            - Path=/admin/**
+            - Path=/admin,/admin/**
           filters:
             - JwtAuthenticationFilter
 
         - id: admin-service
           uri: lb://admin-service
           predicates:
-            - Path=/admin-server/**
+            - Path=/admin-server,/admin-server/**
           filters:
             - StripPrefix=1
             - JwtAuthenticationFilter

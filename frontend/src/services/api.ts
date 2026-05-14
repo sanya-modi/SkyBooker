@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080'
+const API_BASE_URL = import.meta.env.VITE_API_URL || ''
 
 async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
   const token = localStorage.getItem('skybooker_token')
@@ -382,7 +382,8 @@ export const seatApi = {
     }),
   createSeatStream: (flightId: number) => {
     const token = localStorage.getItem('skybooker_token')
-    const url = new URL(`${API_BASE_URL}/seats/flight/${flightId}/stream`)
+    const baseUrl = API_BASE_URL || window.location.origin
+    const url = new URL(`${baseUrl}/seats/flight/${flightId}/stream`)
     if (token) {
       url.searchParams.set('token', token)
     }

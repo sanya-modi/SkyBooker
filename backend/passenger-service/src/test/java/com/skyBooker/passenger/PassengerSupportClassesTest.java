@@ -58,7 +58,11 @@ class PassengerSupportClassesTest {
                 Passenger.Category.ADULT,
                 Passenger.Gender.MALE,
                 "Indian",
-                "Meal"
+                "Meal",
+                null,
+                null,
+                null,
+                null
         );
         PassengerResponse response = new PassengerResponse(
                 1L,
@@ -73,6 +77,10 @@ class PassengerSupportClassesTest {
                 Passenger.Gender.MALE,
                 "Indian",
                 "Meal",
+                null,
+                null,
+                null,
+                null,
                 createdAt,
                 updatedAt
         );
