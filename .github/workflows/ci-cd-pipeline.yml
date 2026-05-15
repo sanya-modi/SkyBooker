@@ -92,6 +92,7 @@ jobs:
   build-and-push:
     name: Build & Push Docker Images
     runs-on: ubuntu-latest
+    environment: CI/CD
     needs: [backend-test, frontend-test]
     if: github.ref == 'refs/heads/main'
     strategy:
@@ -129,6 +130,7 @@ jobs:
   build-frontend:
     name: Build & Push Frontend
     runs-on: ubuntu-latest
+    environment: CI/CD
     needs: [frontend-test]
     if: github.ref == 'refs/heads/main'
     steps:
@@ -144,6 +146,7 @@ jobs:
         run: |
           cd frontend
           docker build \
+            --build-arg VITE_API_URL="${{ secrets.FRONTEND_VITE_API_URL }}" \
             --build-arg VITE_GOOGLE_CLIENT_ID="${{ secrets.FRONTEND_VITE_GOOGLE_CLIENT_ID }}" \
             -t ${{ secrets.DOCKER_USERNAME }}/skybooker-frontend:${{ env.DOCKER_IMAGE_TAG }} .
           docker tag ${{ secrets.DOCKER_USERNAME }}/skybooker-frontend:${{ env.DOCKER_IMAGE_TAG }} ${{ secrets.DOCKER_USERNAME }}/skybooker-frontend:latest
@@ -153,6 +156,7 @@ jobs:
   deploy-to-ec2:
     name: Deploy to AWS EC2
     runs-on: ubuntu-latest
+    environment: CI/CD
     needs: [build-and-push, build-frontend]
     if: github.ref == 'refs/heads/main'
     steps:
@@ -185,6 +189,7 @@ jobs:
   health-check:
     name: Post-Deployment Health Check
     runs-on: ubuntu-latest
+    environment: CI/CD
     needs: [deploy-to-ec2]
     steps:
       - name: Wait for Services
