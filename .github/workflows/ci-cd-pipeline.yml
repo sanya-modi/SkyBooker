@@ -82,12 +82,48 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         run: |
+          # If secrets are missing, exit gracefully
+          if [ -z "$SONAR_HOST_URL" ]; then
+            echo "ERROR: SONAR_HOST_URL secret is missing in GitHub!"
+            exit 1
+          fi
+          if [ -z "$SONAR_TOKEN" ]; then
+            echo "ERROR: SONAR_TOKEN secret is missing in GitHub!"
+            exit 1
+          fi
+          
           cd backend
-          # Compile classes (needed by Sonar) without running tests again
-          mvn compile sonar:sonar \
-            -Dsonar.projectKey=skybooker \
-            -Dsonar.host.url=$SONAR_HOST_URL \
-            -Dsonar.login=$SONAR_TOKEN
+          
+          # Compile all modules first
+          mvn compile -DskipTests
+          
+          # Run individual scans matching run-sonar-analysis-improved.bat
+          echo "Analyzing Auth Service..."
+          cd auth-service && mvn sonar:sonar -Dsonar.projectKey=SkyBooker-Auth-Service -Dsonar.projectName="SkyBooker - Auth Service" -Dsonar.host.url="$SONAR_HOST_URL" -Dsonar.login="$SONAR_TOKEN" && cd ..
+          
+          echo "Analyzing Flight Service..."
+          cd flight-service && mvn sonar:sonar -Dsonar.projectKey=SkyBooker-Flight-Service -Dsonar.projectName="SkyBooker - Flight Service" -Dsonar.host.url="$SONAR_HOST_URL" -Dsonar.login="$SONAR_TOKEN" && cd ..
+          
+          echo "Analyzing Seat Service..."
+          cd seat-service && mvn sonar:sonar -Dsonar.projectKey=SkyBooker-Seat-Service -Dsonar.projectName="SkyBooker - Seat Service" -Dsonar.host.url="$SONAR_HOST_URL" -Dsonar.login="$SONAR_TOKEN" && cd ..
+          
+          echo "Analyzing Booking Service..."
+          cd booking-service && mvn sonar:sonar -Dsonar.projectKey=SkyBooker-Booking-Service -Dsonar.projectName="SkyBooker - Booking Service" -Dsonar.host.url="$SONAR_HOST_URL" -Dsonar.login="$SONAR_TOKEN" && cd ..
+          
+          echo "Analyzing Passenger Service..."
+          cd passenger-service && mvn sonar:sonar -Dsonar.projectKey=SkyBooker-Passenger-Service -Dsonar.projectName="SkyBooker - Passenger Service" -Dsonar.host.url="$SONAR_HOST_URL" -Dsonar.login="$SONAR_TOKEN" && cd ..
+          
+          echo "Analyzing Payment Service..."
+          cd payment-service && mvn sonar:sonar -Dsonar.projectKey=SkyBooker-Payment-Service -Dsonar.projectName="SkyBooker - Payment Service" -Dsonar.host.url="$SONAR_HOST_URL" -Dsonar.login="$SONAR_TOKEN" && cd ..
+          
+          echo "Analyzing Notification Service..."
+          cd notification-service && mvn sonar:sonar -Dsonar.projectKey=SkyBooker-Notification-Service -Dsonar.projectName="SkyBooker - Notification Service" -Dsonar.host.url="$SONAR_HOST_URL" -Dsonar.login="$SONAR_TOKEN" && cd ..
+          
+          echo "Analyzing Airline-Airport Service..."
+          cd airline-airport-service && mvn sonar:sonar -Dsonar.projectKey=SkyBooker-Airline-Airport-Service -Dsonar.projectName="SkyBooker - Airline-Airport Service" -Dsonar.host.url="$SONAR_HOST_URL" -Dsonar.login="$SONAR_TOKEN" && cd ..
+          
+          echo "Analyzing Admin User Service..."
+          cd admin-user-service && mvn sonar:sonar -Dsonar.projectKey=SkyBooker-Admin-User-Service -Dsonar.projectName="SkyBooker - Admin User Service" -Dsonar.host.url="$SONAR_HOST_URL" -Dsonar.login="$SONAR_TOKEN" && cd ..
 
   frontend-test:
     name: Frontend Vitest Tests
