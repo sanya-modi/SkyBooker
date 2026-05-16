@@ -60,6 +60,7 @@ jobs:
   sonarqube:
     name: SonarQube Quality Gate
     runs-on: ubuntu-latest
+    environment: CI/CD
     needs: [backend-test]
     steps:
       - uses: actions/checkout@v4
