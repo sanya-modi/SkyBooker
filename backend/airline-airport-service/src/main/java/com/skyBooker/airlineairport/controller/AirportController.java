@@ -1,10 +1,10 @@
-package com.skybooker.airlineairport.controller;
+package com.skyBooker.airlineairport.controller;
 
-import com.skybooker.airlineairport.dto.AirportRequest;
-import com.skybooker.airlineairport.dto.AirportResponse;
-import com.skybooker.airlineairport.entity.Airport;
-import com.skybooker.airlineairport.service.AirportService;
-import com.skybooker.airlineairport.validation.AirlineAirportValidationPatterns;
+import com.skyBooker.airlineairport.dto.AirportRequest;
+import com.skyBooker.airlineairport.dto.AirportResponse;
+import com.skyBooker.airlineairport.entity.Airport;
+import com.skyBooker.airlineairport.service.AirportService;
+import com.skyBooker.airlineairport.validation.AirlineAirportValidationPatterns;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;

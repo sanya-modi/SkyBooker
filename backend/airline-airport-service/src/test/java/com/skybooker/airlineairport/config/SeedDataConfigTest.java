@@ -1,14 +1,14 @@
-package com.skybooker.airlineairport.config;
+package com.skyBooker.airlineairport.config;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.CommandLineRunner;
 
-import com.skybooker.airlineairport.config.SeedDataConfig;
-import com.skybooker.airlineairport.config.WebConfig;
-import com.skybooker.airlineairport.entity.Airline;
-import com.skybooker.airlineairport.entity.Airport;
-import com.skybooker.airlineairport.repository.AirlineRepository;
-import com.skybooker.airlineairport.repository.AirportRepository;
+import com.skyBooker.airlineairport.config.SeedDataConfig;
+import com.skyBooker.airlineairport.config.WebConfig;
+import com.skyBooker.airlineairport.entity.Airline;
+import com.skyBooker.airlineairport.entity.Airport;
+import com.skyBooker.airlineairport.repository.AirlineRepository;
+import com.skyBooker.airlineairport.repository.AirportRepository;
 
 import java.util.Optional;
 

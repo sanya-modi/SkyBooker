@@ -1,9 +1,10 @@
-package com.skybooker.airlineairport.controller;
+package com.skyBooker.airlineairport.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.skybooker.airlineairport.dto.AirlineRequest;
-import com.skybooker.airlineairport.entity.Airline;
-import com.skybooker.airlineairport.service.AirlineService;
+import com.skyBooker.airlineairport.controller.AirlineController;
+import com.skyBooker.airlineairport.dto.AirlineRequest;
+import com.skyBooker.airlineairport.entity.Airline;
+import com.skyBooker.airlineairport.service.AirlineService;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

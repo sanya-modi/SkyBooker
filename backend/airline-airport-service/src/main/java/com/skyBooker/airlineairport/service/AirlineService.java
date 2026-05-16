@@ -1,6 +1,6 @@
-package com.skybooker.airlineairport.service;
+package com.skyBooker.airlineairport.service;
 
-import com.skybooker.airlineairport.entity.Airline;
+import com.skyBooker.airlineairport.entity.Airline;
 
 import java.util.List;
 

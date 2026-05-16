@@ -1,4 +1,4 @@
-package com.skybooker.airlineairport.config;
+package com.skyBooker.airlineairport.config;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

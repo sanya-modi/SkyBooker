@@ -1,4 +1,4 @@
-package com.skybooker.airlineairport.service;
+package com.skyBooker.airlineairport.service;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -6,8 +6,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.skybooker.airlineairport.entity.Airport;
-import com.skybooker.airlineairport.repository.AirportRepository;
+import com.skyBooker.airlineairport.entity.Airport;
+import com.skyBooker.airlineairport.repository.AirportRepository;
+import com.skyBooker.airlineairport.service.AirportServiceImpl;
 
 import java.util.List;
 import java.util.Optional;

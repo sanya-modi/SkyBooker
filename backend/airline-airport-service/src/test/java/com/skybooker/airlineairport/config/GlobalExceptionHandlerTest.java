@@ -1,4 +1,4 @@
-package com.skybooker.airlineairport.config;
+package com.skyBooker.airlineairport.config;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.core.MethodParameter;
@@ -8,6 +8,8 @@ import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.context.request.WebRequest;
+
+import com.skyBooker.airlineairport.config.GlobalExceptionHandler;
 
 import java.util.Map;
 

@@ -1,6 +1,6 @@
-package com.skybooker.airlineairport.dto;
+package com.skyBooker.airlineairport.dto;
 
-import com.skybooker.airlineairport.validation.AirlineAirportValidationPatterns;
+import com.skyBooker.airlineairport.validation.AirlineAirportValidationPatterns;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;

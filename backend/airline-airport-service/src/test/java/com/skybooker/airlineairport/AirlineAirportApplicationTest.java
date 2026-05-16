@@ -1,8 +1,10 @@
-package com.skybooker.airlineairport;
+package com.skyBooker.airlineairport;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.springframework.boot.SpringApplication;
+
+import com.skyBooker.airlineairport.AirlineAirportApplication;
 
 import static org.mockito.Mockito.mockStatic;
 

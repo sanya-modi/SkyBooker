@@ -1,12 +1,12 @@
-package com.skybooker.airlineairport;
+package com.skyBooker.airlineairport;
 
-import com.skybooker.airlineairport.dto.AirlineRequest;
-import com.skybooker.airlineairport.dto.AirlineResponse;
-import com.skybooker.airlineairport.dto.AirportRequest;
-import com.skybooker.airlineairport.dto.AirportResponse;
-import com.skybooker.airlineairport.entity.Airline;
-import com.skybooker.airlineairport.entity.Airport;
-import com.skybooker.airlineairport.validation.AirlineAirportValidationPatterns;
+import com.skyBooker.airlineairport.dto.AirlineRequest;
+import com.skyBooker.airlineairport.dto.AirlineResponse;
+import com.skyBooker.airlineairport.dto.AirportRequest;
+import com.skyBooker.airlineairport.dto.AirportResponse;
+import com.skyBooker.airlineairport.entity.Airline;
+import com.skyBooker.airlineairport.entity.Airport;
+import com.skyBooker.airlineairport.validation.AirlineAirportValidationPatterns;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Method;

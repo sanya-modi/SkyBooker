@@ -1,4 +1,4 @@
-package com.skybooker.airlineairport.config;
+package com.skyBooker.airlineairport.config;
 
 import org.springframework.context.annotation.Configuration;
 

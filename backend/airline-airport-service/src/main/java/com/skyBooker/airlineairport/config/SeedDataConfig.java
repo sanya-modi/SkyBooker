@@ -1,9 +1,9 @@
-package com.skybooker.airlineairport.config;
+package com.skyBooker.airlineairport.config;
 
-import com.skybooker.airlineairport.entity.Airline;
-import com.skybooker.airlineairport.entity.Airport;
-import com.skybooker.airlineairport.repository.AirlineRepository;
-import com.skybooker.airlineairport.repository.AirportRepository;
+import com.skyBooker.airlineairport.entity.Airline;
+import com.skyBooker.airlineairport.entity.Airport;
+import com.skyBooker.airlineairport.repository.AirlineRepository;
+import com.skyBooker.airlineairport.repository.AirportRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
