@@ -30,7 +30,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     Long countConfirmedBookings();
 
     @Query("SELECT COALESCE(SUM(b.totalAmount), 0) FROM Booking b WHERE b.status = 'CONFIRMED'")
-    BigDecimal sumConfirmedRevenue();
+    java.math.BigDecimal sumConfirmedRevenue();
 
     @Query("SELECT COALESCE(SUM(b.numberOfPassengers), 0) FROM Booking b WHERE b.status = 'CONFIRMED'")
     Long sumConfirmedPassengers();

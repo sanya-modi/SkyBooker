@@ -1,3 +1,5 @@
+package com.skyBooker.booking.service;
+
 import com.skyBooker.booking.dto.BookingRequest;
 import com.skyBooker.booking.dto.BookingResponse;
 import com.skyBooker.booking.dto.FlightBookingAnalyticsResponse;
