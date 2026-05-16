@@ -1,8 +1,7 @@
-package com.skyBooker.booking.service;
-
 import com.skyBooker.booking.dto.BookingRequest;
 import com.skyBooker.booking.dto.BookingResponse;
 import com.skyBooker.booking.dto.FlightBookingAnalyticsResponse;
+import com.skyBooker.booking.dto.PlatformBookingsSummaryResponse;
 import com.skyBooker.booking.dto.TicketLookupResponse;
 import com.skyBooker.booking.entity.Booking;
 
@@ -23,4 +22,5 @@ public interface BookingService {
     List<BookingResponse> getConfirmedBookingsByFlight(Long flightId);
     Long countConfirmedBookings(Long flightId);
     FlightBookingAnalyticsResponse getFlightBookingAnalytics(Long flightId);
+    PlatformBookingsSummaryResponse getPlatformSummary();
 }

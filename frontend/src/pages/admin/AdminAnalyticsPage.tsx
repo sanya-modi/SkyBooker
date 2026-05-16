@@ -9,18 +9,29 @@ import {
   Plane,
   MapPin,
   ShoppingBag,
+  RefreshCw,
+  Users,
 } from "lucide-react"
 import { useAuth } from "@/context/auth-context"
-import { bookingApi, flightApi, airportApi, airlineApi, seatApi, type FlightResult, type Airport, type Airline, type FlightAnalyticsEvent } from "@/services/api"
+import {
+  bookingApi,
+  flightApi,
+  airportApi,
+  airlineApi,
+  type Airport,
+  type Airline,
+  type PlatformBookingsSummaryResponse,
+} from "@/services/api"
 
 export default function AnalyticsPage() {
   const navigate = useNavigate()
   const { isLoggedIn, isAuthReady } = useAuth()
-  const [flights, setFlights] = useState<FlightResult[]>([])
+
   const [airports, setAirports] = useState<Airport[]>([])
   const [airlines, setAirlines] = useState<Airline[]>([])
+  const [summary, setSummary] = useState<PlatformBookingsSummaryResponse | null>(null)
+  const [totalFlights, setTotalFlights] = useState(0)
   const [loading, setLoading] = useState(true)
-  const [analyticsData, setAnalyticsData] = useState<Map<number, FlightAnalyticsEvent>>(new Map())
 
   useEffect(() => {
     if (!isAuthReady) return
@@ -29,125 +40,67 @@ export default function AnalyticsPage() {
       return
     }
     void loadData()
-    const intervalId = window.setInterval(() => {
-      void loadData()
-    }, 30000)
-
-    return () => window.clearInterval(intervalId)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoggedIn, isAuthReady, navigate])
-
-  useEffect(() => {
-    if (flights.length === 0) return
-
-    const streams: EventSource[] = []
-    for (const flight of flights) {
-      try {
-        const stream = seatApi.createSeatStream(flight.id)
-        stream.addEventListener('flight-analytics', (event) => {
-          try {
-            const payload = JSON.parse((event as MessageEvent).data) as FlightAnalyticsEvent
-            setAnalyticsData(prev => new Map(prev).set(payload.flightId, payload))
-            setFlights(prev => prev.map(current =>
-              current.id === payload.flightId ? { ...current, availableSeats: payload.availableSeats } : current
-            ))
-          } catch {
-            // ignore malformed events
-          }
-        })
-        streams.push(stream)
-      } catch {
-        // ignore stream creation errors
-      }
-    }
-
-    return () => {
-      streams.forEach(stream => stream.close())
-    }
-  }, [flights.map(f => f.id).join(',')]) // eslint-disable-line
 
   const loadData = async () => {
     try {
       setLoading(true)
-      const [flightsData, airportsData, airlinesData] = await Promise.all([
-        flightApi.getAll(),
-        airportApi.getAll(true),
-        airlineApi.getAll(true),
+
+      // 4 lightweight calls — no per-flight fan-out
+      const [airportsData, airlinesData, summaryData, pagedFlights] = await Promise.all([
+        airportApi.getAll(true).catch(() => [] as Airport[]),
+        airlineApi.getAll(true).catch(() => [] as Airline[]),
+        bookingApi.getPlatformSummary().catch(err => {
+          console.error('[AdminAnalytics] Error loading summary:', err)
+          return null
+        }),
+        // Fetch page 0 with size 1 just to read totalElements — no heavy data transfer
+        flightApi.getAdminPaginated(0, 1).catch(() => ({ content: [], totalElements: 0, totalPages: 1, currentPage: 0, pageSize: 1 })),
       ])
 
-      const bookingAnalytics = await Promise.all(
-        flightsData.map(async (flight) => {
-          try {
-            return await bookingApi.getFlightAnalytics(flight.id)
-          } catch {
-            return null
-          }
-        }),
-      )
-
-      const initialAnalytics = new Map<number, FlightAnalyticsEvent>()
-      flightsData.forEach((flight, index) => {
-        const analytics = bookingAnalytics[index]
-        initialAnalytics.set(flight.id, {
-          flightId: flight.id,
-          totalSeats: flight.totalSeats,
-          bookedSeats: flight.totalSeats - flight.availableSeats,
-          availableSeats: flight.availableSeats,
-          revenue: Number(analytics?.revenue ?? 0),
-          bookingsCount: Number(analytics?.bookingsCount ?? 0),
-        })
-      })
-
-      setFlights(flightsData)
       setAirports(airportsData)
       setAirlines(airlinesData)
-      setAnalyticsData(initialAnalytics)
+      setSummary(summaryData)
+      setTotalFlights(pagedFlights.totalElements)
     } catch (err) {
-      console.error('Error loading data:', err)
+      console.error('[AdminAnalytics] Error loading data:', err)
     } finally {
       setLoading(false)
     }
   }
 
-  const totalRevenue = Array.from(analyticsData.values()).reduce((sum, analytics) => sum + Number(analytics.revenue), 0)
-  const totalBookings = Array.from(analyticsData.values()).reduce((sum, analytics) => sum + analytics.bookingsCount, 0)
-  const totalBookedSeats = Array.from(analyticsData.values()).reduce((sum, analytics) => sum + analytics.bookedSeats, 0)
-  const totalSeats = flights.reduce((sum, flight) => sum + flight.totalSeats, 0)
-  const occupancyRate = totalSeats > 0 ? ((totalBookedSeats / totalSeats) * 100).toFixed(1) : '0'
-  const avgRevenuePerFlight = flights.length > 0 ? totalRevenue / flights.length : 0
+  const totalRevenue = summary?.totalRevenue ?? 0
+  const totalBookings = summary?.totalBookings ?? 0
+  const totalPassengers = summary?.totalPassengers ?? 0
+  const avgRevenuePerFlight = totalFlights > 0 ? totalRevenue / totalFlights : 0
 
   const stats = [
     {
       label: 'Total Revenue',
-      value: new Intl.NumberFormat('en-IN', {
-  style: 'currency',
-  currency: 'INR',
-}).format(totalRevenue),
+      value: new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(totalRevenue),
       icon: DollarSign,
       bgColor: 'bg-green-50',
       textColor: 'text-green-600',
     },
     {
       label: 'Avg Revenue / Flight',
-      value: new Intl.NumberFormat('en-IN', {
-  style: 'currency',
-  currency: 'INR',
-  maximumFractionDigits: 0,
-}).format(avgRevenuePerFlight),
+      value: new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(avgRevenuePerFlight),
       icon: BarChart3,
       bgColor: 'bg-purple-50',
       textColor: 'text-purple-600',
     },
     {
-      label: 'Booked Seats',
-      value: totalBookedSeats,
+      label: 'Confirmed Bookings',
+      value: totalBookings.toLocaleString(),
       icon: ShoppingBag,
       bgColor: 'bg-blue-50',
       textColor: 'text-blue-600',
     },
     {
-      label: 'Occupancy Rate',
-      value: `${occupancyRate}%`,
-      icon: TrendingUp,
+      label: 'Total Passengers',
+      value: totalPassengers.toLocaleString(),
+      icon: Users,
       bgColor: 'bg-orange-50',
       textColor: 'text-orange-600',
     },
@@ -161,9 +114,20 @@ export default function AnalyticsPage() {
       <AdminHeader />
 
       <main className="max-w-7xl mx-auto px-4 md:px-6 py-8 pt-24">
-        <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-black text-sky-600 mb-2">Analytics Dashboard</h1>
-          <p className="text-slate-600">Comprehensive platform analytics and insights</p>
+        <div className="mb-8 flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-3xl md:text-4xl font-black text-sky-600 mb-2">Analytics Dashboard</h1>
+            <p className="text-slate-600">Comprehensive platform analytics and insights</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => void loadData()}
+            disabled={loading}
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
         </div>
 
         {loading ? (
@@ -173,6 +137,7 @@ export default function AnalyticsPage() {
           </div>
         ) : (
           <>
+            {/* KPI Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
               {stats.map((stat) => {
                 const Icon = stat.icon
@@ -182,7 +147,7 @@ export default function AnalyticsPage() {
                       <div className={`w-12 h-12 ${stat.bgColor} rounded-xl flex items-center justify-center`}>
                         <Icon className={`w-6 h-6 ${stat.textColor}`} />
                       </div>
-                      <span className="text-sm font-bold text-slate-500">Live</span>
+                      <span className="text-sm font-bold text-slate-500">All time</span>
                     </div>
                     <p className="text-3xl font-black text-slate-800 mb-1">{stat.value}</p>
                     <p className="text-sm text-slate-500 font-bold">{stat.label}</p>
@@ -191,6 +156,7 @@ export default function AnalyticsPage() {
               })}
             </div>
 
+            {/* Top Airlines & Airports */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
               <div className="bg-white rounded-2xl shadow-sm p-6">
                 <div className="flex items-center gap-3 mb-6">
@@ -199,7 +165,7 @@ export default function AnalyticsPage() {
                   </div>
                   <div>
                     <h2 className="text-xl font-black text-slate-800">Top Airlines</h2>
-                    <p className="text-sm text-slate-500">By number of flights</p>
+                    <p className="text-sm text-slate-500">By registration order</p>
                   </div>
                 </div>
 
@@ -269,6 +235,7 @@ export default function AnalyticsPage() {
               </div>
             </div>
 
+            {/* Platform Overview */}
             <div className="bg-white rounded-2xl shadow-sm p-6">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
@@ -283,7 +250,7 @@ export default function AnalyticsPage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="bg-blue-50 rounded-xl p-6 text-center">
                   <Plane className="w-8 h-8 text-blue-600 mx-auto mb-3" />
-                  <p className="text-3xl font-black text-blue-700 mb-1">{flights.length}</p>
+                  <p className="text-3xl font-black text-blue-700 mb-1">{totalFlights.toLocaleString()}</p>
                   <p className="text-sm text-blue-600 font-bold">Total Flights</p>
                 </div>
                 <div className="bg-orange-50 rounded-xl p-6 text-center">

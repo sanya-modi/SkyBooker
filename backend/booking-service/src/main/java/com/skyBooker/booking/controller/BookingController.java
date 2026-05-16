@@ -3,6 +3,7 @@ package com.skyBooker.booking.controller;
 import com.skyBooker.booking.dto.BookingRequest;
 import com.skyBooker.booking.dto.BookingResponse;
 import com.skyBooker.booking.dto.FlightBookingAnalyticsResponse;
+import com.skyBooker.booking.dto.PlatformBookingsSummaryResponse;
 import com.skyBooker.booking.entity.Booking;
 import com.skyBooker.booking.service.BookingService;
 import com.skyBooker.booking.validation.BookingValidationPatterns;
@@ -104,4 +105,14 @@ public class BookingController {
     public ResponseEntity<FlightBookingAnalyticsResponse> getFlightBookingAnalytics(@PathVariable Long flightId) {
         return ResponseEntity.ok(bookingService.getFlightBookingAnalytics(flightId));
     }
+
+    /**
+     * Admin-only aggregate endpoint.
+     * Returns platform-wide totals in a single DB query — replaces the N-call per-flight analytics fan-out.
+     */
+    @GetMapping("/admin/analytics/summary")
+    public ResponseEntity<PlatformBookingsSummaryResponse> getPlatformSummary() {
+        return ResponseEntity.ok(bookingService.getPlatformSummary());
+    }
 }
+

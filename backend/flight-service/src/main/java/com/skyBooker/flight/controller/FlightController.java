@@ -4,6 +4,7 @@ import com.skyBooker.flight.dto.FlightRequest;
 import com.skyBooker.flight.dto.FlightPassengerManifestResponse;
 import com.skyBooker.flight.dto.FlightResponse;
 import com.skyBooker.flight.dto.FlightSearchFilterDTO;
+import com.skyBooker.flight.dto.PagedFlightResponse;
 import com.skyBooker.flight.dto.PopularDestinationResponse;
 import com.skyBooker.flight.dto.SeatClassConfigResponse;
 import com.skyBooker.flight.dto.SeatConfigRequest;
@@ -137,4 +138,21 @@ public class FlightController {
     public ResponseEntity<List<FlightResponse>> getFlightsByDestination(@RequestParam String to) {
         return ResponseEntity.ok(flightService.getFlightsByDestination(to));
     }
+
+    /**
+     * Admin-only paginated flight endpoint.
+     * Returns flights page-by-page without triggering isFlightActive() fan-out.
+     * @param page zero-based page index (default 0)
+     * @param size page size, max 100 (default 20)
+     * @param status optional status filter: SCHEDULED, DELAYED, CANCELLED, COMPLETED, ALL (default ALL)
+     */
+    @GetMapping("/admin/paginated")
+    public ResponseEntity<PagedFlightResponse> getFlightsPaginated(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "ALL") String status
+    ) {
+        return ResponseEntity.ok(flightService.getFlightsPaginated(page, size, status));
+    }
 }
+

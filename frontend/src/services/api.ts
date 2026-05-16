@@ -156,6 +156,20 @@ export interface FlightBookingAnalyticsResult {
   revenue: number
 }
 
+export interface PagedFlightResponse {
+  content: FlightResult[]
+  totalElements: number
+  totalPages: number
+  currentPage: number
+  pageSize: number
+}
+
+export interface PlatformBookingsSummaryResponse {
+  totalBookings: number
+  totalRevenue: number
+  totalPassengers: number
+}
+
 export interface AuthResponseData {
   userId: number
   email: string
@@ -356,6 +370,9 @@ export const flightApi = {
   getPopularDestinations: () => request<PopularDestination[]>('/flights/popular-destinations'),
   getFlightsByDestination: (to: string) => request<FlightResult[]>(`/flights/by-destination?to=${to}`),
   getOnTimeFlightsByAirline: (airlineId: number) => request<FlightResult[]>(`/flights/airline/${airlineId}/on-time`),
+  /** Admin-only: paginated flight list, skips isFlightActive() fan-out. */
+  getAdminPaginated: (page = 0, size = 20, status = 'ALL') =>
+    request<PagedFlightResponse>(`/flights/admin/paginated?page=${page}&size=${size}&status=${status}`),
 }
 
 export const seatApi = {
@@ -424,6 +441,9 @@ export const bookingApi = {
     if (!response.ok) throw new Error('Failed to download ticket')
     return response.blob()
   },
+  /** Admin-only: returns platform-wide totals in a single DB query. */
+  getPlatformSummary: () =>
+    request<PlatformBookingsSummaryResponse>('/bookings/admin/analytics/summary'),
 }
 
 export const ticketApi = {

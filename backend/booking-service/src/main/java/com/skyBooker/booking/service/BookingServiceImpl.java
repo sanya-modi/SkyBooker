@@ -3,6 +3,7 @@ package com.skyBooker.booking.service;
 import com.skyBooker.booking.dto.BookingRequest;
 import com.skyBooker.booking.dto.BookingResponse;
 import com.skyBooker.booking.dto.FlightBookingAnalyticsResponse;
+import com.skyBooker.booking.dto.PlatformBookingsSummaryResponse;
 import com.skyBooker.booking.dto.TicketLookupResponse;
 import com.skyBooker.booking.entity.Booking;
 import com.skyBooker.booking.repository.BookingRepository;
@@ -396,6 +397,24 @@ public TicketLookupResponse getTicketByPnr(String pnr) {
                 bookingRepository.countConfirmedBookingsByFlight(flightId),
                 bookingRepository.sumConfirmedRevenueByFlight(flightId)
         );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PlatformBookingsSummaryResponse getPlatformSummary() {
+        try {
+            Long totalBookings = bookingRepository.countConfirmedBookings();
+            BigDecimal totalRevenue = bookingRepository.sumConfirmedRevenue();
+            Long totalPassengers = bookingRepository.sumConfirmedPassengers();
+            return new PlatformBookingsSummaryResponse(
+                    totalBookings != null ? totalBookings : 0L,
+                    totalRevenue != null ? totalRevenue : BigDecimal.ZERO,
+                    totalPassengers != null ? totalPassengers : 0L
+            );
+        } catch (Exception e) {
+            log.error("Error fetching platform summary", e);
+            throw new RuntimeException("Failed to load platform summary: " + e.getMessage(), e);
+        }
     }
 
     private String generatePNR() {

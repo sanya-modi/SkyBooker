@@ -4,6 +4,7 @@ import com.skyBooker.flight.dto.FlightRequest;
 import com.skyBooker.flight.dto.FlightPassengerManifestResponse;
 import com.skyBooker.flight.dto.FlightResponse;
 import com.skyBooker.flight.dto.FlightSearchFilterDTO;
+import com.skyBooker.flight.dto.PagedFlightResponse;
 import com.skyBooker.flight.dto.PopularDestinationResponse;
 import com.skyBooker.flight.dto.SeatClassConfigResponse;
 import com.skyBooker.flight.dto.SeatConfigRequest;
@@ -33,4 +34,13 @@ public interface FlightService {
     List<PopularDestinationResponse> getPopularDestinations();
     List<FlightResponse> getFlightsByDestination(String iataCode);
     List<FlightResponse> getOnTimeFlightsByAirlineId(Long airlineId);
+
+    /**
+     * Admin-only paginated flight fetch. Skips isFlightActive() checks for performance.
+     * @param page zero-based page number
+     * @param size number of flights per page
+     * @param status flight status filter; "ALL" or null returns all statuses
+     */
+    PagedFlightResponse getFlightsPaginated(int page, int size, String status);
 }
+

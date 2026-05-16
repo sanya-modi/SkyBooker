@@ -1,6 +1,7 @@
 package com.skyBooker.flight.repository;
 
 import com.skyBooker.flight.entity.Flight;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -58,4 +59,11 @@ public interface FlightRepository extends JpaRepository<Flight, Long> {
 
     List<Flight> findByAirlineIdAndStatus(Long airlineId, Flight.FlightStatus status);
 
+    /**
+     * Admin pagination: status-filtered. Pass all statuses for unfiltered view.
+     * Skips isFlightActive() checks — safe for admin context.
+     */
+    Page<Flight> findByStatusIn(List<Flight.FlightStatus> statuses, Pageable pageable);
+
 }
+

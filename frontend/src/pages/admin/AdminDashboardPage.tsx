@@ -1,3 +1,4 @@
+// export { default } from '../../app/admin/dashboard/page'
 import { useState, useEffect } from "react"
 import { Link, useNavigate } from 'react-router-dom'
 import { AdminHeader } from "@/components/admin/admin-header"
@@ -11,10 +12,11 @@ import {
   AlertCircle,
   CheckCircle2,
   Clock,
-  ArrowRight
+  ArrowRight,
+  RefreshCw,
 } from "lucide-react"
 import { useAuth } from "@/context/auth-context"
-import { adminApi, bookingApi, flightApi, airportApi, airlineApi, seatApi, type FlightAnalyticsEvent } from "@/services/api"
+import { adminApi, bookingApi, flightApi, airportApi, airlineApi } from "@/services/api"
 
 export default function AdminDashboard() {
   const navigate = useNavigate()
@@ -25,13 +27,10 @@ export default function AdminDashboard() {
     totalAirports: 0,
     totalAirlines: 0,
     totalBookings: 0,
-    activeBookings: 0,
     totalRevenue: 0
   })
   const [loading, setLoading] = useState(true)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
-  const [analyticsData, setAnalyticsData] = useState<Map<number, FlightAnalyticsEvent>>(new Map())
-  const [flightIds, setFlightIds] = useState<number[]>([])
 
   useEffect(() => {
     if (!isAuthReady) return
@@ -40,79 +39,25 @@ export default function AdminDashboard() {
       return
     }
 
-    loadDashboardData()
-    const intervalId = window.setInterval(() => {
-      console.log('[AdminDashboard] Auto-refreshing dashboard data...')
-      loadDashboardData()
-    }, 10000) // Refresh every 10 seconds
-
-    return () => window.clearInterval(intervalId)
+    void loadDashboardData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoggedIn, isAuthReady, navigate])
-
-  // Subscribe to real-time analytics updates
-  useEffect(() => {
-    if (flightIds.length === 0) return
-
-    console.log('[AdminDashboard] Subscribing to analytics for', flightIds.length, 'flights')
-    const streams: EventSource[] = []
-
-    for (const flightId of flightIds) {
-      try {
-        const stream = seatApi.createSeatStream(flightId)
-        stream.addEventListener('flight-analytics', (event) => {
-          try {
-            const payload = JSON.parse((event as MessageEvent).data) as FlightAnalyticsEvent
-            console.log('[AdminDashboard] Received analytics for flight', payload.flightId, ':', payload)
-            setAnalyticsData(prev => new Map(prev).set(payload.flightId, payload))
-          } catch (err) {
-            console.error('[AdminDashboard] Error parsing analytics event:', err)
-          }
-        })
-        streams.push(stream)
-      } catch (err) {
-        console.error('[AdminDashboard] Error creating stream for flight', flightId, ':', err)
-      }
-    }
-
-    return () => {
-      console.log('[AdminDashboard] Cleaning up', streams.length, 'streams')
-      streams.forEach(stream => stream.close())
-    }
-  }, [flightIds.join(',')]) // eslint-disable-line
-
-  // Update stats when analytics data changes
-  useEffect(() => {
-    if (analyticsData.size === 0) return
-
-    const totalBookings = Array.from(analyticsData.values()).reduce((sum, a) => sum + a.bookedSeats, 0)
-    const totalRevenue = Array.from(analyticsData.values()).reduce((sum, a) => sum + Number(a.revenue), 0)
-
-    console.log('[AdminDashboard] Analytics data updated:', {
-      flightsWithData: analyticsData.size,
-      totalBookings,
-      totalRevenue
-    })
-
-    setStats(prev => ({
-      ...prev,
-      totalBookings,
-      totalRevenue
-    }))
-  }, [analyticsData])
 
   const loadDashboardData = async () => {
     try {
       setLoading(true)
-      console.log('[AdminDashboard] Loading dashboard data...')
+      console.log('[AdminDashboard] Loading optimized dashboard data...')
       
-      const [users, flights, airports, airlines] = await Promise.all([
+      // 5 lightweight, independent calls. No SSE streams, no N+1 fan-out.
+      const [users, flightsPage, airports, airlines, summary] = await Promise.all([
         adminApi.getAllUsers().catch(err => {
           console.error('[AdminDashboard] Error loading users:', err)
           return []
         }),
-        flightApi.getAll().catch(err => {
-          console.error('[AdminDashboard] Error loading flights:', err)
-          return []
+        // Fetch 1 item to quickly get totalElements without transferring all data
+        flightApi.getAdminPaginated(0, 1).catch(err => {
+          console.error('[AdminDashboard] Error loading flights page:', err)
+          return { totalElements: 0 }
         }),
         airportApi.getAll(true).catch(err => {
           console.error('[AdminDashboard] Error loading airports:', err)
@@ -121,68 +66,22 @@ export default function AdminDashboard() {
         airlineApi.getAll(true).catch(err => {
           console.error('[AdminDashboard] Error loading airlines:', err)
           return []
+        }),
+        bookingApi.getPlatformSummary().catch(err => {
+          console.error('[AdminDashboard] Error loading summary:', err)
+          return { totalBookings: 0, totalRevenue: 0 }
         })
       ])
 
-      console.log('[AdminDashboard] Loaded:', {
-        users: users.length,
-        flights: flights.length,
-        airports: airports.length,
-        airlines: airlines.length
-      })
-
-      const bookingAnalytics = await Promise.all(
-        flights.map(async (flight) => {
-          try {
-            return await bookingApi.getFlightAnalytics(flight.id)
-          } catch (err) {
-            console.error(`[AdminDashboard] Error loading analytics for flight ${flight.id}:`, err)
-            return null
-          }
-        }),
-      )
-
-      const initialAnalytics = new Map<number, FlightAnalyticsEvent>()
-      flights.forEach((flight, index) => {
-        const analytics = bookingAnalytics[index]
-        initialAnalytics.set(flight.id, {
-          flightId: flight.id,
-          totalSeats: flight.totalSeats,
-          bookedSeats: flight.totalSeats - flight.availableSeats,
-          availableSeats: flight.availableSeats,
-          revenue: Number(analytics?.revenue ?? 0),
-          bookingsCount: Number(analytics?.bookingsCount ?? 0),
-        })
-      })
-      setAnalyticsData(initialAnalytics)
-
-      setFlightIds(flights.map(f => f.id))
-
-      const totalBookings = Array.from(initialAnalytics.values()).reduce((sum, analytics) => sum + analytics.bookedSeats, 0)
-      const activeBookings = flights
-        .filter(flight => flight.status === 'SCHEDULED' || flight.status === 'ON_TIME')
-        .reduce((sum, flight) => sum + (initialAnalytics.get(flight.id)?.bookedSeats ?? 0), 0)
-      const totalRevenue = Array.from(initialAnalytics.values()).reduce((sum, analytics) => sum + Number(analytics.revenue), 0)
-
-      console.log('[AdminDashboard] Stats calculated:', {
-        totalUsers: users.length,
-        totalFlights: flights.length,
-        totalAirports: airports.length,
-        totalAirlines: airlines.length,
-        totalBookings,
-        activeBookings,
-        totalRevenue
-      })
-
       setStats({
         totalUsers: users.length,
-        totalFlights: flights.length,
+        totalFlights: (flightsPage as any).totalElements || 0,
         totalAirports: airports.length,
         totalAirlines: airlines.length,
-        totalBookings,
-        activeBookings,
-        totalRevenue
+        totalBookings: (summary as any).totalBookings || 0,
+        totalRevenue: (summary as any).totalRevenue || 0
       })
+      
       setLastUpdated(new Date())
     } catch (err) {
       console.error('[AdminDashboard] Error loading dashboard:', err)
@@ -239,7 +138,7 @@ export default function AdminDashboard() {
     },
     {
       label: 'Total Revenue',
-      value: `₹${stats.totalRevenue.toLocaleString()}`,
+      value: `₹${Number(stats.totalRevenue).toLocaleString()}`,
       icon: DollarSign,
       color: 'from-emerald-500 to-emerald-600',
       bgColor: 'bg-emerald-50',
@@ -268,17 +167,28 @@ export default function AdminDashboard() {
               <h1 className="text-3xl md:text-4xl font-black text-[#00236f] mb-2">Admin Dashboard</h1>
               <p className="text-slate-600">Manage the entire SkyBooker ecosystem</p>
             </div>
-            {lastUpdated && (
-              <div className="text-right">
-                <div className="flex items-center gap-2 text-sm text-slate-500">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                  <span>Live</span>
+            <div className="flex items-center gap-4">
+              {lastUpdated && (
+                <div className="text-right">
+                  <div className="flex items-center gap-2 text-sm text-slate-500">
+                    <div className="w-2 h-2 bg-green-500 rounded-full" />
+                    <span>Manual refresh</span>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Updated {lastUpdated.toLocaleTimeString()}
+                  </p>
                 </div>
-                <p className="text-xs text-slate-400 mt-1">
-                  Updated {lastUpdated.toLocaleTimeString()}
-                </p>
-              </div>
-            )}
+              )}
+              <button
+                type="button"
+                onClick={() => void loadDashboardData()}
+                disabled={loading}
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                Refresh
+              </button>
+            </div>
           </div>
         </div>
 

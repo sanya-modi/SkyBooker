@@ -4,6 +4,7 @@ import com.skyBooker.flight.dto.FlightRequest;
 import com.skyBooker.flight.dto.FlightPassengerManifestResponse;
 import com.skyBooker.flight.dto.FlightResponse;
 import com.skyBooker.flight.dto.FlightSearchFilterDTO;
+import com.skyBooker.flight.dto.PagedFlightResponse;
 import com.skyBooker.flight.dto.PopularDestinationResponse;
 import com.skyBooker.flight.dto.SeatClassConfigResponse;
 import com.skyBooker.flight.dto.SeatConfigRequest;
@@ -14,7 +15,9 @@ import com.skyBooker.flight.repository.FlightRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -375,6 +378,45 @@ public class FlightServiceImpl implements FlightService {
         return flightRepository.findByAirlineIdAndStatus(airlineId, Flight.FlightStatus.ON_TIME).stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PagedFlightResponse getFlightsPaginated(int page, int size, String status) {
+        try {
+            // Clamp page size to avoid accidentally fetching too much
+            int clampedSize = Math.min(size, 100);
+            PageRequest pageRequest = PageRequest.of(page, clampedSize, Sort.by(Sort.Direction.DESC, "departureTime"));
+
+            Page<Flight> flightPage;
+            if (status == null || status.isBlank() || "ALL".equalsIgnoreCase(status)) {
+                flightPage = flightRepository.findAll(pageRequest);
+            } else {
+                try {
+                    Flight.FlightStatus flightStatus = Flight.FlightStatus.valueOf(status.toUpperCase());
+                    flightPage = flightRepository.findByStatusIn(List.of(flightStatus), pageRequest);
+                } catch (IllegalArgumentException e) {
+                    // Unknown status — fall back to all
+                    flightPage = flightRepository.findAll(pageRequest);
+                }
+            }
+
+            List<FlightResponse> content = flightPage.getContent().stream()
+                    .map(this::mapToResponse)
+                    .collect(Collectors.toList());
+
+            return new PagedFlightResponse(
+                    content,
+                    flightPage.getTotalElements(),
+                    flightPage.getTotalPages(),
+                    flightPage.getNumber(),
+                    flightPage.getSize()
+            );
+        } catch (Exception e) {
+            System.err.println("Error in getFlightsPaginated: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Failed to fetch paginated flights: " + e.getMessage(), e);
+        }
     }
 
     private Flight getFlightEntity(Long id) {

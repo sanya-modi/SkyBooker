@@ -141,3 +141,4 @@ coverage/
 *.sh
 *.py
 *.bat
+*.txt
