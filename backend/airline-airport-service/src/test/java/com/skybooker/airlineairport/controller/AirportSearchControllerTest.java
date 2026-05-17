@@ -8,7 +8,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import com.skyBooker.airlineairport.controller.AirportSearchController;
 import com.skyBooker.airlineairport.entity.Airport;
-import com.skyBooker.airlineairport.repository.AirportRepository;
+import com.skyBooker.airlineairport.service.AirportService;
 
 import java.util.List;
 
@@ -25,7 +25,7 @@ class AirportSearchControllerTest {
     private MockMvc mockMvc;
 
     @MockBean
-    private AirportRepository airportRepository;
+    private AirportService airportService;
 
     @Test
     void searchAirportsReturnsEmptyListWhenQueryMissing() throws Exception {
@@ -46,12 +46,12 @@ class AirportSearchControllerTest {
         Airport airport = new Airport();
         airport.setName("Indira Gandhi International Airport");
         airport.setCity("Delhi");
-        when(airportRepository.searchByCity("Del")).thenReturn(List.of(airport));
+        when(airportService.searchCities("Del")).thenReturn(List.of(airport));
 
         mockMvc.perform(get("/airports/search").param("q", "  Del  "))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].city").value("Delhi"));
 
-        verify(airportRepository).searchByCity("Del");
+        verify(airportService).searchCities("Del");
     }
 }

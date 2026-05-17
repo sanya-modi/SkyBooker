@@ -15,7 +15,6 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/airports")
@@ -82,7 +81,7 @@ public class AirportController {
     @GetMapping("/{id}/active")
     public ResponseEntity<Void> checkAirportActive(@PathVariable @Positive(message = "id must be positive") Long id) {
         Airport airport = airportService.getAirportById(id);
-        if (!Boolean.TRUE.equals(airport.getIsActive())) {
+        if (!airport.getIsActive()) {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok().build();

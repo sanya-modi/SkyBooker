@@ -403,9 +403,9 @@ public TicketLookupResponse getTicketByPnr(String pnr) {
     @Transactional(readOnly = true)
     public PlatformBookingsSummaryResponse getPlatformSummary() {
         try {
-            Long totalBookings = bookingRepository.countConfirmedBookings();
-            BigDecimal totalRevenue = bookingRepository.sumConfirmedRevenue();
-            Long totalPassengers = bookingRepository.sumConfirmedPassengers();
+            Long totalBookings = bookingRepository.countByStatus(Booking.BookingStatus.CONFIRMED);
+            BigDecimal totalRevenue = bookingRepository.sumRevenueByStatus(Booking.BookingStatus.CONFIRMED);
+            Long totalPassengers = bookingRepository.sumPassengersByStatus(Booking.BookingStatus.CONFIRMED);
             return new PlatformBookingsSummaryResponse(
                     totalBookings != null ? totalBookings : 0L,
                     totalRevenue != null ? totalRevenue : BigDecimal.ZERO,

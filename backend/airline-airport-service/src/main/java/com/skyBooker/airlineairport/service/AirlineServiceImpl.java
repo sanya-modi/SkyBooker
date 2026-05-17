@@ -1,6 +1,7 @@
 package com.skyBooker.airlineairport.service;
 
 import com.skyBooker.airlineairport.entity.Airline;
+import com.skyBooker.airlineairport.exception.ResourceNotFoundException;
 import com.skyBooker.airlineairport.repository.AirlineRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -24,7 +25,7 @@ public class AirlineServiceImpl implements AirlineService {
     @Transactional(readOnly = true)
     public Airline getAirlineById(Long id) {
         return airlineRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Airline not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Airline not found"));
     }
 
     @Override
