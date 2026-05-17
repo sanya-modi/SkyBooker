@@ -10,6 +10,9 @@ function fmt(amount: number) {
 function fmtTime(v: string) {
   return new Date(v).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false })
 }
+function fmtDate(v: string) {
+  return new Date(v).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+}
 function fmtDuration(dep: string, arr: string) {
   const ms = new Date(arr).getTime() - new Date(dep).getTime()
   return `${Math.floor(ms / 3600000)}h ${Math.floor((ms % 3600000) / 60000)}m`
@@ -135,6 +138,9 @@ export function FlightResultCard({
           <div className="flex-1 flex flex-col items-center gap-1 min-w-[70px]">
             <div className="flex items-center gap-1 text-slate-400 text-[10px] font-semibold">
               <Clock size={10} /> {dur}
+            </div>
+            <div className="text-[10px] font-semibold text-slate-500">
+              {fmtDate(flight.departureTime)}
             </div>
             <div className="w-full flex items-center gap-0">
               <div className="w-2 h-2 rounded-full border-2 border-[#1e3a8a] bg-white flex-shrink-0" />

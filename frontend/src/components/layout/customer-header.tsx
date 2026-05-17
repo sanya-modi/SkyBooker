@@ -96,7 +96,7 @@ export function CustomerHeader({
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="hidden md:flex gap-2 mr-4">
+          {/* <div className="hidden md:flex gap-2 mr-4">
             <button className="p-2 hover:bg-blue-50 transition-all rounded-full">
               <Globe className="w-5 h-5 text-slate-500" />
             </button>
@@ -107,7 +107,7 @@ export function CustomerHeader({
           <button className="p-2 rounded-full hover:bg-slate-50 transition-colors relative">
             <Bell className="w-5 h-5 text-[#00236f]" />
             <span className="absolute top-2 right-2 w-2 h-2 bg-green-500 rounded-full" />
-          </button>
+          </button> */}
           {isLoggedIn ? (
             <div className="flex items-center gap-4 relative">
               <button 

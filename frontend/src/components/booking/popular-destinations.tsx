@@ -24,7 +24,7 @@ function getCityImage(city: string, iataCode: string): string {
   } else if (cityLower.includes('pune') || iataCode === 'PNQ') {
     return 'https://images.unsplash.com/photo-1595658658481-d53d3f999875?w=800&h=600&fit=crop' // Pune City
   } else if (cityLower.includes('ahmedabad') || iataCode === 'AMD') {
-    return 'https://images.unsplash.com/photo-1643297654416-05795d62e39c?w=800&h=600&fit=crop' // Sabarmati Ashram
+    return 'https://images.unsplash.com/photo-1609947017136-9daf32a5eb16?w=800&h=600&fit=crop' // Ahmedabad cityscape / heritage
   } else if (cityLower.includes('jaipur') || iataCode === 'JAI') {
     return 'https://images.unsplash.com/photo-1599661046289-e31897846e41?w=800&h=600&fit=crop' // Hawa Mahal
   } else if (cityLower.includes('goa') || iataCode === 'GOI') {
